@@ -77,17 +77,24 @@ export default function CreatePostPage() {
     // Debug: Monitor flairs state changes
     useEffect(() => {
         const timestamp = new Date().toISOString();
-        console.log(`🔍 [${timestamp}] Flairs state changed for "${subreddit}":`, {
-            count: flairs.length,
-            flairNames: flairs.map(f => f.text),
-            subreddit: subreddit,
-            allFlairData: flairs
-        });
-        
+        console.log(
+            `🔍 [${timestamp}] Flairs state changed for "${subreddit}":`,
+            {
+                count: flairs.length,
+                flairNames: flairs.map((f) => f.text),
+                subreddit: subreddit,
+                allFlairData: flairs,
+            },
+        );
+
         if (flairs.length === 0 && subreddit) {
-            console.warn(`⚠️ [${timestamp}] No flairs found for r/${subreddit} - this might be expected if the subreddit doesn't use flairs`);
+            console.warn(
+                `⚠️ [${timestamp}] No flairs found for r/${subreddit} - this might be expected if the subreddit doesn't use flairs`,
+            );
         } else if (flairs.length > 0) {
-            console.log(`✅ [${timestamp}] Successfully loaded ${flairs.length} flairs for r/${subreddit}`);
+            console.log(
+                `✅ [${timestamp}] Successfully loaded ${flairs.length} flairs for r/${subreddit}`,
+            );
         }
     }, [flairs, subreddit]);
 
@@ -199,11 +206,19 @@ export default function CreatePostPage() {
                     await Promise.all([
                         redditAPI
                             .fetchSubredditFlairs(selectedSubreddit)
-                            .then(data => {
-                                console.log(`✅ Flair API response for r/${selectedSubreddit}:`, data);
-                                console.log(`📊 Number of flairs received: ${data.length}`);
+                            .then((data) => {
+                                console.log(
+                                    `✅ Flair API response for r/${selectedSubreddit}:`,
+                                    data,
+                                );
+                                console.log(
+                                    `📊 Number of flairs received: ${data.length}`,
+                                );
                                 if (data.length > 0) {
-                                    console.log(`🎯 First 3 flairs:`, data.slice(0, 3));
+                                    console.log(
+                                        `🎯 First 3 flairs:`,
+                                        data.slice(0, 3),
+                                    );
                                 }
                                 return data;
                             })
@@ -234,12 +249,15 @@ export default function CreatePostPage() {
                             }),
                     ]);
 
-                console.log(`📋 Final data summary for r/${selectedSubreddit}:`, {
-                    flairs: flairData.length,
-                    flairTexts: flairData.map(f => f.text),
-                    rules: rulesData.length,
-                    requirements: !!requirementsData,
-                });
+                console.log(
+                    `📋 Final data summary for r/${selectedSubreddit}:`,
+                    {
+                        flairs: flairData.length,
+                        flairTexts: flairData.map((f) => f.text),
+                        rules: rulesData.length,
+                        requirements: !!requirementsData,
+                    },
+                );
 
                 console.log(`🎨 Setting flairs state:`, flairData);
                 setFlairs(flairData);
@@ -250,7 +268,9 @@ export default function CreatePostPage() {
                     `Failed to fetch data for ${selectedSubreddit}:`,
                     err,
                 );
-                console.log(`❌ Clearing flairs due to fetch error for r/${selectedSubreddit}`);
+                console.log(
+                    `❌ Clearing flairs due to fetch error for r/${selectedSubreddit}`,
+                );
                 setFlairs([]); // Clear flairs if fetch fails
                 setRules([]);
                 setPostRequirements(null);
@@ -282,7 +302,9 @@ export default function CreatePostPage() {
         if (exactMatch && value.length > 0) {
             handleSubredditChange(exactMatch.display_name);
         } else {
-            console.log(`🧹 Clearing flairs in search change (no exact match for "${value}")`);
+            console.log(
+                `🧹 Clearing flairs in search change (no exact match for "${value}")`,
+            );
             setFlairs([]);
 
             // If search query is meaningful, search for more subreddits
