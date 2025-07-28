@@ -87,73 +87,171 @@ export async function GET(request: NextRequest) {
         for (const endpoint of endpoints) {
             try {
                 console.log(`Trying endpoint: ${endpoint}`);
-                
+
                 // Use different headers for public vs OAuth endpoints
-                const isPublicEndpoint = endpoint.includes('www.reddit.com');
+                const isPublicEndpoint = endpoint.includes("www.reddit.com");
                 const headers: Record<string, string> = {
                     "User-Agent": "reddit-unbanr/1.0",
                 };
-                
+
                 if (!isPublicEndpoint) {
                     headers.Authorization = `Bearer ${token}`;
                 }
 
                 const response = await fetch(endpoint, { headers });
 
-                console.log(`Response status for ${endpoint}:`, response.status);
-                
+                console.log(
+                    `Response status for ${endpoint}:`,
+                    response.status,
+                );
+
                 if (response.ok) {
                     const data = await response.json();
-                    console.log(`Raw data from ${endpoint}:`, JSON.stringify(data, null, 2));
+                    console.log(
+                        `Raw data from ${endpoint}:`,
+                        JSON.stringify(data, null, 2),
+                    );
 
                     // Handle public about.json endpoint differently
-                    if (isPublicEndpoint && endpoint.includes('/about.json')) {
+                    if (isPublicEndpoint && endpoint.includes("/about.json")) {
                         const subredditData = data.data;
-                        
+
                         if (subredditData?.link_flair_enabled) {
-                            console.log(`Flairs are enabled for r/${subreddit}, generating common flairs`);
-                            
+                            console.log(
+                                `Flairs are enabled for r/${subreddit}, generating common flairs`,
+                            );
+
                             // Generate common flairs based on what we see in the description
                             const commonFlairs = [];
-                            
+
                             // Look for common flair patterns in buildapc
-                            if (subreddit.toLowerCase() === 'buildapc') {
+                            if (subreddit.toLowerCase() === "buildapc") {
                                 commonFlairs.push(
-                                    { id: '1', text: 'Build Help', css_class: 'build-help', text_color: 'white', background_color: '#ff8c00' },
-                                    { id: '2', text: 'Build Ready', css_class: 'build-ready', text_color: 'white', background_color: '#4169e1' },
-                                    { id: '3', text: 'Build Complete', css_class: 'build-complete', text_color: 'white', background_color: '#32cd32' },
-                                    { id: '4', text: 'Build Upgrade', css_class: 'build-upgrade', text_color: 'black', background_color: '#ffd700' },
-                                    { id: '5', text: 'Troubleshooting', css_class: 'troubleshooting', text_color: 'white', background_color: '#dc143c' },
-                                    { id: '6', text: 'Solved!', css_class: 'solved', text_color: 'black', background_color: '#90ee90' },
-                                    { id: '7', text: 'Discussion', css_class: 'discussion', text_color: 'white', background_color: '#9370db' },
-                                    { id: '8', text: 'Peripherals', css_class: 'peripherals', text_color: 'white', background_color: '#f0a0a0' },
-                                    { id: '9', text: 'Miscellaneous', css_class: 'miscellaneous', text_color: 'black', background_color: '#d3d3d3' }
+                                    {
+                                        id: "1",
+                                        text: "Build Help",
+                                        css_class: "build-help",
+                                        text_color: "white",
+                                        background_color: "#ff8c00",
+                                    },
+                                    {
+                                        id: "2",
+                                        text: "Build Ready",
+                                        css_class: "build-ready",
+                                        text_color: "white",
+                                        background_color: "#4169e1",
+                                    },
+                                    {
+                                        id: "3",
+                                        text: "Build Complete",
+                                        css_class: "build-complete",
+                                        text_color: "white",
+                                        background_color: "#32cd32",
+                                    },
+                                    {
+                                        id: "4",
+                                        text: "Build Upgrade",
+                                        css_class: "build-upgrade",
+                                        text_color: "black",
+                                        background_color: "#ffd700",
+                                    },
+                                    {
+                                        id: "5",
+                                        text: "Troubleshooting",
+                                        css_class: "troubleshooting",
+                                        text_color: "white",
+                                        background_color: "#dc143c",
+                                    },
+                                    {
+                                        id: "6",
+                                        text: "Solved!",
+                                        css_class: "solved",
+                                        text_color: "black",
+                                        background_color: "#90ee90",
+                                    },
+                                    {
+                                        id: "7",
+                                        text: "Discussion",
+                                        css_class: "discussion",
+                                        text_color: "white",
+                                        background_color: "#9370db",
+                                    },
+                                    {
+                                        id: "8",
+                                        text: "Peripherals",
+                                        css_class: "peripherals",
+                                        text_color: "white",
+                                        background_color: "#f0a0a0",
+                                    },
+                                    {
+                                        id: "9",
+                                        text: "Miscellaneous",
+                                        css_class: "miscellaneous",
+                                        text_color: "black",
+                                        background_color: "#d3d3d3",
+                                    },
                                 );
                             } else {
                                 // Generic flairs for other subreddits that have flairs enabled
                                 commonFlairs.push(
-                                    { id: '1', text: 'Discussion', css_class: 'discussion', text_color: 'white', background_color: '#4169e1' },
-                                    { id: '2', text: 'Question', css_class: 'question', text_color: 'white', background_color: '#ff8c00' },
-                                    { id: '3', text: 'News', css_class: 'news', text_color: 'white', background_color: '#32cd32' },
-                                    { id: '4', text: 'Meta', css_class: 'meta', text_color: 'white', background_color: '#9370db' }
+                                    {
+                                        id: "1",
+                                        text: "Discussion",
+                                        css_class: "discussion",
+                                        text_color: "white",
+                                        background_color: "#4169e1",
+                                    },
+                                    {
+                                        id: "2",
+                                        text: "Question",
+                                        css_class: "question",
+                                        text_color: "white",
+                                        background_color: "#ff8c00",
+                                    },
+                                    {
+                                        id: "3",
+                                        text: "News",
+                                        css_class: "news",
+                                        text_color: "white",
+                                        background_color: "#32cd32",
+                                    },
+                                    {
+                                        id: "4",
+                                        text: "Meta",
+                                        css_class: "meta",
+                                        text_color: "white",
+                                        background_color: "#9370db",
+                                    },
                                 );
                             }
-                            
+
                             if (commonFlairs.length > 0) {
                                 flairs = commonFlairs;
-                                console.log(`Generated ${flairs.length} common flairs for r/${subreddit}`);
+                                console.log(
+                                    `Generated ${flairs.length} common flairs for r/${subreddit}`,
+                                );
                                 break;
                             }
                         } else {
-                            console.log(`Flairs are not enabled for r/${subreddit}`);
+                            console.log(
+                                `Flairs are not enabled for r/${subreddit}`,
+                            );
                         }
                         continue;
                     }
 
                     // Check for USER_REQUIRED error in OAuth endpoints
-                    if (data.json?.errors?.some((error: any[]) => error[0] === "USER_REQUIRED")) {
-                        console.log(`User authentication required for ${endpoint}`);
-                        errors.push(`${endpoint}: Requires user authentication`);
+                    if (
+                        data.json?.errors?.some(
+                            (error: any[]) => error[0] === "USER_REQUIRED",
+                        )
+                    ) {
+                        console.log(
+                            `User authentication required for ${endpoint}`,
+                        );
+                        errors.push(
+                            `${endpoint}: Requires user authentication`,
+                        );
                         continue;
                     }
 
