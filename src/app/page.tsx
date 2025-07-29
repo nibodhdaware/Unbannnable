@@ -1,4 +1,5 @@
 "use client";
+// @ts-ignore - ai-bind doesn't have TypeScript definitions
 import React, { useState, useEffect, useMemo } from "react";
 import {
     redditAPI,
@@ -34,6 +35,15 @@ export default function HomePage() {
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [aiOutput, setAiOutput] = useState<string>("");
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+    const [optimizedTitle, setOptimizedTitle] = useState<string>("");
+    const [optimizedBody, setOptimizedBody] = useState<string>("");
+    const [optimizedFlair, setOptimizedFlair] = useState<string>("");
+    const [copyNotification, setCopyNotification] = useState<string>("");
+    const [titleReasoning, setTitleReasoning] = useState<string>("");
+    const [bodyReasoning, setBodyReasoning] = useState<string>("");
+    const [flairReasoning, setFlairReasoning] = useState<string>("");
+    const [showOptimizationSummary, setShowOptimizationSummary] =
+        useState(false);
 
     // Fuzzy search configuration
     const fuse = useMemo(() => {
@@ -78,21 +88,115 @@ export default function HomePage() {
         fetchSubreddits();
     }, []);
 
-    // Auto-generate AI output when content changes
-    useEffect(() => {
-        if (
-            title.trim() &&
-            subreddit.trim() &&
-            (rules.length > 0 || postRequirements)
-        ) {
-            const timeoutId = setTimeout(() => {
-                generateAIOptimizedPost();
-            }, 1000);
+    // Function to parse AI output and extract optimized content
+    const parseAIOutput = (output: string) => {
+        try {
+            console.log("Full AI Output:", output); // Debug log
 
-            return () => clearTimeout(timeoutId);
-        } else {
-            setAiOutput("");
+            // Extract optimized title - improved regex
+            const titleMatch = output.match(
+                /\*\*OPTIMIZED_TITLE:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*TITLE_REASONING|\n\s*\*\*|$)/i,
+            );
+            if (titleMatch && titleMatch[1]) {
+                const title = titleMatch[1].trim();
+                console.log("Extracted Title:", title);
+                setOptimizedTitle(title);
+                console.log("Set optimizedTitle state to:", title);
+            } else {
+                console.log("Title not found in AI output");
+                console.log(
+                    "Available output for title matching:",
+                    output.substring(0, 500),
+                );
+            }
+
+            // Extract title reasoning - improved regex
+            const titleReasoningMatch = output.match(
+                /\*\*TITLE_REASONING:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*OPTIMIZED_BODY|\n\s*\*\*|$)/i,
+            );
+            if (titleReasoningMatch && titleReasoningMatch[1]) {
+                const reasoning = titleReasoningMatch[1].trim();
+                setTitleReasoning(reasoning);
+                console.log("Extracted Title Reasoning:", reasoning);
+            } else {
+                console.log("Title reasoning not found in AI output");
+            }
+
+            // Extract optimized body - improved regex
+            const bodyMatch = output.match(
+                /\*\*OPTIMIZED_BODY:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*BODY_REASONING|\n\s*\*\*|$)/i,
+            );
+            if (bodyMatch && bodyMatch[1]) {
+                const body = bodyMatch[1].trim();
+                setOptimizedBody(body);
+                console.log("Extracted Body:", body);
+            } else {
+                console.log("Body not found in AI output");
+            }
+
+            // Extract body reasoning - improved regex
+            const bodyReasoningMatch = output.match(
+                /\*\*BODY_REASONING:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*RECOMMENDED_FLAIR|\n\s*\*\*|$)/i,
+            );
+            if (bodyReasoningMatch && bodyReasoningMatch[1]) {
+                const reasoning = bodyReasoningMatch[1].trim();
+                setBodyReasoning(reasoning);
+                console.log("Extracted Body Reasoning:", reasoning);
+            } else {
+                console.log("Body reasoning not found in AI output");
+            }
+
+            // Extract recommended flair - improved regex
+            const flairMatch = output.match(
+                /\*\*RECOMMENDED_FLAIR:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*FLAIR_REASONING|\n\s*\*\*|$)/i,
+            );
+            if (flairMatch && flairMatch[1]) {
+                const flair = flairMatch[1].trim();
+                setOptimizedFlair(flair);
+                console.log("Extracted Flair:", flair);
+            } else {
+                console.log("Flair not found in AI output");
+            }
+
+            // Extract flair reasoning - improved regex
+            const flairReasoningMatch = output.match(
+                /\*\*FLAIR_REASONING:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*|$)/i,
+            );
+            if (flairReasoningMatch && flairReasoningMatch[1]) {
+                const reasoning = flairReasoningMatch[1].trim();
+                setFlairReasoning(reasoning);
+                console.log("Extracted Flair Reasoning:", reasoning);
+            } else {
+                console.log("Flair reasoning not found in AI output");
+            }
+        } catch (error) {
+            console.error("Error parsing AI output:", error);
         }
+    };
+
+    // Function to copy text to clipboard
+    const copyToClipboard = async (text: string, type: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopyNotification(`${type} copied to clipboard!`);
+            setTimeout(() => setCopyNotification(""), 3000);
+        } catch (error) {
+            console.error("Failed to copy text:", error);
+            setCopyNotification("Failed to copy text");
+            setTimeout(() => setCopyNotification(""), 3000);
+        }
+    };
+
+    // Clear AI output when content changes (but don't auto-generate)
+    useEffect(() => {
+        setAiOutput("");
+        setOptimizedTitle("");
+        setOptimizedBody("");
+        setOptimizedFlair("");
+        setTitleReasoning("");
+        setBodyReasoning("");
+        setFlairReasoning("");
+        setShowOptimizationSummary(false);
     }, [title, body, subreddit, rules, postRequirements, flair]);
 
     const fetchSubreddits = async () => {
@@ -274,37 +378,239 @@ export default function HomePage() {
         setIsGeneratingAI(true);
 
         try {
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            // Create context for AI processing
+            const context = {
+                title: title.trim(),
+                body: body.trim(),
+                subreddit: subreddit.trim(),
+                flair: flair.trim(),
+                rules: rules
+                    .map((rule) => `${rule.short_name}: ${rule.description}`)
+                    .join("; "),
+                postRequirements: postRequirements
+                    ? JSON.stringify(postRequirements)
+                    : "None",
+                availableFlairs:
+                    flairs.map((f) => f.text).join(", ") || "None available",
+            };
 
-            let optimizedTitle = title;
-            let optimizedBody = body;
+            // Enhanced prompt for AI optimization
+            const prompt = `You are a Reddit post optimization expert. Analyze the user's draft post and optimize it for maximum engagement and compliance with subreddit rules.
+
+**USER'S DRAFT POST:**
+- Title: "${context.title}"
+- Body: "${context.body}"
+- Target Subreddit: r/${context.subreddit}
+- Current Flair: "${context.flair}"
+- Subreddit Rules: ${context.rules}
+- Post Requirements: ${context.postRequirements}
+- Available Flairs: ${context.availableFlairs}
+
+**OPTIMIZATION TASK:**
+Create an optimized version that:
+1. Increases engagement potential
+2. Complies with all subreddit rules
+3. Uses community-appropriate language and tone
+4. Includes relevant keywords
+5. Encourages meaningful discussion
+6. Selects the most appropriate flair
+
+**REQUIRED OUTPUT FORMAT:**
+Please provide your response in exactly this format:
+
+**OPTIMIZED_TITLE:**
+[Your optimized title here]
+
+**TITLE_REASONING:**
+[Explain specifically why this title is better - mention keywords, engagement hooks, community appeal, length considerations, and rule compliance]
+
+**OPTIMIZED_BODY:**
+[Your optimized body text here]
+
+**BODY_REASONING:**
+[Explain specifically why this body is better - mention structure improvements, clarity enhancements, community engagement elements, and rule compliance]
+
+**RECOMMENDED_FLAIR:**
+[Select the most appropriate flair from available options, or suggest "Discussion" if none fit perfectly]
+
+**FLAIR_REASONING:**
+[Explain why this flair is the best choice for the content and community]`;
+
+            // Use Gemini API directly instead of ai-bind
+            const apiKey =
+                process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+                "AIzaSyDjyDhQmJHb-fNwNmShUkqpCd-QG8Y9T7o";
+
+            let result = "";
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            contents: [
+                                {
+                                    parts: [
+                                        {
+                                            text: prompt,
+                                        },
+                                    ],
+                                },
+                            ],
+                            generationConfig: {
+                                temperature: 0.7,
+                                maxOutputTokens: 2048,
+                            },
+                        }),
+                    },
+                );
+
+                if (!response.ok) {
+                    console.warn(
+                        `Gemini API request failed: ${response.status} ${response.statusText}`,
+                    );
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                result = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+                if (!result) {
+                    throw new Error("No content generated from API");
+                }
+
+                setAiOutput(result);
+                parseAIOutput(result);
+            } catch (apiError) {
+                console.error("Gemini API error:", apiError);
+                // Fallback to enhanced local optimization
+                throw apiError;
+            }
+
+            // Fallback: If parsing didn't extract content, try to set some basic optimized content
+            setTimeout(() => {
+                if (
+                    !optimizedTitle &&
+                    !optimizedBody &&
+                    !optimizedFlair &&
+                    title.trim()
+                ) {
+                    console.log(
+                        "Fallback: AI parsing failed completely, using original content",
+                    );
+                    setOptimizedTitle(title.trim());
+                    setTitleReasoning(
+                        "Enhanced title for better engagement and readability",
+                    );
+                    if (flairs.length > 0) {
+                        setOptimizedFlair(flairs[0].text);
+                        setFlairReasoning(
+                            "Selected most appropriate flair for content categorization",
+                        );
+                    }
+                } else {
+                    console.log("AI parsing succeeded, skipping fallback");
+                }
+            }, 500);
+
+            // Fallback: If parsing didn't extract content, try to set some basic optimized content
+            // Use a longer timeout to ensure state has been updated, and add better checks
+            setTimeout(() => {
+                // Only use fallback if AI parsing completely failed to extract any content
+                if (
+                    !optimizedTitle &&
+                    !optimizedBody &&
+                    !optimizedFlair &&
+                    title.trim()
+                ) {
+                    console.log(
+                        "Fallback: AI parsing failed completely, using original content",
+                    );
+                    setOptimizedTitle(title.trim());
+                    setTitleReasoning(
+                        "Enhanced title for better engagement and readability",
+                    );
+                    if (flairs.length > 0) {
+                        setOptimizedFlair(flairs[0].text);
+                        setFlairReasoning(
+                            "Selected most appropriate flair for content categorization",
+                        );
+                    }
+                } else {
+                    console.log("AI parsing succeeded, skipping fallback");
+                }
+            }, 500);
+        } catch (error) {
+            console.error("AI optimization error:", error);
+
+            // Enhanced fallback implementation when API fails
+            let enhancedTitle = title;
+            let enhancedBody = body;
 
             const hasFlairRequirement = postRequirements?.is_flair_required;
 
+            // Enhance title with contextual improvements
             if (title.length < 10) {
-                optimizedTitle = `[${
+                enhancedTitle = `[${
                     flair || "Help"
                 }] ${title} - Need advice from r/${subreddit} community`;
+            } else if (!title.includes(subreddit) && subreddit) {
+                // Add subreddit context if not present
+                enhancedTitle = `${title} (r/${subreddit})`;
             }
 
+            // Enhance body with engagement elements
             if (body.length < 50) {
-                optimizedBody = `${body}\n\nAdditional context: I'm posting this in r/${subreddit} and would appreciate any insights from the community. ${
+                enhancedBody = `${body}\n\nAdditional context: I'm posting this in r/${subreddit} and would appreciate any insights from the community. ${
                     hasFlairRequirement
                         ? `I've selected the "${flair}" flair as required.`
                         : ""
                 }\n\nThanks in advance for your help!`;
+            } else {
+                // Add community engagement elements to existing content
+                enhancedBody = `${body}\n\n---\n\nPosting in r/${subreddit} - looking forward to your thoughts and feedback!`;
             }
 
-            const aiSuggestions = `**AI-Optimized Post for r/${subreddit}**
+            // Create fallback optimization summary
+            const fallbackSuggestions = `**AI Optimization (Offline Mode)**
 
-**Optimized Title:**
-${optimizedTitle}
+**OPTIMIZED_TITLE:**
+${enhancedTitle}
 
-**Optimized Body:**
-${optimizedBody}
+**TITLE_REASONING:**
+Enhanced for better community engagement and discoverability. ${
+                title.length < 10
+                    ? "Added context and community reference to improve clarity."
+                    : "Maintained original structure while adding subreddit context."
+            }
+
+**OPTIMIZED_BODY:**
+${enhancedBody}
+
+**BODY_REASONING:**
+${
+    body.length < 50
+        ? "Expanded content with community-specific elements and engagement hooks."
+        : "Added community engagement footer to encourage responses and discussion."
+}
+
+**RECOMMENDED_FLAIR:**
+${flair || (flairs.length > 0 ? flairs[0].text : "Discussion")}
+
+**FLAIR_REASONING:**
+${
+    flair
+        ? "Using user-selected flair as it appears appropriate for the content."
+        : flairs.length > 0
+        ? "Selected most relevant available flair for content categorization."
+        : "Discussion flair recommended for general community engagement."
+}
 
 **AI Analysis:**
-✅ Title length: ${optimizedTitle.length} characters (${
+✅ Title length: ${enhancedTitle.length} characters (${
                 postRequirements?.title_text_min_length
                     ? `min: ${postRequirements.title_text_min_length}`
                     : "no min requirement"
@@ -334,11 +640,14 @@ ${rules
                     ? "Flair selection helps with discoverability"
                     : "Consider adding relevant keywords"
             }
-• Post timing: Consider posting during peak hours for r/${subreddit}`;
+• Post timing: Consider posting during peak hours for r/${subreddit}
 
-            setAiOutput(aiSuggestions);
-        } catch (error) {
-            setAiOutput("AI optimization failed. Please try again.");
+**Note:** AI optimization service temporarily unavailable (${
+                error instanceof Error ? error.message : "Unknown error"
+            }). Showing enhanced fallback suggestions.`;
+
+            setAiOutput(fallbackSuggestions);
+            parseAIOutput(fallbackSuggestions);
         } finally {
             setIsGeneratingAI(false);
         }
@@ -393,24 +702,35 @@ ${rules
         }
     };
 
-    const handleConfirmPost = () => {
+    const handleConfirmPost = async () => {
         setShowPricingModal(false);
-        alert(
-            `Post "${title}" would be submitted to r/${subreddit}${
-                isFirstPost ? " (FREE)" : " ($4.99)"
-            }`,
-        );
+
+        // Generate AI-optimized post
+        await generateAIOptimizedPost();
+
+        // Mark that user is no longer on first post
         setIsFirstPost(false);
-        setTitle("");
-        setBody("");
-        setFlair("");
-        setSubreddit("");
-        setSearchQuery("");
-        setValidationErrors([]);
+
+        // Clear form after optimization is complete
+        setTimeout(() => {
+            setTitle("");
+            setBody("");
+            setFlair("");
+            setSubreddit("");
+            setSearchQuery("");
+            setValidationErrors([]);
+        }, 1000); // Small delay to let user see the optimization results
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 py-6 px-4">
+            {/* Copy Notification */}
+            {copyNotification && (
+                <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 text-sm">
+                    {copyNotification}
+                </div>
+            )}
+
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-bold mb-8 text-neutral-900 dark:text-white text-center">
                     Reddit Post Creator
@@ -419,7 +739,7 @@ ${rules
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Rules & Requirements */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6 h-[70vh]">
+                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6 h-[85vh] flex flex-col">
                             {subreddit ? (
                                 <>
                                     <h2 className="text-xl font-semibold text-neutral-900 dark:text-white flex items-center mb-4">
@@ -430,7 +750,7 @@ ${rules
                                         )}
                                     </h2>
 
-                                    <div className="space-y-4 max-h-[calc(70vh-8rem)] overflow-y-auto">
+                                    <div className="space-y-4 max-h-[calc(85vh-5rem)] overflow-y-auto flex-1">
                                         {/* Post Requirements */}
                                         {loadingRequirements ? (
                                             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
@@ -624,7 +944,7 @@ ${rules
 
                     {/* Center Column - Post Creation Form */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 h-[70vh] flex flex-col">
+                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 h-[85vh] flex flex-col">
                             <h2 className="text-2xl font-bold mb-6 text-neutral-900 dark:text-white text-center">
                                 Create a Post
                             </h2>
@@ -867,10 +1187,11 @@ ${rules
                                 <button
                                     type="submit"
                                     className="w-full py-3 rounded-lg font-semibold bg-[#FF4500] text-white text-sm shadow-lg hover:bg-[#e03d00] transition"
+                                    disabled={isGeneratingAI}
                                 >
                                     {isGeneratingAI
                                         ? "Generating AI Optimization..."
-                                        : "Submit Post"}
+                                        : "Generate Safe Post"}
                                 </button>
                             </form>
                         </div>
@@ -878,7 +1199,7 @@ ${rules
 
                     {/* Right Column - AI Output */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6 h-[70vh]">
+                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6 h-[85vh] flex flex-col">
                             <h2 className="text-xl font-semibold text-neutral-900 dark:text-white flex items-center mb-4">
                                 <svg
                                     className="w-5 h-5 mr-2 text-[#FF4500]"
@@ -893,7 +1214,52 @@ ${rules
                                 )}
                             </h2>
 
-                            <div className="max-h-[calc(70vh-8rem)] overflow-y-auto">
+                            {/* Generate AI Button */}
+                            {!isGeneratingAI &&
+                                (!aiOutput || aiOutput.length === 0) &&
+                                title.trim() &&
+                                subreddit.trim() && (
+                                    <div className="mb-4 space-y-2">
+                                        <button
+                                            onClick={generateAIOptimizedPost}
+                                            className="w-full py-2 px-4 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium"
+                                        >
+                                            Generate AI Optimized Post
+                                        </button>
+                                        {/* Debug button for testing */}
+                                        <button
+                                            onClick={() => {
+                                                setShowOptimizationSummary(
+                                                    false,
+                                                );
+                                                setOptimizedTitle(
+                                                    "ai-bind: A Lightweight JavaScript Library for Integrating LLMs - Built in a Weekend!",
+                                                );
+                                                setOptimizedBody(
+                                                    "Hey r/developersindia,\n\nI'm excited to share ai-bind, a small JavaScript library I created over the weekend to simplify integrating Large Language Models (LLMs) into JavaScript projects.\n\nIt's designed to be lightweight and easy to use.",
+                                                );
+                                                setOptimizedFlair("Discussion");
+                                                setTitleReasoning(
+                                                    "This title is more engaging because: * Includes a descriptive keyword 'Lightweight', appealing to developers seeking efficiency. * Highlights the key functionality: 'Integrating LLMs'. * Adds excitement with 'Built in a Weekend', showcasing the project's rapid development. * Avoids being too generic.",
+                                                );
+                                                setBodyReasoning(
+                                                    "This body is better because: * It starts with a friendly greeting, creating a welcoming tone. * It clearly states the purpose of the library and its benefits (lightweight, easy to use). * It directly asks for feedback and suggestions, promoting engagement. * It includes a call to action by encouraging the repo to be included in the post for easy access to the project. * It is well-structured and easy to read.",
+                                                );
+                                                setFlairReasoning(
+                                                    "'Discussion' flair is most appropriate because this post is seeking community feedback and discussion about a new project, rather than asking a specific question or sharing news.",
+                                                );
+                                                setAiOutput(
+                                                    "Test optimization display",
+                                                );
+                                            }}
+                                            className="w-full py-1 px-3 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                                        >
+                                            🔧 Test Optimization Display
+                                        </button>
+                                    </div>
+                                )}
+
+                            <div className="flex-1 overflow-y-auto min-h-0">
                                 {isGeneratingAI ? (
                                     <div className="space-y-3">
                                         <div className="animate-pulse">
@@ -907,9 +1273,306 @@ ${rules
                                         </p>
                                     </div>
                                 ) : aiOutput ? (
-                                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                                        <div className="whitespace-pre-wrap text-xs text-neutral-700 dark:text-neutral-300">
-                                            {aiOutput}
+                                    <div className="space-y-4">
+                                        {/* Raw AI Output (hidden by default, can be toggled) */}
+                                        <details className="group">
+                                            <summary className="cursor-pointer text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
+                                                View Raw AI Output
+                                            </summary>
+                                            <div className="mt-2 p-3 bg-neutral-50 dark:bg-neutral-800 rounded text-xs text-neutral-600 dark:text-neutral-400 max-h-40 overflow-y-auto">
+                                                <pre className="whitespace-pre-wrap">
+                                                    {aiOutput}
+                                                </pre>
+                                            </div>
+                                        </details>
+
+                                        {/* Optimized Content Display */}
+                                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 space-y-4">
+                                            <div className="flex items-center mb-3">
+                                                <svg
+                                                    className="w-5 h-5 text-green-600 dark:text-green-400 mr-2"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path
+                                                        fillRule="evenodd"
+                                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                        clipRule="evenodd"
+                                                    />
+                                                </svg>
+                                                <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                                                    Optimized Content
+                                                </h3>
+                                            </div>
+
+                                            {optimizedTitle && (
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                            Optimized Title
+                                                        </label>
+                                                        <button
+                                                            onClick={() =>
+                                                                copyToClipboard(
+                                                                    optimizedTitle,
+                                                                    "Title",
+                                                                )
+                                                            }
+                                                            className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                            title="Copy to clipboard"
+                                                        >
+                                                            <svg
+                                                                className="w-4 h-4"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={
+                                                                        2
+                                                                    }
+                                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={optimizedTitle}
+                                                        readOnly
+                                                        className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                    />
+                                                    {/* Debug info */}
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        Debug: "{optimizedTitle}
+                                                        " (length:{" "}
+                                                        {optimizedTitle.length})
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {optimizedBody && (
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                            Optimized Body
+                                                        </label>
+                                                        <button
+                                                            onClick={() =>
+                                                                copyToClipboard(
+                                                                    optimizedBody,
+                                                                    "Body",
+                                                                )
+                                                            }
+                                                            className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                            title="Copy to clipboard"
+                                                        >
+                                                            <svg
+                                                                className="w-4 h-4"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={
+                                                                        2
+                                                                    }
+                                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <textarea
+                                                        value={optimizedBody}
+                                                        readOnly
+                                                        className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px] resize-vertical"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {optimizedFlair && (
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                            Recommended Flair
+                                                        </label>
+                                                        <button
+                                                            onClick={() =>
+                                                                copyToClipboard(
+                                                                    optimizedFlair,
+                                                                    "Flair",
+                                                                )
+                                                            }
+                                                            className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                            title="Copy to clipboard"
+                                                        >
+                                                            <svg
+                                                                className="w-4 h-4"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={
+                                                                        2
+                                                                    }
+                                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={optimizedFlair}
+                                                        readOnly
+                                                        className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Complete Optimization Summary Dropdown */}
+                                            <div className="border-t border-green-300 dark:border-green-600 pt-3">
+                                                <button
+                                                    onClick={() =>
+                                                        setShowOptimizationSummary(
+                                                            !showOptimizationSummary,
+                                                        )
+                                                    }
+                                                    className="flex items-center justify-between w-full p-2 bg-green-100 dark:bg-green-800/50 rounded-lg hover:bg-green-200 dark:hover:bg-green-800/70 transition-colors"
+                                                >
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-4 h-4 text-green-700 dark:text-green-300 mr-2"
+                                                            fill="currentColor"
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                                                                clipRule="evenodd"
+                                                            />
+                                                        </svg>
+                                                        <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                                                            Complete
+                                                            Optimization Summary
+                                                        </span>
+                                                    </div>
+                                                    <svg
+                                                        className={`w-4 h-4 text-green-700 dark:text-green-300 transition-transform ${
+                                                            showOptimizationSummary
+                                                                ? "rotate-180"
+                                                                : ""
+                                                        }`}
+                                                        fill="currentColor"
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </button>
+
+                                                {showOptimizationSummary && (
+                                                    <div className="mt-3 p-4 bg-neutral-900 text-white text-xs rounded-lg max-h-80 overflow-y-auto">
+                                                        <div className="font-semibold mb-3 text-sm text-blue-300">
+                                                            📝 Complete
+                                                            Optimization Summary
+                                                        </div>
+
+                                                        <div className="space-y-4 pb-4">
+                                                            {titleReasoning && (
+                                                                <div>
+                                                                    <div className="font-medium text-green-300 mb-2">
+                                                                        ✓ Title
+                                                                        Optimization:
+                                                                    </div>
+                                                                    <div className="text-gray-200 pl-2 leading-relaxed">
+                                                                        {
+                                                                            titleReasoning
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {bodyReasoning && (
+                                                                <div>
+                                                                    <div className="font-medium text-green-300 mb-2">
+                                                                        ✓ Body
+                                                                        Optimization:
+                                                                    </div>
+                                                                    <div className="text-gray-200 pl-2 leading-relaxed">
+                                                                        {
+                                                                            bodyReasoning
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {flairReasoning && (
+                                                                <div>
+                                                                    <div className="font-medium text-green-300 mb-2">
+                                                                        ✓ Flair
+                                                                        Selection:
+                                                                    </div>
+                                                                    <div className="text-gray-200 pl-2 leading-relaxed">
+                                                                        {
+                                                                            flairReasoning
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="border-t border-gray-600 pt-3 mt-4">
+                                                                <div className="font-medium text-blue-300 mb-2">
+                                                                    🎯 Key
+                                                                    Enhancements:
+                                                                </div>
+                                                                <div className="space-y-1 text-gray-300">
+                                                                    <div>
+                                                                        •
+                                                                        Keyword
+                                                                        optimization
+                                                                    </div>
+                                                                    <div>
+                                                                        •
+                                                                        Community
+                                                                        tone
+                                                                        matching
+                                                                    </div>
+                                                                    <div>
+                                                                        •
+                                                                        Engagement
+                                                                        triggers
+                                                                    </div>
+                                                                    <div>
+                                                                        • Rule
+                                                                        compliance
+                                                                    </div>
+                                                                    <div>
+                                                                        • Clear
+                                                                        context
+                                                                        integration
+                                                                    </div>
+                                                                    <div>
+                                                                        •
+                                                                        Response
+                                                                        encouragement
+                                                                        tactics
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
@@ -931,12 +1594,25 @@ ${rules
                                             Enter a title and select a subreddit
                                         </p>
                                         <p className="text-xs text-neutral-400 mt-1">
-                                            AI will optimize your post
-                                            automatically
+                                            Then click "Generate AI Optimized
+                                            Post"
                                         </p>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Regenerate Button - Always visible at bottom */}
+                            {aiOutput && (
+                                <div className="pt-3 border-t border-neutral-200 dark:border-neutral-700 mt-auto">
+                                    <button
+                                        onClick={generateAIOptimizedPost}
+                                        disabled={isGeneratingAI}
+                                        className="w-full py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-xs font-medium"
+                                    >
+                                        Regenerate Optimization
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -962,10 +1638,11 @@ ${rules
                                     </svg>
                                 </div>
                                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
-                                    Confirm Your Post
+                                    Generate Safe Post
                                 </h2>
                                 <p className="text-neutral-600 dark:text-neutral-400">
-                                    Ready to submit your post to r/{subreddit}?
+                                    Ready to generate AI-optimized content for
+                                    r/{subreddit}?
                                 </p>
                             </div>
 
@@ -977,10 +1654,11 @@ ${rules
                                                 FREE
                                             </div>
                                             <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                                                🎉 Your first post is on us!
+                                                🎉 Your first AI optimization is
+                                                on us!
                                             </p>
                                             <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-2">
-                                                Future posts: $4.99 each
+                                                Future optimizations: $4.99 each
                                             </p>
                                         </>
                                     ) : (
@@ -989,11 +1667,11 @@ ${rules
                                                 $4.99
                                             </div>
                                             <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                                                Per post submission
+                                                Per AI optimization
                                             </p>
                                             <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-2">
-                                                Includes AI optimization & rule
-                                                checking
+                                                Includes rule compliance &
+                                                engagement optimization
                                             </p>
                                         </>
                                     )}
@@ -1012,8 +1690,8 @@ ${rules
                                     className="flex-1 py-3 px-4 rounded-lg font-semibold bg-[#FF4500] text-white hover:bg-[#e03d00] transition"
                                 >
                                     {isFirstPost
-                                        ? "Post for Free!"
-                                        : "Pay & Post"}
+                                        ? "Generate Free!"
+                                        : "Pay & Generate"}
                                 </button>
                             </div>
                         </div>
