@@ -1,0 +1,103 @@
+import { NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+// Free tier limits
+const FREE_POSTS_PER_MONTH = 5;
+
+export async function GET() {
+    try {
+        const user = await currentUser();
+        if (!user) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 },
+            );
+        }
+
+        // Check if user is admin using Convex
+        const adminStatus = await convex.query(api.users.isAdmin, {
+            clerkId: user.id,
+        });
+
+        if (adminStatus) {
+            return NextResponse.json({
+                hasSubscription: true,
+                postsRemaining: -1, // Unlimited for admin
+                unlimited: true,
+                isAdmin: true,
+            });
+        }
+
+        // Ensure user exists in Convex database
+        await convex.mutation(api.users.createOrUpdateUser, {
+            clerkId: user.id,
+            fullName: user.fullName || undefined,
+            email: user.emailAddresses[0]?.emailAddress || "",
+            isAdmin:
+                user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com",
+        });
+
+        // Get user from Convex
+        const userRecord = await convex.query(api.users.getUserByClerkId, {
+            clerkId: user.id,
+        });
+
+        if (!userRecord) {
+            // User not in database yet, give them free posts
+            return NextResponse.json({
+                hasSubscription: false,
+                postsRemaining: FREE_POSTS_PER_MONTH,
+                unlimited: false,
+                isAdmin: false,
+            });
+        }
+
+        // Check for active subscription (payments this month)
+        const activePayments = await convex.query(
+            api.payments.getActivePaymentsThisMonth,
+            {
+                userId: userRecord._id,
+            },
+        );
+
+        if (activePayments.length > 0) {
+            return NextResponse.json({
+                hasSubscription: true,
+                postsRemaining: -1, // Unlimited with subscription
+                unlimited: true,
+                isAdmin: false,
+            });
+        }
+
+        // For non-admin users without subscription, check post limits
+        const postsThisMonth = await convex.query(
+            api.posts.getPostsCountThisMonth,
+            {
+                userId: userRecord._id,
+            },
+        );
+
+        const postsRemaining = Math.max(
+            0,
+            FREE_POSTS_PER_MONTH - postsThisMonth,
+        );
+
+        return NextResponse.json({
+            hasSubscription: false,
+            postsRemaining,
+            unlimited: false,
+            isAdmin: false,
+            postsUsed: postsThisMonth,
+        });
+    } catch (error) {
+        console.error("Error checking post limits:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 },
+        );
+    }
+}

@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { users } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
 
-const sql = postgres(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
     try {
-        const { clerkId, email, fullName, username } = await req.json();
+        const { clerkId, email, fullName } = await req.json();
 
         if (!clerkId || !email) {
             return NextResponse.json(
@@ -18,44 +15,31 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Check if user already exists
-        const existingUser = await db
-            .select()
-            .from(users)
-            .where(eq(users.clerkId, clerkId))
-            .limit(1);
+        console.log("Syncing user to Convex:", { clerkId, email, fullName });
 
-        const userData = {
+        // Create or update user in Convex
+        const userId = await convex.mutation(api.users.createOrUpdateUser, {
             clerkId,
             email,
-            fullName: fullName || null,
-            username: username || null,
-            updatedAt: new Date(),
-        };
+            fullName: fullName || undefined,
+            isAdmin: email === "nibod1248@gmail.com",
+        });
 
-        if (existingUser.length > 0) {
-            // Update existing user
-            await db
-                .update(users)
-                .set(userData)
-                .where(eq(users.clerkId, clerkId));
+        console.log("User synced successfully in Convex:", { clerkId, userId });
 
-            console.log("User updated in database:", clerkId);
-        } else {
-            // Insert new user
-            await db.insert(users).values({
-                ...userData,
-                createdAt: new Date(),
-            });
-
-            console.log("User created in database:", clerkId);
-        }
-
-        return NextResponse.json({ success: true });
+        return NextResponse.json({
+            success: true,
+            userId,
+            isAdmin: email === "nibod1248@gmail.com",
+        });
     } catch (error) {
-        console.error("Database error:", error);
+        console.error("Convex sync error details:", error);
         return NextResponse.json(
-            { error: "Internal server error" },
+            {
+                error: "Internal server error",
+                details:
+                    error instanceof Error ? error.message : "Unknown error",
+            },
             { status: 500 },
         );
     }

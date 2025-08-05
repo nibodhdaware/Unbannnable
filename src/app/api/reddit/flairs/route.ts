@@ -22,11 +22,13 @@ async function getAccessToken(): Promise<string> {
         return accessToken;
     }
 
-    const clientId = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID;
-    const clientSecret = process.env.NEXT_PUBLIC_REDDIT_CLIENT_SECRET;
+    const clientId = process.env.REDDIT_CLIENT_ID;
+    const clientSecret = process.env.REDDIT_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        throw new Error("Reddit API credentials not found");
+        throw new Error(
+            "Reddit API credentials not configured. Please add REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET to your environment variables.",
+        );
     }
 
     const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
@@ -65,6 +67,43 @@ export async function GET(request: NextRequest) {
                 { error: "Subreddit parameter is required" },
                 { status: 400 },
             );
+        }
+
+        // Check if Reddit credentials are configured
+        if (
+            !process.env.REDDIT_CLIENT_ID ||
+            !process.env.REDDIT_CLIENT_SECRET
+        ) {
+            console.log(
+                "Development mode: No Reddit API credentials, returning mock flairs",
+            );
+
+            // Return mock flairs for development
+            const mockFlairs = [
+                {
+                    id: "mock_flair_1",
+                    text: "Discussion",
+                    css_class: "discussion",
+                    text_color: "light",
+                    background_color: "#0079d3",
+                },
+                {
+                    id: "mock_flair_2",
+                    text: "Question",
+                    css_class: "question",
+                    text_color: "dark",
+                    background_color: "#46d160",
+                },
+                {
+                    id: "mock_flair_3",
+                    text: "News",
+                    css_class: "news",
+                    text_color: "light",
+                    background_color: "#ea0027",
+                },
+            ];
+
+            return NextResponse.json(mockFlairs);
         }
 
         const token = await getAccessToken();

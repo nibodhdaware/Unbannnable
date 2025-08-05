@@ -1,8 +1,8 @@
 "use client";
-// @ts-expect-error - ai-bind doesn't have TypeScript definitions
 import React, { useState, useEffect, useMemo } from "react";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
+import { useAdmin } from "@/hooks/useAdmin";
 import {
     redditAPI,
     type Subreddit,
@@ -13,8 +13,9 @@ import {
 import Fuse from "fuse.js";
 
 export default function HomePage() {
-    // Initialize user sync
+    // Initialize user sync and admin status
     const { user, isLoaded } = useUserSync();
+    const { isAdmin, loading: adminLoading } = useAdmin();
 
     const [subreddit, setSubreddit] = useState("");
     const [title, setTitle] = useState("");
@@ -617,8 +618,8 @@ ${
     flair
         ? "Using user-selected flair as it appears appropriate for the content."
         : flairs.length > 0
-        ? "Selected most relevant available flair for content categorization."
-        : "Discussion flair recommended for general community engagement."
+          ? "Selected most relevant available flair for content categorization."
+          : "Discussion flair recommended for general community engagement."
 }
 
 **AI Analysis:**
@@ -751,17 +752,27 @@ ${rules
                         street: "Default Street",
                         zipcode: "12345",
                     },
-                    productId: plan.productId,
+                    productId: planType, // Send "monthly" or "yearly" directly
                 }),
             });
 
             const data = await response.json();
+            console.log("API Response status:", response.status);
+            console.log("API Response data:", data);
 
-            if (data.paymentLink) {
+            if (!response.ok) {
+                throw new Error(
+                    data.error ||
+                        `HTTP ${response.status}: Failed to create payment`,
+                );
+            }
+
+            if (data.checkoutUrl) {
                 // Redirect to Dodo Payments checkout
-                window.location.href = data.paymentLink;
+                window.location.href = data.checkoutUrl;
             } else {
-                throw new Error("Failed to create payment link");
+                console.error("No checkout URL in response:", data);
+                throw new Error(data.error || "Failed to create payment link");
             }
         } catch (error) {
             console.error("Subscription error:", error);
@@ -820,8 +831,26 @@ ${rules
                         </a>
                     </div>
 
-                    {/* Right side - Authentication */}
-                    <div className="flex items-center space-x-3">
+                    {/* Right side - Navigation and Authentication */}
+                    <div className="flex items-center space-x-4">
+                        <SignedIn>
+                            {/* Admin Badge */}
+                            {isAdmin && (
+                                <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-2 py-1 rounded-md text-xs font-semibold">
+                                    ADMIN
+                                </div>
+                            )}
+
+                            {/* Create Post Link */}
+                            <a
+                                href="/create-post"
+                                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                            >
+                                Create Post
+                            </a>
+
+                            <UserButton afterSignOutUrl="/" />
+                        </SignedIn>
                         <SignedOut>
                             <SignInButton mode="modal">
                                 <button className="px-4 py-2 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium">
@@ -829,9 +858,6 @@ ${rules
                                 </button>
                             </SignInButton>
                         </SignedOut>
-                        <SignedIn>
-                            <UserButton afterSignOutUrl="/" />
-                        </SignedIn>
                     </div>
                 </div>
             </nav>
@@ -1060,8 +1086,8 @@ ${rules
                                             {loadingFlairs
                                                 ? "Loading flairs..."
                                                 : subreddit
-                                                ? "No flair"
-                                                : "Select a subreddit first"}
+                                                  ? "No flair"
+                                                  : "Select a subreddit first"}
                                         </option>
                                         {flairs.map((f) => (
                                             <option key={f.id} value={f.text}>

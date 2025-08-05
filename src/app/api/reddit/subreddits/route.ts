@@ -21,11 +21,13 @@ async function getAccessToken(): Promise<string> {
         return accessToken;
     }
 
-    const clientId = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID;
-    const clientSecret = process.env.NEXT_PUBLIC_REDDIT_CLIENT_SECRET;
+    const clientId = process.env.REDDIT_CLIENT_ID;
+    const clientSecret = process.env.REDDIT_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        throw new Error("Reddit API credentials not found");
+        throw new Error(
+            "Reddit API credentials not configured. Please add REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET to your environment variables.",
+        );
     }
 
     const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
@@ -59,6 +61,47 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const limit = searchParams.get("limit") || "50";
         const query = searchParams.get("query");
+
+        // Check if Reddit credentials are configured
+        if (
+            !process.env.REDDIT_CLIENT_ID ||
+            !process.env.REDDIT_CLIENT_SECRET
+        ) {
+            console.log(
+                "Development mode: No Reddit API credentials, returning mock subreddits",
+            );
+
+            // Return mock subreddits for development
+            const mockSubreddits = [
+                {
+                    display_name: "developersIndia",
+                    public_description: "A community for Indian developers",
+                    subscribers: 50000,
+                    id: "mock_subreddit_1",
+                },
+                {
+                    display_name: "programming",
+                    public_description: "Computer Programming",
+                    subscribers: 4500000,
+                    id: "mock_subreddit_2",
+                },
+                {
+                    display_name: "webdev",
+                    public_description: "A community for web developers",
+                    subscribers: 800000,
+                    id: "mock_subreddit_3",
+                },
+                {
+                    display_name: "reactjs",
+                    public_description:
+                        "A community for learning and developing React applications",
+                    subscribers: 300000,
+                    id: "mock_subreddit_4",
+                },
+            ];
+
+            return NextResponse.json(mockSubreddits);
+        }
 
         const token = await getAccessToken();
 
