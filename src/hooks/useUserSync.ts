@@ -1,22 +1,22 @@
 import { useUser } from "@clerk/nextjs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function useUserSync() {
+    const [mounted, setMounted] = useState(false);
     const { user, isLoaded } = useUser();
 
     useEffect(() => {
-        if (isLoaded && user) {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (mounted && isLoaded && user) {
             // Sync user data to our database
             syncUserToDatabase(user);
         }
-    }, [isLoaded, user]);
+    }, [mounted, isLoaded, user]);
 
-    const syncUserToDatabase = async (user: {
-        id: string;
-        emailAddresses: Array<{ emailAddress: string }>;
-        firstName: string | null;
-        lastName: string | null;
-    }) => {
+    const syncUserToDatabase = async (user: any) => {
         try {
             const response = await fetch("/api/users/sync", {
                 method: "POST",
@@ -25,8 +25,12 @@ export function useUserSync() {
                 },
                 body: JSON.stringify({
                     clerkId: user.id,
-                    email: user.primaryEmailAddress?.emailAddress,
-                    fullName: user.fullName,
+                    email:
+                        user.primaryEmailAddress?.emailAddress ||
+                        user.emailAddresses?.[0]?.emailAddress,
+                    fullName:
+                        user.fullName ||
+                        `${user.firstName || ""} ${user.lastName || ""}`.trim(),
                     username: user.username,
                 }),
             });
