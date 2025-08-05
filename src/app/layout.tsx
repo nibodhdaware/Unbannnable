@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import DynamicClientComponent from "./DynamicClientComponent"; // client logic here
+import ClerkWrapper from "@/components/ClerkWrapper";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -29,20 +29,14 @@ export default function RootLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
-
-    if (!publishableKey) {
-        console.warn("Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY");
-    }
-
     return (
-        <ClerkProvider publishableKey={publishableKey}>
+        <ClerkWrapper>
             <html lang="en" className={`${geistSans.variable}`}>
                 <body>
                     <DynamicClientComponent />
                     {children}
                 </body>
             </html>
-        </ClerkProvider>
+        </ClerkWrapper>
     );
 }
