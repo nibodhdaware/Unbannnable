@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import DynamicClientComponent from "./DynamicClientComponent"; // client logic here
 
@@ -14,8 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Reddit Unbanr",
-    description: "AI-powered Reddit post assistant",
+    title: "Unbannnable",
+    description: "AI-powered Reddit post optimization and safety assistant",
+    icons: {
+        icon: "/icon.png",
+        shortcut: "/icon.png",
+        apple: "/icon.png",
+    },
 };
 
 export default function RootLayout({
@@ -24,11 +30,13 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en" className={`${geistSans.variable}`}>
-            <body>
-                <DynamicClientComponent />
-                {children}
-            </body>
-        </html>
+        <ClerkProvider>
+            <html lang="en" className={`${geistSans.variable}`}>
+                <body>
+                    <DynamicClientComponent />
+                    {children}
+                </body>
+            </html>
+        </ClerkProvider>
     );
 }

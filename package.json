@@ -9,8 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.28.1",
     "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.53.0",
     "ai-bind": "^1.0.8",
+    "dodopayments": "^1.44.0",
     "dotenv": "^17.2.0",
     "drizzle-orm": "^0.44.3",
     "framer-motion": "^12.23.6",
@@ -19,7 +22,8 @@
     "postgres": "^3.4.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "svix": "^1.70.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
