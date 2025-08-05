@@ -11,7 +11,12 @@ export function useUserSync() {
         }
     }, [isLoaded, user]);
 
-    const syncUserToDatabase = async (user: any) => {
+    const syncUserToDatabase = async (user: {
+        id: string;
+        emailAddresses: Array<{ emailAddress: string }>;
+        firstName: string | null;
+        lastName: string | null;
+    }) => {
         try {
             const response = await fetch("/api/users/sync", {
                 method: "POST",

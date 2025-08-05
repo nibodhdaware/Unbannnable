@@ -1,5 +1,5 @@
 "use client";
-// @ts-ignore - ai-bind doesn't have TypeScript definitions
+// @ts-expect-error - ai-bind doesn't have TypeScript definitions
 import React, { useState, useEffect, useMemo } from "react";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
@@ -1398,8 +1398,9 @@ ${rules
                                                     />
                                                     {/* Debug info */}
                                                     <div className="text-xs text-gray-500 mt-1">
-                                                        Debug: "{optimizedTitle}
-                                                        " (length:{" "}
+                                                        Debug: &ldquo;
+                                                        {optimizedTitle}
+                                                        &rdquo; (length:{" "}
                                                         {optimizedTitle.length})
                                                     </div>
                                                 </div>
@@ -1646,8 +1647,8 @@ ${rules
                                             Enter a title and select a subreddit
                                         </p>
                                         <p className="text-xs text-neutral-400 mt-1">
-                                            Then click "Generate AI Optimized
-                                            Post"
+                                            Then click &ldquo;Generate AI
+                                            Optimized Post&rdquo;
                                         </p>
                                     </div>
                                 )}
