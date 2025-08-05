@@ -60,3 +60,14 @@ export const isAdmin = query({
         return user.isAdmin === true || user.email === "nibod1248@gmail.com";
     },
 });
+
+// Get user by email
+export const getUserByEmail = query({
+    args: { email: v.string() },
+    handler: async (ctx, { email }) => {
+        return await ctx.db
+            .query("users")
+            .filter((q) => q.eq(q.field("email"), email))
+            .first();
+    },
+});

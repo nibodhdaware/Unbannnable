@@ -6,11 +6,15 @@ export const createPayment = mutation({
     args: {
         paymentId: v.string(),
         subscriptionId: v.optional(v.string()),
-        userId: v.id("users"),
+        userId: v.union(v.id("users"), v.null()),
         amount: v.number(),
         currency: v.optional(v.string()),
         status: v.string(),
         paymentMethod: v.optional(v.string()),
+        customerEmail: v.optional(v.string()),
+        customerName: v.optional(v.string()),
+        paymentType: v.optional(v.string()),
+        metadata: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const now = Date.now();
@@ -22,31 +26,13 @@ export const createPayment = mutation({
     },
 });
 
-// Get active payments for a user in the current month
-export const getActivePaymentsThisMonth = query({
-    args: { userId: v.id("users") },
-    handler: async (ctx, { userId }) => {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const startOfMonthTimestamp = startOfMonth.getTime();
-
-        return await ctx.db
-            .query("payments")
-            .withIndex("by_user_and_date", (q) =>
-                q.eq("userId", userId).gte("createdAt", startOfMonthTimestamp),
-            )
-            .filter((q) => q.eq(q.field("status"), "succeeded"))
-            .collect();
-    },
-});
-
 // Get payment by payment ID
-export const getPaymentById = query({
+export const getPaymentByPaymentId = query({
     args: { paymentId: v.string() },
     handler: async (ctx, { paymentId }) => {
         return await ctx.db
             .query("payments")
-            .withIndex("by_payment_id", (q) => q.eq("paymentId", paymentId))
+            .filter((q) => q.eq(q.field("paymentId"), paymentId))
             .first();
     },
 });

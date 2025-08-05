@@ -207,11 +207,15 @@ async function handlePaymentEvent(
     try {
         const paymentId = data.payment_id as string;
         const subscriptionId = data.subscription_id as string;
-        const amount = data.amount as number;
+        const amount = (data.amount || data.total_amount) as number;
+        const currency = (data.currency as string) || "USD";
         const metadata = (data.metadata as Record<string, unknown>) || {};
         const clerkUserId = (metadata.clerk_user_id as string) || "";
-        const customerEmail = data.customer_email as string;
-        const customerName = data.customer_name as string;
+        
+        // Try multiple possible fields for customer data
+        const customerData = data.customer as Record<string, unknown> || {};
+        const customerEmail = (data.customer_email || customerData.email || data.email) as string;
+        const customerName = (data.customer_name || customerData.name || data.name) as string;
 
         if (!paymentId) {
             console.error("Missing payment ID in webhook data");
@@ -221,10 +225,13 @@ async function handlePaymentEvent(
         console.log("Processing payment event:", {
             paymentId,
             amount,
+            currency,
             status,
             customerEmail,
             customerName,
             clerkUserId,
+            subscriptionId,
+            fullData: data, // Log full data for debugging
         });
 
         // Find user by clerk ID if available
@@ -242,48 +249,58 @@ async function handlePaymentEvent(
         // If we don't have a clerk user ID, try to find user by email
         if (!userId && customerEmail) {
             console.log("Looking up user by email:", customerEmail);
-            // We'll need to create a function to find user by email
-            // For now, let's create/update user if we have email
-            if (customerEmail === "nibod1248@gmail.com") {
-                // This is the admin user, ensure they exist
-                await convex.mutation(api.users.createOrUpdateUser, {
-                    clerkId: "manual_admin", // Temporary clerk ID for manual payments
+            
+            // Try to find existing user by email
+            const existingUser = await convex.query(api.users.getUserByEmail, {
+                email: customerEmail,
+            });
+
+            if (existingUser) {
+                userId = existingUser._id;
+                console.log("Found existing user by email:", existingUser._id);
+            } else {
+                // Create new user record for this email
+                console.log("Creating new user record for email:", customerEmail);
+                userId = await convex.mutation(api.users.createOrUpdateUser, {
+                    clerkId: `manual_${Date.now()}`, // Temporary clerk ID for manual payments
                     email: customerEmail,
-                    fullName: customerName || "Admin User",
-                    isAdmin: true,
+                    fullName: customerName || "Unknown User",
+                    isAdmin: customerEmail === "nibod1248@gmail.com",
                 });
-
-                const user = await convex.query(api.users.getUserByClerkId, {
-                    clerkId: "manual_admin",
-                });
-
-                if (user) {
-                    userId = user._id;
-                }
+                console.log("Created new user:", userId);
             }
         }
 
-        // Create payment record (even if no user found, for tracking)
-        if (userId) {
-            await convex.mutation(api.payments.createPayment, {
+        // Create payment record for successful payments
+        if (status === "succeeded" || status === "completed") {
+            const paymentRecord = await convex.mutation(api.payments.createPayment, {
                 paymentId: paymentId,
                 subscriptionId: subscriptionId || undefined,
                 userId: userId,
                 amount: amount || 199,
-                currency: "USD",
+                currency: currency,
                 status,
                 paymentMethod: "dodo",
+                customerEmail: customerEmail || undefined,
+                customerName: customerName || undefined,
+                paymentType: subscriptionId ? "subscription" : "one_time",
+                metadata: JSON.stringify(metadata),
             });
 
-            console.log("Payment event processed for user:", paymentId, status);
-        } else {
-            console.log("Payment received but no user found:", {
+            console.log("Payment recorded successfully:", {
                 paymentId,
-                customerEmail,
+                userId,
                 amount,
                 status,
+                recordId: paymentRecord,
             });
-            // Still log the payment attempt for manual review
+        } else {
+            console.log("Payment not in succeeded status:", {
+                paymentId,
+                status,
+                customerEmail,
+                amount,
+            });
         }
     } catch (error) {
         console.error("Error handling payment event:", error);

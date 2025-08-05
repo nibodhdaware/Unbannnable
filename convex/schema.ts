@@ -32,11 +32,15 @@ export default defineSchema({
     payments: defineTable({
         paymentId: v.string(),
         subscriptionId: v.optional(v.string()),
-        userId: v.id("users"),
+        userId: v.union(v.id("users"), v.null()),
         amount: v.number(), // Amount in cents
         currency: v.optional(v.string()),
         status: v.string(), // succeeded, failed, pending
         paymentMethod: v.optional(v.string()),
+        customerEmail: v.optional(v.string()),
+        customerName: v.optional(v.string()),
+        paymentType: v.optional(v.string()), // one_time, subscription
+        metadata: v.optional(v.string()),
         createdAt: v.number(),
         updatedAt: v.number(),
     })
