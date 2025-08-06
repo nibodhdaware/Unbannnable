@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
+import { createSubscriptionPaymentLink } from "@/lib/dodo";
 
 export async function POST(req: NextRequest) {
     try {
         console.log("Subscription create POST request received");
 
-        // Get the current user from Clerk
         const user = await currentUser();
-
         if (!user) {
             console.log("No authenticated user found");
             return NextResponse.json(
@@ -16,59 +15,38 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        console.log("User authenticated:", user.id);
-
-        // Parse the request body
         const body = await req.json();
         const { productId, formData } = body;
 
-        console.log("Request body:", { productId, formData });
-
-        if (!productId) {
+        if (!productId || !formData) {
             return NextResponse.json(
-                { error: "Product ID is required" },
+                { error: "Product ID and billing information are required" },
                 { status: 400 },
             );
         }
 
-        if (!formData) {
-            return NextResponse.json(
-                { error: "Billing information is required" },
-                { status: 400 },
-            );
+        // Use the API to create subscription with billing info
+        const subscription = await createSubscriptionPaymentLink({
+            email: formData.email || user.emailAddresses[0]?.emailAddress || "",
+            name: formData.name || user.fullName || "",
+            phoneNumber: formData.phoneNumber || "",
+            city: formData.city,
+            state: formData.state,
+            country: formData.country,
+            street: formData.street,
+            zipcode: formData.zipcode,
+            productId,
+            clerkId: user.id,
+        });
+
+        if (subscription.payment_link) {
+            return NextResponse.json({
+                success: true,
+                checkoutUrl: subscription.payment_link,
+            });
+        } else {
+            throw new Error("Failed to create subscription payment link");
         }
-
-        // Build DodoPay checkout URL with billing information
-        const baseUrl =
-            "https://test.checkout.dodopayments.com/buy/pdt_Sqt14rBf5vO14Z8ReuHqB";
-        const params = new URLSearchParams({
-            quantity: "1",
-            redirect_url: "https://reddit-unbanr.vercel.app/",
-            // Add billing information as prefill parameters
-            customer_name: formData.name || user.fullName || "",
-            customer_email:
-                formData.email || user.emailAddresses[0]?.emailAddress || "",
-            billing_address_line1: formData.street || "",
-            billing_address_city: formData.city || "",
-            billing_address_state: formData.state || "",
-            billing_address_postal_code: formData.zipcode || "",
-            billing_address_country: formData.country || "US",
-            customer_phone: formData.phoneNumber || "",
-            // Add metadata to track the user
-            "metadata[clerk_user_id]": user.id,
-            "metadata[user_email]": user.emailAddresses[0]?.emailAddress || "",
-        });
-
-        const checkoutUrl = `${baseUrl}?${params.toString()}`;
-
-        console.log("Generated checkout URL with billing info:", checkoutUrl);
-
-        return NextResponse.json({
-            success: true,
-            checkoutUrl: checkoutUrl,
-            paymentId: `prefilled_${Date.now()}`,
-            isDirectLink: true,
-        });
     } catch (error) {
         console.error("Subscription creation error:", error);
         return NextResponse.json(

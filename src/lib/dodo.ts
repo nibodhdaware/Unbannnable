@@ -1,7 +1,14 @@
 import DodoPayments from "dodopayments";
 
+console.log("Dodo client initialization:", {
+    apiKeySet: !!process.env.DODO_PAYMENTS_API_KEY,
+    apiKeyLength: process.env.DODO_PAYMENTS_API_KEY?.length,
+    environment: process.env.NODE_ENV,
+});
+
 export const dodoClient = new DodoPayments({
     bearerToken: process.env.DODO_PAYMENTS_API_KEY!,
+    environment: "test_mode", // Always use test mode for now to debug
 });
 
 export interface CreateSubscriptionParams {
@@ -15,13 +22,25 @@ export interface CreateSubscriptionParams {
     zipcode: string;
     productId: string;
     quantity?: number;
+    clerkId?: string;
 }
 
 export const createSubscriptionPaymentLink = async (
     params: CreateSubscriptionParams,
 ) => {
     try {
-        const subscription = await dodoClient.subscriptions.create({
+        console.log("Creating subscription with params:", {
+            productId: params.productId,
+            email: params.email,
+            clerkId: params.clerkId,
+            billing: {
+                city: params.city,
+                state: params.state,
+                country: params.country,
+            },
+        });
+
+        const subscriptionPayload = {
             billing: {
                 city: params.city,
                 country: params.country as any, // Type assertion for country code
@@ -32,17 +51,77 @@ export const createSubscriptionPaymentLink = async (
             customer: {
                 email: params.email,
                 name: params.name,
-                phone_number: params.phoneNumber,
+                create_new_customer: true,
             },
-            product_id: params.productId,
+            product_id: params.productId || "pdt_Sqt14rBf5vO14Z8ReuHqB", // Default to the test product
             payment_link: true,
-            return_url: process.env.NEXT_PUBLIC_RETURN_URL!,
+            return_url:
+                process.env.NODE_ENV === "development"
+                    ? "http://localhost:3001/success"
+                    : "https://unbannnable.vercel.app/success",
             quantity: params.quantity || 1,
-        });
+            metadata: {
+                clerkId: params.clerkId || "",
+                user_email: params.email,
+            },
+        };
 
+        // Add phone number only if provided
+        if (params.phoneNumber) {
+            (subscriptionPayload.customer as any).phone_number =
+                params.phoneNumber;
+        }
+
+        console.log(
+            "Subscription payload:",
+            JSON.stringify(subscriptionPayload, null, 2),
+        );
+
+        // Try direct API call instead of SDK
+        const response = await fetch(
+            "https://test.dodopayments.com/subscriptions",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(subscriptionPayload),
+            },
+        );
+
+        console.log(
+            "DodoPay Subscription API response status:",
+            response.status,
+        );
+        console.log(
+            "DodoPay Subscription API response headers:",
+            Object.fromEntries(response.headers.entries()),
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                "DodoPay Subscription API error response:",
+                errorText,
+            );
+            throw new Error(
+                `DodoPay Subscription API error: ${response.status} - ${errorText}`,
+            );
+        }
+
+        const subscription = await response.json();
+        console.log("Subscription created successfully:", subscription);
         return subscription;
     } catch (error) {
-        console.error("Error creating subscription:", error);
+        console.error("Detailed subscription error:", {
+            error: error,
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            productId: params.productId,
+            apiKey: process.env.DODO_PAYMENTS_API_KEY ? "Set" : "Not set",
+            apiKeyLength: process.env.DODO_PAYMENTS_API_KEY?.length,
+        });
         throw error;
     }
 };
@@ -59,6 +138,7 @@ export interface CreateOneTimePaymentParams {
     productCart: {
         productId: string;
         quantity: number;
+        amount?: number; // Amount in cents for pay-what-you-want products
     }[];
     userId: string;
     clerkId: string;
@@ -68,10 +148,26 @@ export const createOneTimePaymentLink = async (
     params: CreateOneTimePaymentParams,
 ) => {
     try {
-        const response = await dodoClient.payments.create({
+        console.log("API Key available:", !!process.env.DODO_PAYMENTS_API_KEY);
+        console.log(
+            "API Key starts with:",
+            process.env.DODO_PAYMENTS_API_KEY?.substring(0, 10),
+        );
+        console.log("Environment:", process.env.NODE_ENV);
+
+        console.log("Creating payment with params:", {
+            billing: params.city + ", " + params.state + ", " + params.country,
+            customer: params.email,
+            productCart: params.productCart,
+            apiKey: process.env.DODO_PAYMENTS_API_KEY
+                ? `${process.env.DODO_PAYMENTS_API_KEY.substring(0, 10)}...`
+                : "Not set",
+        });
+
+        const paymentPayload = {
             billing: {
                 city: params.city,
-                country: params.country as any, // Type assertion for country code
+                country: params.country as any,
                 state: params.state,
                 street: params.street,
                 zipcode: params.zipcode,
@@ -79,23 +175,103 @@ export const createOneTimePaymentLink = async (
             customer: {
                 email: params.email,
                 name: params.name,
-                phone_number: params.phoneNumber,
+                create_new_customer: true,
             },
             product_cart: params.productCart.map((item) => ({
                 product_id: item.productId,
                 quantity: item.quantity,
+                ...(item.amount && { amount: item.amount }),
             })),
             payment_link: true,
-            return_url: `${process.env.NEXT_PUBLIC_RETURN_URL!}?payment_id={payment_id}`,
+            return_url:
+                process.env.NODE_ENV === "development"
+                    ? "http://localhost:3001/success"
+                    : "https://unbannnable.vercel.app/success",
             metadata: {
                 userId: params.userId,
                 clerkId: params.clerkId,
             },
+        };
+
+        // Add phone number only if provided
+        if (params.phoneNumber) {
+            (paymentPayload.customer as any).phone_number = params.phoneNumber;
+        }
+
+        console.log(
+            "Payment payload being sent:",
+            JSON.stringify(paymentPayload, null, 2),
+        );
+
+        // Try direct API call instead of SDK
+        const response = await fetch("https://test.dodopayments.com/payments", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(paymentPayload),
         });
 
-        return response;
+        console.log("DodoPay API response status:", response.status);
+        console.log(
+            "DodoPay API response headers:",
+            Object.fromEntries(response.headers.entries()),
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("DodoPay API error response:", errorText);
+            throw new Error(
+                `DodoPay API error: ${response.status} - ${errorText}`,
+            );
+        }
+
+        const payment = await response.json();
+        console.log("Payment created successfully:", payment);
+
+        return payment;
     } catch (error) {
         console.error("Error creating one-time payment:", error);
+
+        // If it's a 401 error or product not found, let's provide more specific debugging
+        if (error instanceof Error) {
+            console.error("Error details:", {
+                message: error.message,
+                apiKeySet: !!process.env.DODO_PAYMENTS_API_KEY,
+                apiKeyLength: process.env.DODO_PAYMENTS_API_KEY?.length,
+                environment: process.env.NODE_ENV,
+                apiKeyPrefix: process.env.DODO_PAYMENTS_API_KEY?.substring(
+                    0,
+                    10,
+                ),
+            });
+
+            // Return a development mock if API fails
+            if (process.env.NODE_ENV === "development") {
+                console.log("Falling back to mock payment due to API error");
+                const mockPaymentId = `mock_payment_${Date.now()}`;
+                return {
+                    payment_id: mockPaymentId,
+                    payment_link: `http://localhost:3000/success?payment_id=${mockPaymentId}&status=mock_success`,
+                    total_amount: params.productCart.reduce(
+                        (sum, item) => sum + (item.amount || 199),
+                        0,
+                    ),
+                    client_secret: `cs_mock_${mockPaymentId}`,
+                    customer: {
+                        customer_id: `mock_customer_${Date.now()}`,
+                        email: params.email,
+                        name: params.name,
+                    },
+                    metadata: {
+                        userId: params.userId,
+                        clerkId: params.clerkId,
+                    },
+                };
+            }
+        }
+
         throw error;
     }
 };

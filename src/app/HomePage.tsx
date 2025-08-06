@@ -763,8 +763,9 @@ ${rules
     // Subscription plans configuration
     const subscriptionPlans = {
         onePost: {
-            productId: "one_post_199",
+            productId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // Use the actual Dodo product ID
             price: 1.99,
+            amount: 199, // Price in cents
             name: "1 post",
             description: "Perfect for testing the waters",
             features: [
@@ -798,13 +799,13 @@ ${rules
         try {
             const plan = subscriptionPlans[selectedPlan];
 
-            const response = await fetch("/api/subscriptions/create", {
+            const response = await fetch("/api/payments/create", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    formData: {
+                    billing: {
                         email:
                             billingData.email ||
                             user?.emailAddresses[0]?.emailAddress ||
@@ -820,7 +821,13 @@ ${rules
                         street: billingData.street,
                         zipcode: billingData.zipcode,
                     },
-                    productId: plan.productId,
+                    productCart: [
+                        {
+                            productId: plan.productId,
+                            quantity: 1,
+                            amount: plan.amount, // Add amount in cents
+                        },
+                    ],
                 }),
             });
 
@@ -835,16 +842,16 @@ ${rules
                 );
             }
 
-            if (data.checkoutUrl) {
+            if (data.url) {
                 // Redirect to Dodo Payments checkout
-                window.location.href = data.checkoutUrl;
+                window.location.href = data.url;
             } else {
                 console.error("No checkout URL in response:", data);
                 throw new Error(data.error || "Failed to create payment link");
             }
         } catch (error) {
-            console.error("Subscription error:", error);
-            alert("Subscription creation failed. Please try again.");
+            console.error("Payment error:", error);
+            alert("Payment creation failed. Please try again.");
         } finally {
             setIsProcessingPayment(false);
         }
