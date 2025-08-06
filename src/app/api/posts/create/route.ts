@@ -5,9 +5,6 @@ import { api } from "../../../../../convex/_generated/api";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-// Free tier limits
-const FREE_POSTS_PER_MONTH = 5;
-
 export async function POST(request: NextRequest) {
     try {
         const user = await currentUser();
@@ -27,18 +24,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if user is admin (server-side verification)
-        const adminStatus = await convex.query(api.users.isAdmin, {
-            clerkId: user.id,
-        });
-
         // Ensure user exists in Convex database
         await convex.mutation(api.users.createOrUpdateUser, {
             clerkId: user.id,
             fullName: user.fullName || undefined,
             email: user.emailAddresses[0]?.emailAddress || "",
-            isAdmin:
-                user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com",
+            isAdmin: false, // Remove admin check for now
         });
 
         // Get user from Convex
@@ -53,66 +44,60 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // For non-admin users, check post limits
-        if (!adminStatus) {
-            // Check for active subscription (payments this month)
-            const activePayments = await convex.query(
-                api.payments.getActivePaymentsThisMonth,
-                {
-                    userId: userRecord._id,
-                },
-            );
-
-            // If no active subscription, check free tier limits
-            if (activePayments.length === 0) {
-                const postsThisMonth = await convex.query(
-                    api.posts.getPostsCountThisMonth,
-                    {
-                        userId: userRecord._id,
-                    },
-                );
-
-                if (postsThisMonth >= FREE_POSTS_PER_MONTH) {
-                    return NextResponse.json(
-                        {
-                            error: "Post limit reached",
-                            message: `You have reached your limit of ${FREE_POSTS_PER_MONTH} posts per month. Please upgrade to post more.`,
-                            postsUsed: postsThisMonth,
-                            limit: FREE_POSTS_PER_MONTH,
-                        },
-                        { status: 429 },
-                    );
-                }
-            }
-        }
-
-        // Create the post in Convex
-        const newPostId = await convex.mutation(api.posts.createPost, {
+        // Check if user can create a post
+        const canCreate = await convex.query(api.posts.canUserCreatePost, {
             userId: userRecord._id,
-            title: title.trim(),
-            body: content.trim(),
-            subreddit: subreddit.trim(),
-            status: "pending",
         });
 
-        // In a real Reddit integration, you would:
-        // 1. Use Reddit API to create the actual post
-        // 2. Handle Reddit-specific validation (subreddit rules, etc.)
-        // 3. Store Reddit post ID for tracking
+        if (!canCreate.canCreate) {
+            const postStats = await convex.query(api.posts.getUserPostStats, {
+                userId: userRecord._id,
+            });
+
+            return NextResponse.json(
+                {
+                    error: "No posts remaining",
+                    message: "You need to purchase more posts to continue.",
+                    postStats,
+                },
+                { status: 403 },
+            );
+        }
+
+        // Determine post type
+        let postType: "free" | "purchased" | "unlimited";
+        if (canCreate.reason === "unlimited") {
+            postType = "unlimited";
+        } else if (canCreate.reason === "free") {
+            postType = "free";
+        } else {
+            postType = "purchased";
+        }
+
+        // Create the post
+        const postId = await convex.mutation(api.posts.createPost, {
+            userId: userRecord._id,
+            title,
+            body: content,
+            subreddit,
+            postType,
+        });
+
+        // Get updated stats
+        const updatedStats = await convex.query(api.posts.getUserPostStats, {
+            userId: userRecord._id,
+        });
 
         console.log(
-            `Post created by ${
-                adminStatus ? "admin" : "user"
-            }: ${title} in ${subreddit}`,
+            `Post created by user: ${title} in ${subreddit} (${postType} post)`,
         );
 
         return NextResponse.json({
             success: true,
-            postId: newPostId,
-            message: adminStatus
-                ? "Post created with admin privileges"
-                : "Post created successfully",
-            isAdmin: adminStatus,
+            postId,
+            postType,
+            updatedStats,
+            message: `Post created successfully using ${postType} allocation.`,
         });
     } catch (error) {
         console.error("Error creating post:", error);

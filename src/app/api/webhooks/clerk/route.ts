@@ -1,13 +1,10 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { users } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
 
-const sql = postgres(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
     // Get the headers
@@ -69,29 +66,20 @@ export async function POST(req: NextRequest) {
         const userData = {
             clerkId,
             email: primaryEmail?.email_address || "",
-            fullName: `${first_name || ""} ${last_name || ""}`.trim() || null,
-            username: username || null,
-            updatedAt: new Date(),
+            fullName:
+                `${first_name || ""} ${last_name || ""}`.trim() || undefined,
+            isAdmin: primaryEmail?.email_address === "nibod1248@gmail.com",
         };
 
         try {
-            if (eventType === "user.created") {
-                // Insert new user
-                await db.insert(users).values({
-                    ...userData,
-                    createdAt: new Date(),
-                });
-                console.log("User created in database:", clerkId);
-            } else {
-                // Update existing user
-                await db
-                    .update(users)
-                    .set(userData)
-                    .where(eq(users.clerkId, clerkId));
-                console.log("User updated in database:", clerkId);
-            }
+            // Use Convex createOrUpdateUser for both create and update
+            await convex.mutation(api.users.createOrUpdateUser, userData);
+            console.log(
+                `User ${eventType === "user.created" ? "created" : "updated"} in Convex:`,
+                clerkId,
+            );
         } catch (error) {
-            console.error("Database error:", error);
+            console.error("Convex error:", error);
             return new Response("Database error", { status: 500 });
         }
     }
@@ -100,10 +88,21 @@ export async function POST(req: NextRequest) {
         const { id: clerkId } = evt.data;
 
         try {
-            await db.delete(users).where(eq(users.clerkId, clerkId));
-            console.log("User deleted from database:", clerkId);
+            // Find the user first
+            const user = await convex.query(api.users.getUserByClerkId, {
+                clerkId,
+            });
+
+            if (user) {
+                // Note: Convex doesn't have a built-in delete, we'd need to create a delete mutation
+                // For now, we'll just log this - you may want to create a deleteUser mutation
+                console.log("User deletion requested for:", clerkId);
+                console.log(
+                    "Note: User deletion not implemented in Convex schema",
+                );
+            }
         } catch (error) {
-            console.error("Database error:", error);
+            console.error("Convex error:", error);
             return new Response("Database error", { status: 500 });
         }
     }

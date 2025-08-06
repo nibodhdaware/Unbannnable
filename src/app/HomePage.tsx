@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
-import { useAdmin } from "@/hooks/useAdmin";
+import { useUserPosts } from "@/hooks/useUserPosts";
 import {
     redditAPI,
     type Subreddit,
@@ -13,9 +13,13 @@ import {
 import Fuse from "fuse.js";
 
 export default function HomePage() {
-    // Initialize user sync and admin status
+    // Initialize user sync and post tracking
     const { user, isLoaded } = useUserSync();
-    const { isAdmin, loading: adminLoading } = useAdmin();
+    const {
+        postStats,
+        canCreatePost,
+        isLoading: postsLoading,
+    } = useUserPosts();
 
     const [subreddit, setSubreddit] = useState("");
     const [title, setTitle] = useState("");
@@ -53,10 +57,18 @@ export default function HomePage() {
 
     // Subscription-related states
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">(
-        "monthly",
-    );
-    useState(false);
+    const [selectedPlan, setSelectedPlan] = useState<"onePost">("onePost");
+    const [showBillingForm, setShowBillingForm] = useState(false);
+    const [billingData, setBillingData] = useState({
+        name: "",
+        email: "",
+        street: "",
+        city: "",
+        state: "",
+        zipcode: "",
+        country: "US",
+        phoneNumber: "",
+    });
 
     // Fuzzy search configuration
     const fuse = useMemo(() => {
@@ -385,6 +397,42 @@ export default function HomePage() {
         }
     };
 
+    const createPostRecord = async () => {
+        try {
+            const response = await fetch("/api/posts/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    title: title.trim(),
+                    content: body.trim(),
+                    subreddit: subreddit.trim(),
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    // User is out of posts
+                    setShowPricingModal(true);
+                    return false;
+                }
+                throw new Error(data.error || "Failed to create post");
+            }
+
+            console.log(
+                `Post recorded successfully! (${data.postType} post used)`,
+            );
+            return true;
+        } catch (error) {
+            console.error("Error creating post record:", error);
+            // Don't show error to user for post recording, just log it
+            return false;
+        }
+    };
+
     const generateAIOptimizedPost = async () => {
         if (!title.trim() || !subreddit.trim()) return;
 
@@ -497,6 +545,9 @@ Please provide your response in exactly this format:
 
                 setAiOutput(result);
                 parseAIOutput(result);
+
+                // Create post record after successful AI optimization
+                await createPostRecord();
             } catch (apiError) {
                 console.error("Gemini API error:", apiError);
                 // Fallback to enhanced local optimization
@@ -661,6 +712,9 @@ ${rules
 
             setAiOutput(fallbackSuggestions);
             parseAIOutput(fallbackSuggestions);
+
+            // Create post record even for fallback optimization
+            await createPostRecord();
         } finally {
             setIsGeneratingAI(false);
         }
@@ -708,33 +762,41 @@ ${rules
 
     // Subscription plans configuration
     const subscriptionPlans = {
-        monthly: {
-            productId: "monthly_premium_product_id", // Replace with actual product ID from Dodo dashboard
-            price: 9.99,
-            name: "Monthly Premium",
+        onePost: {
+            productId: "one_post_199",
+            price: 1.99,
+            name: "1 post",
+            description: "Perfect for testing the waters",
             features: [
-                "Unlimited AI optimizations",
-                "Priority support",
-                "Advanced analytics",
-            ],
-        },
-        yearly: {
-            productId: "yearly_premium_product_id", // Replace with actual product ID from Dodo dashboard
-            price: 99.99,
-            name: "Yearly Premium",
-            features: [
-                "Unlimited AI optimizations",
-                "Priority support",
-                "Advanced analytics",
-                "2 months free!",
+                "AI-optimized content",
+                "Reddit safety check",
+                "Instant access",
             ],
         },
     };
 
-    const handleSubscription = async (planType: "monthly" | "yearly") => {
+    const handleSubscription = async (planType: "onePost") => {
+        // Prefill billing data from user profile
+        setBillingData({
+            name: user?.fullName || "",
+            email: user?.emailAddresses[0]?.emailAddress || "",
+            street: "",
+            city: "",
+            state: "",
+            zipcode: "",
+            country: "US",
+            phoneNumber: user?.phoneNumbers[0]?.phoneNumber || "",
+        });
+
+        // Show billing form
+        setShowPricingModal(false);
+        setShowBillingForm(true);
+    };
+
+    const handleBillingSubmit = async () => {
         setIsProcessingPayment(true);
         try {
-            const plan = subscriptionPlans[planType];
+            const plan = subscriptionPlans[selectedPlan];
 
             const response = await fetch("/api/subscriptions/create", {
                 method: "POST",
@@ -743,16 +805,22 @@ ${rules
                 },
                 body: JSON.stringify({
                     formData: {
-                        email: user?.emailAddresses[0]?.emailAddress || "",
-                        name: user?.fullName || "User",
-                        phoneNumber: user?.phoneNumbers[0]?.phoneNumber || "",
-                        city: "Default City",
-                        state: "CA",
-                        country: "US",
-                        street: "Default Street",
-                        zipcode: "12345",
+                        email:
+                            billingData.email ||
+                            user?.emailAddresses[0]?.emailAddress ||
+                            "",
+                        name: billingData.name || user?.fullName || "User",
+                        phoneNumber:
+                            billingData.phoneNumber ||
+                            user?.phoneNumbers[0]?.phoneNumber ||
+                            "",
+                        city: billingData.city,
+                        state: billingData.state,
+                        country: billingData.country,
+                        street: billingData.street,
+                        zipcode: billingData.zipcode,
                     },
-                    productId: planType, // Send "monthly" or "yearly" directly
+                    productId: plan.productId,
                 }),
             });
 
@@ -787,14 +855,22 @@ ${rules
         const errors = validateForm();
         setValidationErrors(errors);
         if (errors.length === 0) {
-            setShowPricingModal(true);
+            // Check if user can create post before calling AI
+            if (!canCreatePost.canCreate) {
+                setShowPricingModal(true);
+                return;
+            }
+
+            // Generate AI-optimized post immediately
+            generateAIOptimizedPost();
         }
     };
 
     const handleConfirmPost = async () => {
         setShowPricingModal(false);
 
-        // Generate AI-optimized post
+        // Just generate AI-optimized post (post record already created)
+        // This is called after payment, so user now has posts available
         await generateAIOptimizedPost();
 
         // Mark that user is no longer on first post
@@ -834,20 +910,24 @@ ${rules
                     {/* Right side - Navigation and Authentication */}
                     <div className="flex items-center space-x-4">
                         <SignedIn>
-                            {/* Admin Badge */}
-                            {isAdmin && (
-                                <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-2 py-1 rounded-md text-xs font-semibold">
-                                    ADMIN
+                            {/* Post Counter */}
+                            {!postsLoading && (
+                                <div className="flex items-center gap-2">
+                                    {postStats.hasUnlimitedAccess ? (
+                                        <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                            Unlimited Posts
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                            {postStats.freePostsRemaining +
+                                                postStats.purchasedPostsRemaining}{" "}
+                                            Posts Left
+                                        </div>
+                                    )}
                                 </div>
                             )}
-
-                            {/* Create Post Link */}
-                            <a
-                                href="/create-post"
-                                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                            >
-                                Create Post
-                            </a>
 
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
@@ -1292,51 +1372,6 @@ ${rules
                                 )}
                             </h2>
 
-                            {/* Generate AI Button */}
-                            {!isGeneratingAI &&
-                                (!aiOutput || aiOutput.length === 0) &&
-                                title.trim() &&
-                                subreddit.trim() && (
-                                    <div className="mb-4 space-y-2">
-                                        <button
-                                            onClick={generateAIOptimizedPost}
-                                            className="w-full py-2 px-4 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium"
-                                        >
-                                            Generate AI Optimized Post
-                                        </button>
-                                        {/* Debug button for testing */}
-                                        <button
-                                            onClick={() => {
-                                                setShowOptimizationSummary(
-                                                    false,
-                                                );
-                                                setOptimizedTitle(
-                                                    "ai-bind: A Lightweight JavaScript Library for Integrating LLMs - Built in a Weekend!",
-                                                );
-                                                setOptimizedBody(
-                                                    "Hey r/developersindia,\n\nI'm excited to share ai-bind, a small JavaScript library I created over the weekend to simplify integrating Large Language Models (LLMs) into JavaScript projects.\n\nIt's designed to be lightweight and easy to use.",
-                                                );
-                                                setOptimizedFlair("Discussion");
-                                                setTitleReasoning(
-                                                    "This title is more engaging because: * Includes a descriptive keyword 'Lightweight', appealing to developers seeking efficiency. * Highlights the key functionality: 'Integrating LLMs'. * Adds excitement with 'Built in a Weekend', showcasing the project's rapid development. * Avoids being too generic.",
-                                                );
-                                                setBodyReasoning(
-                                                    "This body is better because: * It starts with a friendly greeting, creating a welcoming tone. * It clearly states the purpose of the library and its benefits (lightweight, easy to use). * It directly asks for feedback and suggestions, promoting engagement. * It includes a call to action by encouraging the repo to be included in the post for easy access to the project. * It is well-structured and easy to read.",
-                                                );
-                                                setFlairReasoning(
-                                                    "'Discussion' flair is most appropriate because this post is seeking community feedback and discussion about a new project, rather than asking a specific question or sharing news.",
-                                                );
-                                                setAiOutput(
-                                                    "Test optimization display",
-                                                );
-                                            }}
-                                            className="w-full py-1 px-3 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
-                                        >
-                                            🔧 Test Optimization Display
-                                        </button>
-                                    </div>
-                                )}
-
                             <div className="flex-1 overflow-y-auto min-h-0">
                                 {isGeneratingAI ? (
                                     <div className="space-y-3">
@@ -1717,79 +1752,47 @@ ${rules
                                     </svg>
                                 </div>
                                 <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">
-                                    Choose Your Plan
+                                    Purchase Post Credit
                                 </h3>
                                 <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                    Unlock premium AI optimization features
+                                    You've run out of free posts. Purchase a
+                                    post credit to continue.
                                 </p>
                             </div>
 
-                            {/* Plan Selection */}
-                            <div className="space-y-4 mb-6">
-                                {Object.entries(subscriptionPlans).map(
-                                    ([key, plan]) => (
-                                        <div
-                                            key={key}
-                                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                                                selectedPlan === key
-                                                    ? "border-[#FF4500] bg-orange-50 dark:bg-orange-900/20"
-                                                    : "border-neutral-200 dark:border-neutral-700"
-                                            }`}
-                                            onClick={() =>
-                                                setSelectedPlan(
-                                                    key as "monthly" | "yearly",
-                                                )
-                                            }
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-left">
-                                                    <h4 className="font-semibold text-neutral-900 dark:text-white">
-                                                        {plan.name}
-                                                    </h4>
-                                                    <p className="text-2xl font-bold text-[#FF4500]">
-                                                        ${plan.price}
-                                                        <span className="text-sm text-neutral-500">
-                                                            /
-                                                            {key === "monthly"
-                                                                ? "month"
-                                                                : "year"}
-                                                        </span>
-                                                    </p>
-                                                </div>
-                                                <div
-                                                    className={`w-4 h-4 rounded-full border-2 ${
-                                                        selectedPlan === key
-                                                            ? "bg-[#FF4500] border-[#FF4500]"
-                                                            : "border-neutral-300"
-                                                    }`}
-                                                />
-                                            </div>
-                                        </div>
-                                    ),
-                                )}
+                            {/* Single Plan Display */}
+                            <div className="mb-8">
+                                <div className="relative p-8 border-2 border-[#FF4500] bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-xl text-center shadow-lg">
+                                    <div className="mb-6">
+                                        <p className="text-4xl font-bold mb-3 text-[#FF4500]">
+                                            $1.99
+                                        </p>
+                                        <h4 className="font-semibold text-xl text-neutral-900 dark:text-white">
+                                            1 Post Credit
+                                        </h4>
+                                    </div>
+                                    <p className="text-base text-neutral-600 dark:text-neutral-400 mb-6">
+                                        Get your message heard without the risk
+                                    </p>
+                                    <ul className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
+                                        <li>✓ AI-optimized content</li>
+                                        <li>✓ Reddit safety check</li>
+                                        <li>✓ Instant access</li>
+                                    </ul>
+                                </div>
                             </div>
 
-                            <div className="space-y-3 mb-6">
-                                <button
-                                    onClick={() => {
-                                        setShowPricingModal(false);
-                                        handleConfirmPost();
-                                    }}
-                                    className="w-full py-3 px-6 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors font-medium"
-                                >
-                                    Try Free (Limited Features)
-                                </button>
-
+                            <div className="mb-6">
                                 <button
                                     onClick={() =>
-                                        handleSubscription(selectedPlan)
+                                        handleSubscription("onePost")
                                     }
                                     disabled={isProcessingPayment}
                                     className="w-full py-3 px-6 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors font-medium disabled:opacity-50"
                                 >
                                     {isProcessingPayment
                                         ? "Processing..."
-                                        : `Subscribe to ${subscriptionPlans[selectedPlan].name}`}
+                                        : "Purchase for $1.99"}
                                 </button>
                             </div>
 
@@ -1800,6 +1803,427 @@ ${rules
                                 Cancel
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Billing Form Modal */}
+            {showBillingForm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-neutral-900 rounded-2xl p-8 max-w-md w-full border border-neutral-200 dark:border-neutral-700 shadow-xl max-h-[90vh] overflow-y-auto">
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg
+                                    className="w-8 h-8 text-white"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">
+                                Billing Information
+                            </h3>
+                            <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                Please provide your billing address
+                            </p>
+                        </div>
+
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                handleBillingSubmit();
+                            }}
+                            className="space-y-4"
+                        >
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                        Full Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={billingData.name}
+                                        onChange={(e) =>
+                                            setBillingData({
+                                                ...billingData,
+                                                name: e.target.value,
+                                            })
+                                        }
+                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                        placeholder={
+                                            user?.fullName || "John Doe"
+                                        }
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={billingData.email}
+                                        onChange={(e) =>
+                                            setBillingData({
+                                                ...billingData,
+                                                email: e.target.value,
+                                            })
+                                        }
+                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                        placeholder={
+                                            user?.emailAddresses[0]
+                                                ?.emailAddress ||
+                                            "john@example.com"
+                                        }
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                    Street Address
+                                </label>
+                                <input
+                                    type="text"
+                                    value={billingData.street}
+                                    onChange={(e) =>
+                                        setBillingData({
+                                            ...billingData,
+                                            street: e.target.value,
+                                        })
+                                    }
+                                    className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                    placeholder="123 Main Street"
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                        City
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={billingData.city}
+                                        onChange={(e) =>
+                                            setBillingData({
+                                                ...billingData,
+                                                city: e.target.value,
+                                            })
+                                        }
+                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                        placeholder="New York"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                        State
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={billingData.state}
+                                        onChange={(e) =>
+                                            setBillingData({
+                                                ...billingData,
+                                                state: e.target.value,
+                                            })
+                                        }
+                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                        placeholder="NY"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                        ZIP Code
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={billingData.zipcode}
+                                        onChange={(e) =>
+                                            setBillingData({
+                                                ...billingData,
+                                                zipcode: e.target.value,
+                                            })
+                                        }
+                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                        placeholder="10001"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                        Country
+                                    </label>
+                                    <select
+                                        value={billingData.country}
+                                        onChange={(e) =>
+                                            setBillingData({
+                                                ...billingData,
+                                                country: e.target.value,
+                                            })
+                                        }
+                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                        required
+                                    >
+                                        <option value="US">
+                                            United States
+                                        </option>
+                                        <option value="CA">Canada</option>
+                                        <option value="AL">Albania</option>
+                                        <option value="AD">Andorra</option>
+                                        <option value="AG">
+                                            Antigua and Barbuda
+                                        </option>
+                                        <option value="AR">Argentina</option>
+                                        <option value="AM">Armenia</option>
+                                        <option value="AW">Aruba</option>
+                                        <option value="AU">Australia</option>
+                                        <option value="AT">Austria</option>
+                                        <option value="AZ">Azerbaijan</option>
+                                        <option value="BS">Bahamas</option>
+                                        <option value="BH">Bahrain</option>
+                                        <option value="BD">Bangladesh</option>
+                                        <option value="BE">Belgium</option>
+                                        <option value="BZ">Belize</option>
+                                        <option value="BJ">Benin</option>
+                                        <option value="BM">Bermuda</option>
+                                        <option value="BT">Bhutan</option>
+                                        <option value="BO">Bolivia</option>
+                                        <option value="BA">
+                                            Bosnia and Herzegovina
+                                        </option>
+                                        <option value="BW">Botswana</option>
+                                        <option value="BR">Brazil</option>
+                                        <option value="BN">
+                                            Brunei Darussalam
+                                        </option>
+                                        <option value="BI">Burundi</option>
+                                        <option value="KH">Cambodia</option>
+                                        <option value="CA">Canada</option>
+                                        <option value="CV">Cape Verde</option>
+                                        <option value="TD">Chad</option>
+                                        <option value="CL">Chile</option>
+                                        <option value="CN">China</option>
+                                        <option value="CO">Colombia</option>
+                                        <option value="KM">Comoros</option>
+                                        <option value="CR">Costa Rica</option>
+                                        <option value="CW">Curaçao</option>
+                                        <option value="CY">Cyprus</option>
+                                        <option value="CZ">
+                                            Czech Republic
+                                        </option>
+                                        <option value="DK">Denmark</option>
+                                        <option value="DJ">Djibouti</option>
+                                        <option value="DM">Dominica</option>
+                                        <option value="DO">
+                                            Dominican Republic
+                                        </option>
+                                        <option value="EC">Ecuador</option>
+                                        <option value="EG">Egypt</option>
+                                        <option value="SV">El Salvador</option>
+                                        <option value="GQ">
+                                            Equatorial Guinea
+                                        </option>
+                                        <option value="ER">Eritrea</option>
+                                        <option value="EE">Estonia</option>
+                                        <option value="SZ">Eswatini</option>
+                                        <option value="ET">Ethiopia</option>
+                                        <option value="FJ">Fiji</option>
+                                        <option value="FI">Finland</option>
+                                        <option value="FR">France</option>
+                                        <option value="PF">
+                                            French Polynesia
+                                        </option>
+                                        <option value="GA">Gabon</option>
+                                        <option value="GM">Gambia</option>
+                                        <option value="GE">Georgia</option>
+                                        <option value="DE">Germany</option>
+                                        <option value="GH">Ghana</option>
+                                        <option value="GR">Greece</option>
+                                        <option value="GL">Greenland</option>
+                                        <option value="GD">Grenada</option>
+                                        <option value="GT">Guatemala</option>
+                                        <option value="GN">Guinea</option>
+                                        <option value="GW">
+                                            Guinea-Bissau
+                                        </option>
+                                        <option value="GY">Guyana</option>
+                                        <option value="HN">Honduras</option>
+                                        <option value="HK">Hong Kong</option>
+                                        <option value="HU">Hungary</option>
+                                        <option value="IS">Iceland</option>
+                                        <option value="IN">India</option>
+                                        <option value="ID">Indonesia</option>
+                                        <option value="IQ">Iraq</option>
+                                        <option value="IE">Ireland</option>
+                                        <option value="IL">Israel</option>
+                                        <option value="IT">Italy</option>
+                                        <option value="JP">Japan</option>
+                                        <option value="KZ">Kazakhstan</option>
+                                        <option value="KI">Kiribati</option>
+                                        <option value="KW">Kuwait</option>
+                                        <option value="LA">Laos</option>
+                                        <option value="LV">Latvia</option>
+                                        <option value="LS">Lesotho</option>
+                                        <option value="LR">Liberia</option>
+                                        <option value="LI">
+                                            Liechtenstein
+                                        </option>
+                                        <option value="LT">Lithuania</option>
+                                        <option value="LU">Luxembourg</option>
+                                        <option value="MO">Macau</option>
+                                        <option value="MG">Madagascar</option>
+                                        <option value="MW">Malawi</option>
+                                        <option value="MY">Malaysia</option>
+                                        <option value="MV">Maldives</option>
+                                        <option value="MT">Malta</option>
+                                        <option value="MH">
+                                            Marshall Islands
+                                        </option>
+                                        <option value="MR">Mauritania</option>
+                                        <option value="MU">Mauritius</option>
+                                        <option value="MX">Mexico</option>
+                                        <option value="FM">Micronesia</option>
+                                        <option value="MN">Mongolia</option>
+                                        <option value="ME">Montenegro</option>
+                                        <option value="MA">Morocco</option>
+                                        <option value="NR">Nauru</option>
+                                        <option value="NP">Nepal</option>
+                                        <option value="NL">Netherlands</option>
+                                        <option value="NC">
+                                            New Caledonia
+                                        </option>
+                                        <option value="NZ">New Zealand</option>
+                                        <option value="NE">Niger</option>
+                                        <option value="NG">Nigeria</option>
+                                        <option value="MK">
+                                            North Macedonia
+                                        </option>
+                                        <option value="NO">Norway</option>
+                                        <option value="OM">Oman</option>
+                                        <option value="PW">Palau</option>
+                                        <option value="PG">
+                                            Papua New Guinea
+                                        </option>
+                                        <option value="PY">Paraguay</option>
+                                        <option value="PE">Peru</option>
+                                        <option value="PH">Philippines</option>
+                                        <option value="PL">Poland</option>
+                                        <option value="PT">Portugal</option>
+                                        <option value="PR">Puerto Rico</option>
+                                        <option value="QA">Qatar</option>
+                                        <option value="RO">Romania</option>
+                                        <option value="RW">Rwanda</option>
+                                        <option value="KN">
+                                            Saint Kitts and Nevis
+                                        </option>
+                                        <option value="LC">Saint Lucia</option>
+                                        <option value="VC">
+                                            Saint Vincent and the Grenadines
+                                        </option>
+                                        <option value="WS">Samoa</option>
+                                        <option value="SM">San Marino</option>
+                                        <option value="ST">
+                                            Sao Tome and Principe
+                                        </option>
+                                        <option value="SA">Saudi Arabia</option>
+                                        <option value="RS">Serbia</option>
+                                        <option value="SC">Seychelles</option>
+                                        <option value="SL">Sierra Leone</option>
+                                        <option value="SG">Singapore</option>
+                                        <option value="SX">Sint Maarten</option>
+                                        <option value="SK">Slovakia</option>
+                                        <option value="SI">Slovenia</option>
+                                        <option value="SB">
+                                            Solomon Islands
+                                        </option>
+                                        <option value="KR">South Korea</option>
+                                        <option value="ES">Spain</option>
+                                        <option value="LK">Sri Lanka</option>
+                                        <option value="SR">Suriname</option>
+                                        <option value="SE">Sweden</option>
+                                        <option value="CH">Switzerland</option>
+                                        <option value="TW">Taiwan</option>
+                                        <option value="TJ">Tajikistan</option>
+                                        <option value="TZ">Tanzania</option>
+                                        <option value="TH">Thailand</option>
+                                        <option value="TL">Timor-Leste</option>
+                                        <option value="TG">Togo</option>
+                                        <option value="TO">Tonga</option>
+                                        <option value="TN">Tunisia</option>
+                                        <option value="TR">Turkey</option>
+                                        <option value="TV">Tuvalu</option>
+                                        <option value="TC">
+                                            Turks and Caicos
+                                        </option>
+                                        <option value="AE">
+                                            United Arab Emirates
+                                        </option>
+                                        <option value="GB">
+                                            United Kingdom
+                                        </option>
+                                        <option value="US">
+                                            United States
+                                        </option>
+                                        <option value="UY">Uruguay</option>
+                                        <option value="UZ">Uzbekistan</option>
+                                        <option value="ZM">Zambia</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                                    Phone Number (Optional)
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={billingData.phoneNumber}
+                                    onChange={(e) =>
+                                        setBillingData({
+                                            ...billingData,
+                                            phoneNumber: e.target.value,
+                                        })
+                                    }
+                                    className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                    placeholder="+1 (555) 123-4567"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowBillingForm(false);
+                                        setShowPricingModal(true);
+                                    }}
+                                    className="flex-1 py-3 px-4 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-sm"
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isProcessingPayment}
+                                    className="flex-1 py-3 px-4 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors font-medium disabled:opacity-50 text-sm"
+                                >
+                                    {isProcessingPayment
+                                        ? "Processing..."
+                                        : "Continue to Payment"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

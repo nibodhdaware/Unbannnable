@@ -6,12 +6,18 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
     try {
-        const { paymentId, customerEmail, customerName, amount, status = "succeeded" } = await req.json();
+        const {
+            paymentId,
+            customerEmail,
+            customerName,
+            amount,
+            status = "succeeded",
+        } = await req.json();
 
         if (!paymentId) {
             return NextResponse.json(
                 { error: "Payment ID is required" },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
@@ -24,9 +30,12 @@ export async function POST(req: NextRequest) {
         });
 
         // Check if payment already exists
-        const existingPayment = await convex.query(api.payments.getPaymentByPaymentId, {
-            paymentId,
-        });
+        const existingPayment = await convex.query(
+            api.payments.getPaymentByPaymentId,
+            {
+                paymentId,
+            },
+        );
 
         if (existingPayment) {
             return NextResponse.json({
@@ -42,7 +51,7 @@ export async function POST(req: NextRequest) {
             const user = await convex.query(api.users.getUserByEmail, {
                 email: customerEmail,
             });
-            
+
             if (user) {
                 userId = user._id;
                 console.log("Found existing user:", userId);
@@ -60,18 +69,24 @@ export async function POST(req: NextRequest) {
         }
 
         // Create payment record
-        const paymentRecord = await convex.mutation(api.payments.createPayment, {
-            paymentId,
-            userId,
-            amount: amount || 0,
-            currency: "USD",
-            status,
-            customerEmail,
-            customerName,
-            paymentType: "one_time",
-            paymentMethod: "dodo",
-            metadata: JSON.stringify({ manual_entry: true, recorded_at: new Date().toISOString() }),
-        });
+        const paymentRecord = await convex.mutation(
+            api.payments.createPayment,
+            {
+                paymentId,
+                userId,
+                amount: amount || 0,
+                currency: "USD",
+                status,
+                customerEmail,
+                customerName,
+                paymentType: "one_time",
+                paymentMethod: "dodo",
+                metadata: JSON.stringify({
+                    manual_entry: true,
+                    recorded_at: new Date().toISOString(),
+                }),
+            },
+        );
 
         console.log("Payment recorded successfully:", paymentRecord);
 
@@ -81,24 +96,24 @@ export async function POST(req: NextRequest) {
             userId,
             message: "Payment recorded successfully",
         });
-
     } catch (error) {
         console.error("Error recording manual payment:", error);
         return NextResponse.json(
-            { 
+            {
                 error: "Failed to record payment",
-                details: error instanceof Error ? error.message : "Unknown error"
+                details:
+                    error instanceof Error ? error.message : "Unknown error",
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }
 
 // Handle other HTTP methods
 export async function GET() {
-    return NextResponse.json({ 
+    return NextResponse.json({
         message: "Use POST to record a payment",
         requiredFields: ["paymentId", "customerEmail", "amount"],
-        optionalFields: ["customerName", "status"]
+        optionalFields: ["customerName", "status"],
     });
 }

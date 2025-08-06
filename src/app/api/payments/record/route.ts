@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
         // Check if payment already exists to avoid duplicates
         const existingPayment = await convex.query(
-            api.payments.getPaymentById,
+            api.payments.getPaymentByPaymentId,
             { paymentId },
         );
 

@@ -9,13 +9,37 @@ export const createPost = mutation({
         body: v.optional(v.string()),
         subreddit: v.optional(v.string()),
         status: v.optional(v.string()),
+        postType: v.optional(
+            v.union(
+                v.literal("free"),
+                v.literal("purchased"),
+                v.literal("unlimited"),
+            ),
+        ),
+        paymentId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const now = Date.now();
-        return await ctx.db.insert("posts", {
+
+        // Create the post
+        const postId = await ctx.db.insert("posts", {
             ...args,
             createdAt: now,
         });
+
+        // Update user's post usage based on type
+        const user = await ctx.db.get(args.userId);
+        if (!user) throw new Error("User not found");
+
+        if (args.postType === "free") {
+            const currentFreeUsed = user.freePostsUsed || 0;
+            await ctx.db.patch(args.userId, {
+                freePostsUsed: currentFreeUsed + 1,
+                updatedAt: now,
+            });
+        }
+
+        return postId;
     },
 });
 
@@ -47,5 +71,139 @@ export const getUserPosts = query({
             .withIndex("by_user_id", (q) => q.eq("userId", userId))
             .order("desc")
             .collect();
+    },
+});
+
+// Get user post statistics
+export const getUserPostStats = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, { userId }) => {
+        const user = await ctx.db.get(userId);
+        if (!user) {
+            return {
+                freePostsUsed: 0,
+                freePostsRemaining: 1,
+                purchasedPostsRemaining: 0,
+                totalPostsUsed: 0,
+                hasUnlimitedAccess: false,
+                unlimitedExpiry: null,
+            };
+        }
+
+        const freePostsUsed = user.freePostsUsed || 0;
+        const totalPurchasedPosts = user.totalPurchasedPosts || 0;
+
+        // Check if user has unlimited monthly access
+        const now = Date.now();
+        const hasUnlimitedAccess =
+            user.unlimitedMonthlyExpiry && user.unlimitedMonthlyExpiry > now;
+
+        // Get total posts used this month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const postsThisMonth = await ctx.db
+            .query("posts")
+            .withIndex("by_user_and_date", (q) =>
+                q.eq("userId", userId).gte("createdAt", startOfMonth.getTime()),
+            )
+            .collect();
+
+        // Calculate purchased posts used this month
+        const purchasedPostsUsed = postsThisMonth.filter(
+            (p) => p.postType === "purchased",
+        ).length;
+        const purchasedPostsRemaining = Math.max(
+            0,
+            totalPurchasedPosts - purchasedPostsUsed,
+        );
+
+        return {
+            freePostsUsed,
+            freePostsRemaining: Math.max(0, 1 - freePostsUsed), // 1 free post total
+            purchasedPostsRemaining,
+            totalPostsUsed: postsThisMonth.length,
+            hasUnlimitedAccess,
+            unlimitedExpiry: user.unlimitedMonthlyExpiry || null,
+        };
+    },
+});
+
+// Check if user can create a post
+export const canUserCreatePost = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, { userId }) => {
+        // Get user post stats directly
+        const user = await ctx.db.get(userId);
+        if (!user) {
+            return {
+                canCreate: false,
+                reason: "user_not_found",
+                postsRemaining: 0,
+            };
+        }
+
+        const freePostsUsed = user.freePostsUsed || 0;
+        const totalPurchasedPosts = user.totalPurchasedPosts || 0;
+
+        // Check if user has unlimited monthly access
+        const now = Date.now();
+        const hasUnlimitedAccess =
+            user.unlimitedMonthlyExpiry && user.unlimitedMonthlyExpiry > now;
+
+        // Check if user has unlimited access
+        if (hasUnlimitedAccess) {
+            return {
+                canCreate: true,
+                reason: "unlimited",
+                postsRemaining: "unlimited",
+            };
+        }
+
+        // Check free posts
+        const freePostsRemaining = Math.max(0, 1 - freePostsUsed);
+        if (freePostsRemaining > 0) {
+            return {
+                canCreate: true,
+                reason: "free",
+                postsRemaining: freePostsRemaining,
+            };
+        }
+
+        // Get purchased posts used this month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const postsThisMonth = await ctx.db
+            .query("posts")
+            .withIndex("by_user_and_date", (q) =>
+                q.eq("userId", userId).gte("createdAt", startOfMonth.getTime()),
+            )
+            .collect();
+
+        const purchasedPostsUsed = postsThisMonth.filter(
+            (p) => p.postType === "purchased",
+        ).length;
+        const purchasedPostsRemaining = Math.max(
+            0,
+            totalPurchasedPosts - purchasedPostsUsed,
+        );
+
+        // Check purchased posts
+        if (purchasedPostsRemaining > 0) {
+            return {
+                canCreate: true,
+                reason: "purchased",
+                postsRemaining: purchasedPostsRemaining,
+            };
+        }
+
+        return {
+            canCreate: false,
+            reason: "no_posts_remaining",
+            postsRemaining: 0,
+        };
     },
 });

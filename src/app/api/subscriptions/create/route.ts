@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
 
         // Parse the request body
         const body = await req.json();
-        const { productId } = body;
+        const { productId, formData } = body;
 
-        console.log("Request body:", { productId });
+        console.log("Request body:", { productId, formData });
 
         if (!productId) {
             return NextResponse.json(
@@ -31,47 +31,43 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Map product IDs to Dodo product IDs
-        const productConfig: Record<string, { dodoProductId: string }> = {
-            monthly: {
-                dodoProductId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // Monthly premium
-            },
-            yearly: {
-                dodoProductId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // Yearly premium - could be different product
-            },
-        };
-
-        const config = productConfig[productId as string];
-
-        if (!config) {
+        if (!formData) {
             return NextResponse.json(
-                { error: "Invalid product ID" },
+                { error: "Billing information is required" },
                 { status: 400 },
             );
         }
 
-        // Get user email and name for prefilling
-        const email = user.emailAddresses[0]?.emailAddress;
-        const name = user.fullName || user.firstName || "Unknown User";
+        // Build DodoPay checkout URL with billing information
+        const baseUrl =
+            "https://test.checkout.dodopayments.com/buy/pdt_Sqt14rBf5vO14Z8ReuHqB";
+        const params = new URLSearchParams({
+            quantity: "1",
+            redirect_url: "https://reddit-unbanr.vercel.app/",
+            // Add billing information as prefill parameters
+            customer_name: formData.name || user.fullName || "",
+            customer_email:
+                formData.email || user.emailAddresses[0]?.emailAddress || "",
+            billing_address_line1: formData.street || "",
+            billing_address_city: formData.city || "",
+            billing_address_state: formData.state || "",
+            billing_address_postal_code: formData.zipcode || "",
+            billing_address_country: formData.country || "US",
+            customer_phone: formData.phoneNumber || "",
+            // Add metadata to track the user
+            "metadata[clerk_user_id]": user.id,
+            "metadata[user_email]": user.emailAddresses[0]?.emailAddress || "",
+        });
 
-        if (!email) {
-            return NextResponse.json(
-                { error: "User email is required" },
-                { status: 400 },
-            );
-        }
+        const checkoutUrl = `${baseUrl}?${params.toString()}`;
 
-        // Use the exact static payment link
-        const staticPaymentLink =
-            "https://test.checkout.dodopayments.com/buy/pdt_Sqt14rBf5vO14Z8ReuHqB?quantity=1&redirect_url=https://reddit-unbanr.vercel.app%2F";
-
-        console.log("Returning static payment link:", staticPaymentLink);
+        console.log("Generated checkout URL with billing info:", checkoutUrl);
 
         return NextResponse.json({
             success: true,
-            checkoutUrl: staticPaymentLink,
-            paymentId: `static_${Date.now()}`, // Temporary ID, real one will come from redirect
-            isStaticLink: true,
+            checkoutUrl: checkoutUrl,
+            paymentId: `prefilled_${Date.now()}`,
+            isDirectLink: true,
         });
     } catch (error) {
         console.error("Subscription creation error:", error);

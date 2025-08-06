@@ -71,3 +71,11 @@ export const getUserByEmail = query({
             .first();
     },
 });
+
+// Get user by ID
+export const getUser = query({
+    args: { id: v.id("users") },
+    handler: async (ctx, { id }) => {
+        return await ctx.db.get(id);
+    },
+});
