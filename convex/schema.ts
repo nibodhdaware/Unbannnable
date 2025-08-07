@@ -16,23 +16,6 @@ export default defineSchema({
         unlimitedMonthlyExpiry: v.optional(v.number()),
     }).index("by_clerk_id", ["clerkId"]),
 
-    subscriptions: defineTable({
-        subscriptionId: v.string(),
-        customerId: v.optional(v.string()),
-        userId: v.id("users"),
-        clerkId: v.optional(v.string()),
-        email: v.string(),
-        status: v.string(), // active, on_hold, failed, cancelled
-        productId: v.string(),
-        amount: v.number(), // Amount in cents
-        currency: v.optional(v.string()),
-        lastRenewalAt: v.optional(v.number()),
-        createdAt: v.number(),
-        updatedAt: v.number(),
-    })
-        .index("by_subscription_id", ["subscriptionId"])
-        .index("by_user_id", ["userId"]),
-
     payments: defineTable({
         paymentId: v.string(),
         subscriptionId: v.optional(v.string()),

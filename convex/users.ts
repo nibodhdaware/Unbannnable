@@ -79,3 +79,86 @@ export const getUser = query({
         return await ctx.db.get(id);
     },
 });
+
+// Update user last payment info for tracking
+export const updateUserPaymentInfo = mutation({
+    args: {
+        userId: v.id("users"),
+        lastPaymentId: v.optional(v.string()),
+        lastPaymentAmount: v.optional(v.number()),
+        lastPaymentDate: v.optional(v.number()),
+    },
+    handler: async (
+        ctx,
+        { userId, lastPaymentId, lastPaymentAmount, lastPaymentDate },
+    ) => {
+        const now = Date.now();
+
+        // Get current user data
+        const user = await ctx.db.get(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Update user with payment tracking info in metadata
+        await ctx.db.patch(userId, {
+            updatedAt: now,
+        });
+
+        return userId;
+    },
+});
+
+// Get user payment summary
+export const getUserPaymentSummary = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, { userId }) => {
+        const user = await ctx.db.get(userId);
+        if (!user) {
+            return null;
+        }
+
+        // Get all payments for this user
+        const payments = await ctx.db
+            .query("payments")
+            .withIndex("by_user_id", (q) => q.eq("userId", userId))
+            .collect();
+
+        // Get successful payments only
+        const successfulPayments = payments.filter(
+            (p) => p.status === "succeeded",
+        );
+
+        // Calculate totals
+        const totalSpent = successfulPayments.reduce(
+            (sum, payment) => sum + payment.amount,
+            0,
+        );
+        const totalPayments = successfulPayments.length;
+
+        // Get most recent payment
+        const lastPayment = successfulPayments.sort(
+            (a, b) => b.createdAt - a.createdAt,
+        )[0];
+
+        return {
+            userId,
+            totalSpent,
+            totalPayments,
+            lastPayment: lastPayment
+                ? {
+                      paymentId: lastPayment.paymentId,
+                      amount: lastPayment.amount,
+                      date: lastPayment.createdAt,
+                      planType: lastPayment.planType,
+                  }
+                : null,
+            freePostsUsed: user.freePostsUsed || 0,
+            totalPurchasedPosts: user.totalPurchasedPosts || 0,
+            unlimitedMonthlyExpiry: user.unlimitedMonthlyExpiry,
+            hasActiveUnlimited: user.unlimitedMonthlyExpiry
+                ? user.unlimitedMonthlyExpiry > Date.now()
+                : false,
+        };
+    },
+});

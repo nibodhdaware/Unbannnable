@@ -21,27 +21,109 @@ export const createPost = mutation({
     handler: async (ctx, args) => {
         const now = Date.now();
 
+        // Validate user exists
+        const user = await ctx.db.get(args.userId);
+        if (!user) throw new Error("User not found");
+
+        // Determine post type if not provided
+        let postType = args.postType;
+        if (!postType) {
+            // Auto-determine based on user's current status
+            const userStats = await getUserPostStatsInternal(ctx, args.userId);
+
+            if (userStats.hasUnlimitedAccess) {
+                postType = "unlimited";
+            } else if (userStats.freePostsRemaining > 0) {
+                postType = "free";
+            } else if (userStats.purchasedPostsRemaining > 0) {
+                postType = "purchased";
+            } else {
+                throw new Error("User has no remaining posts");
+            }
+        }
+
         // Create the post
         const postId = await ctx.db.insert("posts", {
             ...args,
+            postType,
             createdAt: now,
         });
 
         // Update user's post usage based on type
-        const user = await ctx.db.get(args.userId);
-        if (!user) throw new Error("User not found");
-
-        if (args.postType === "free") {
+        if (postType === "free") {
             const currentFreeUsed = user.freePostsUsed || 0;
             await ctx.db.patch(args.userId, {
                 freePostsUsed: currentFreeUsed + 1,
                 updatedAt: now,
             });
+            console.log(
+                `User ${args.userId} used free post. Total free posts used: ${currentFreeUsed + 1}`,
+            );
         }
+
+        console.log(`Created ${postType} post for user ${args.userId}:`, {
+            postId,
+            title: args.title,
+            subreddit: args.subreddit,
+            paymentId: args.paymentId,
+        });
 
         return postId;
     },
 });
+
+// Internal function to get user post stats (for use within mutations)
+async function getUserPostStatsInternal(ctx: any, userId: any) {
+    const user = await ctx.db.get(userId);
+    if (!user) {
+        return {
+            freePostsUsed: 0,
+            freePostsRemaining: 1,
+            purchasedPostsRemaining: 0,
+            totalPostsUsed: 0,
+            hasUnlimitedAccess: false,
+            unlimitedExpiry: null,
+        };
+    }
+
+    const freePostsUsed = user.freePostsUsed || 0;
+    const totalPurchasedPosts = user.totalPurchasedPosts || 0;
+
+    // Check if user has unlimited monthly access
+    const now = Date.now();
+    const hasUnlimitedAccess =
+        user.unlimitedMonthlyExpiry && user.unlimitedMonthlyExpiry > now;
+
+    // Get total posts used this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const postsThisMonth = await ctx.db
+        .query("posts")
+        .withIndex("by_user_and_date", (q: any) =>
+            q.eq("userId", userId).gte("createdAt", startOfMonth.getTime()),
+        )
+        .collect();
+
+    // Calculate purchased posts used this month
+    const purchasedPostsUsed = postsThisMonth.filter(
+        (p: any) => p.postType === "purchased",
+    ).length;
+    const purchasedPostsRemaining = Math.max(
+        0,
+        totalPurchasedPosts - purchasedPostsUsed,
+    );
+
+    return {
+        freePostsUsed,
+        freePostsRemaining: Math.max(0, 1 - freePostsUsed), // 1 free post total
+        purchasedPostsRemaining,
+        totalPostsUsed: postsThisMonth.length,
+        hasUnlimitedAccess,
+        unlimitedExpiry: user.unlimitedMonthlyExpiry || null,
+    };
+}
 
 // Get posts count for a user in the current month
 export const getPostsCountThisMonth = query({

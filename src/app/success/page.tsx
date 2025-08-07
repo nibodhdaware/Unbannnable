@@ -23,7 +23,7 @@ interface PaymentDetails {
 }
 
 export default function SuccessPage() {
-    const { user } = useUser();
+    const { user, isLoaded } = useUser();
     const router = useRouter();
     const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(
         null,
@@ -36,9 +36,24 @@ export default function SuccessPage() {
             try {
                 // Get payment ID from URL params
                 const urlParams = new URLSearchParams(window.location.search);
-                const paymentId = urlParams.get("payment_id");
+                console.log(
+                    "All URL parameters:",
+                    Object.fromEntries(urlParams.entries()),
+                );
+
+                const paymentId =
+                    urlParams.get("payment_id") ||
+                    urlParams.get("id") ||
+                    urlParams.get("payment") ||
+                    urlParams.get("session_id");
+
+                console.log("Extracted payment ID:", paymentId);
 
                 if (!paymentId) {
+                    console.log(
+                        "No payment ID found in URL params:",
+                        Object.fromEntries(urlParams.entries()),
+                    );
                     setError("No payment ID found in URL");
                     setLoading(false);
                     return;
@@ -52,8 +67,23 @@ export default function SuccessPage() {
                 );
 
                 if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error("Payment details API error:", {
+                        status: response.status,
+                        statusText: response.statusText,
+                        errorData,
+                        paymentId,
+                        currentUserEmail: user?.emailAddresses[0]?.emailAddress,
+                    });
+
+                    // Show more helpful error message for 403 errors
+                    if (response.status === 403) {
+                        const message = `Payment access denied. This payment may belong to a different user. Current user: ${user?.emailAddresses[0]?.emailAddress}, Payment for: ${errorData.details?.paymentEmail || "unknown"}`;
+                        throw new Error(message);
+                    }
+
                     throw new Error(
-                        `Failed to fetch payment details: ${response.status}`,
+                        `Failed to fetch payment details: ${response.status} - ${errorData.error || response.statusText}`,
                     );
                 }
 
@@ -74,12 +104,14 @@ export default function SuccessPage() {
             }
         };
 
-        if (user) {
+        // Only fetch payment details if user is loaded and authenticated
+        if (user && isLoaded) {
             fetchPaymentDetails();
-        } else {
+        } else if (isLoaded && !user) {
+            setError("Please sign in to view payment details");
             setLoading(false);
         }
-    }, [user]);
+    }, [user, isLoaded]); // Add isLoaded to dependencies
 
     const savePaymentToDatabase = async (details: PaymentDetails) => {
         try {
@@ -148,8 +180,8 @@ export default function SuccessPage() {
                 </h1>
 
                 <p className="text-gray-600 mb-6">
-                    Thank you for your subscription! You now have access to
-                    premium features.
+                    Thank you for your purchase! You now have access to premium
+                    features.
                 </p>
 
                 {/* User Info */}

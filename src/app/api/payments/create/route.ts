@@ -53,8 +53,8 @@ export async function POST(req: Request) {
         }
 
         const payment = await createOneTimePaymentLink({
-            name: billing.name,
-            email: billing.email,
+            name: billing.name || user.fullName || "User",
+            email: user.emailAddresses[0]?.emailAddress || billing.email, // Always use Clerk user's email
             phoneNumber: billing.phoneNumber,
             city: billing.city,
             state: billing.state,

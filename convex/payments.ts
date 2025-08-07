@@ -99,9 +99,16 @@ export const allocatePostsFromPayment = mutation({
         if (setUnlimitedExpiry) {
             const thirtyDaysFromNow = Date.now() + 30 * 24 * 60 * 60 * 1000;
             updates.unlimitedMonthlyExpiry = thirtyDaysFromNow;
+            console.log(
+                "Setting unlimited access until:",
+                new Date(thirtyDaysFromNow).toISOString(),
+            );
         } else {
             const currentPurchased = user.totalPurchasedPosts || 0;
             updates.totalPurchasedPosts = currentPurchased + postsToAdd;
+            console.log(
+                `Adding ${postsToAdd} posts to user. Previous: ${currentPurchased}, New total: ${currentPurchased + postsToAdd}`,
+            );
         }
 
         await ctx.db.patch(userId, updates);
@@ -118,8 +125,225 @@ export const allocatePostsFromPayment = mutation({
                 planType,
                 updatedAt: Date.now(),
             });
+            console.log("Updated payment record with allocation info:", {
+                paymentId,
+                postsAllocated: setUnlimitedExpiry ? -1 : postsToAdd,
+                planType,
+            });
         }
 
-        return { postsAdded: postsToAdd, unlimitedAccess: setUnlimitedExpiry };
+        return {
+            postsAdded: postsToAdd,
+            unlimitedAccess: setUnlimitedExpiry,
+            userTotalPosts: setUnlimitedExpiry
+                ? "unlimited"
+                : (user.totalPurchasedPosts || 0) + postsToAdd,
+            expiryDate: setUnlimitedExpiry
+                ? Date.now() + 30 * 24 * 60 * 60 * 1000
+                : null,
+        };
+    },
+});
+
+// Get user payment history with details
+export const getUserPaymentHistory = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, { userId }) => {
+        const payments = await ctx.db
+            .query("payments")
+            .withIndex("by_user_id", (q) => q.eq("userId", userId))
+            .order("desc")
+            .collect();
+
+        return payments.map((payment) => ({
+            ...payment,
+            createdAtDate: new Date(payment.createdAt).toISOString(),
+            amountDollars: (payment.amount / 100).toFixed(2),
+        }));
+    },
+});
+
+// Validate payment ownership
+export const validatePaymentOwnership = query({
+    args: {
+        paymentId: v.string(),
+        userEmail: v.string(),
+        isAdmin: v.optional(v.boolean()),
+    },
+    handler: async (ctx, { paymentId, userEmail, isAdmin = false }) => {
+        const payment = await ctx.db
+            .query("payments")
+            .filter((q) => q.eq(q.field("paymentId"), paymentId))
+            .first();
+
+        if (!payment) {
+            return { isValid: false, reason: "payment_not_found" };
+        }
+
+        // Check if payment belongs to user or user is admin
+        const isOwner = payment.customerEmail === userEmail;
+        const hasAccess = isOwner || isAdmin;
+
+        return {
+            isValid: hasAccess,
+            reason: hasAccess ? "authorized" : "not_owner",
+            payment: hasAccess ? payment : null,
+        };
+    },
+});
+
+// Comprehensive database sync function for payments
+export const syncPaymentToDatabase = mutation({
+    args: {
+        paymentId: v.string(),
+        userId: v.id("users"),
+        paymentData: v.any(), // Full payment data from DodoPay
+        userEmail: v.string(),
+        userName: v.optional(v.string()),
+    },
+    handler: async (
+        ctx,
+        { paymentId, userId, paymentData, userEmail, userName },
+    ) => {
+        const now = Date.now();
+
+        // Check if payment already exists
+        const existingPayment = await ctx.db
+            .query("payments")
+            .filter((q) => q.eq(q.field("paymentId"), paymentId))
+            .first();
+
+        let paymentRecord;
+
+        if (!existingPayment) {
+            // Create new payment record
+            const paymentRecordId = await ctx.db.insert("payments", {
+                paymentId: paymentData.payment_id || paymentId,
+                subscriptionId: paymentData.subscription_id,
+                userId: userId,
+                amount: paymentData.total_amount || paymentData.amount || 0,
+                currency: paymentData.currency || "USD",
+                status: paymentData.status || "succeeded",
+                paymentMethod: "dodo",
+                customerEmail: paymentData.customer?.email || userEmail,
+                customerName: paymentData.customer?.name || userName || "",
+                paymentType: paymentData.subscription_id
+                    ? "subscription"
+                    : "one_time",
+                metadata: JSON.stringify({
+                    ...paymentData.metadata,
+                    clerk_user_id: userId,
+                    processed_at: new Date().toISOString(),
+                    product_cart: paymentData.product_cart,
+                    settlement_amount: paymentData.settlement_amount,
+                    tax: paymentData.tax,
+                    created_via: "reddit_unbanr_app",
+                }),
+                createdAt: now,
+                updatedAt: now,
+            });
+
+            paymentRecord = await ctx.db.get(paymentRecordId);
+        } else {
+            paymentRecord = existingPayment;
+        }
+
+        // Allocate posts if not already done
+        if (
+            paymentRecord &&
+            (!existingPayment || !existingPayment.postsAllocated)
+        ) {
+            const amount = paymentRecord.amount;
+            let planType = "onePost";
+
+            // Determine plan type from amount
+            if (amount === 199) planType = "onePost";
+            else if (amount === 699) planType = "fivePosts";
+            else if (amount === 999)
+                planType = "fivePosts"; // Mock payments
+            else if (amount === 1499) planType = "unlimited_monthly_1499";
+
+            try {
+                // Call the post allocation function directly
+                const user = await ctx.db.get(userId);
+                if (!user) throw new Error("User not found");
+
+                let postsToAdd = 0;
+                let setUnlimitedExpiry = false;
+
+                // Determine posts based on plan type
+                switch (planType) {
+                    case "onePost":
+                        postsToAdd = 1;
+                        break;
+                    case "fivePosts":
+                        postsToAdd = 5;
+                        break;
+                    case "fifteenPosts":
+                    case "unlimited_monthly_1499":
+                        setUnlimitedExpiry = true;
+                        break;
+                    default:
+                        throw new Error("Unknown plan type");
+                }
+
+                // Update user's purchased posts or unlimited access
+                const updates: any = {
+                    updatedAt: now,
+                };
+
+                if (setUnlimitedExpiry) {
+                    const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
+                    updates.unlimitedMonthlyExpiry = thirtyDaysFromNow;
+                } else {
+                    const currentPurchased = user.totalPurchasedPosts || 0;
+                    updates.totalPurchasedPosts = currentPurchased + postsToAdd;
+                }
+
+                await ctx.db.patch(userId, updates);
+
+                // Update payment record with allocation info
+                if (paymentRecord) {
+                    await ctx.db.patch(paymentRecord._id, {
+                        postsAllocated: setUnlimitedExpiry ? -1 : postsToAdd,
+                        planType,
+                        updatedAt: now,
+                    });
+                }
+
+                const allocation = {
+                    postsAdded: postsToAdd,
+                    unlimitedAccess: setUnlimitedExpiry,
+                    userTotalPosts: setUnlimitedExpiry
+                        ? "unlimited"
+                        : (user.totalPurchasedPosts || 0) + postsToAdd,
+                    expiryDate: setUnlimitedExpiry
+                        ? now + 30 * 24 * 60 * 60 * 1000
+                        : null,
+                };
+
+                return {
+                    success: true,
+                    paymentRecord,
+                    allocation,
+                    isNewPayment: !existingPayment,
+                };
+            } catch (allocationError) {
+                console.error("Error in post allocation:", allocationError);
+                return {
+                    success: false,
+                    error: "allocation_failed",
+                    paymentRecord,
+                    isNewPayment: !existingPayment,
+                };
+            }
+        }
+
+        return {
+            success: true,
+            paymentRecord,
+            allocation: null,
+            isNewPayment: !existingPayment,
+        };
     },
 });

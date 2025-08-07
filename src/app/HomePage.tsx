@@ -806,10 +806,7 @@ ${rules
                 },
                 body: JSON.stringify({
                     billing: {
-                        email:
-                            billingData.email ||
-                            user?.emailAddresses[0]?.emailAddress ||
-                            "",
+                        email: user?.emailAddresses[0]?.emailAddress || "", // Always use Clerk user's email
                         name: billingData.name || user?.fullName || "User",
                         phoneNumber:
                             billingData.phoneNumber ||
@@ -934,6 +931,29 @@ ${rules
                                         </div>
                                     )}
                                 </div>
+                            )}
+
+                            {/* Buy More Posts Button */}
+                            {!postsLoading && !postStats.hasUnlimitedAccess && (
+                                <button
+                                    onClick={() => setShowPricingModal(true)}
+                                    className="px-4 py-2 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium flex items-center gap-2"
+                                >
+                                    <svg
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                        />
+                                    </svg>
+                                    Buy Posts
+                                </button>
                             )}
 
                             <UserButton afterSignOutUrl="/" />
@@ -1874,21 +1894,22 @@ ${rules
                                     </label>
                                     <input
                                         type="email"
-                                        value={billingData.email}
-                                        onChange={(e) =>
-                                            setBillingData({
-                                                ...billingData,
-                                                email: e.target.value,
-                                            })
+                                        value={
+                                            user?.emailAddresses[0]
+                                                ?.emailAddress || ""
                                         }
-                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-[#FF4500] focus:border-transparent dark:bg-neutral-800 dark:text-white text-sm"
+                                        readOnly
+                                        className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm cursor-not-allowed"
                                         placeholder={
                                             user?.emailAddresses[0]
                                                 ?.emailAddress ||
                                             "john@example.com"
                                         }
-                                        required
                                     />
+                                    <p className="text-xs text-neutral-500 mt-1">
+                                        Email matches your account and cannot be
+                                        changed
+                                    </p>
                                 </div>
                             </div>
 

@@ -56,24 +56,20 @@ export async function GET() {
             });
         }
 
-        // Check for active subscription (payments this month)
-        const activePayments = await convex.query(
-            api.payments.getActivePaymentsThisMonth,
-            {
-                userId: userRecord._id,
-            },
-        );
-
-        if (activePayments.length > 0) {
+        // Check for unlimited monthly access (valid until expiry)
+        if (
+            userRecord.unlimitedMonthlyExpiry &&
+            userRecord.unlimitedMonthlyExpiry > Date.now()
+        ) {
             return NextResponse.json({
-                hasSubscription: true,
-                postsRemaining: -1, // Unlimited with subscription
+                hasSubscription: true, // Keep this for backward compatibility
+                postsRemaining: -1, // Unlimited
                 unlimited: true,
                 isAdmin: false,
             });
         }
 
-        // For non-admin users without subscription, check post limits
+        // For non-admin users without unlimited access, check post limits
         const postsThisMonth = await convex.query(
             api.posts.getPostsCountThisMonth,
             {

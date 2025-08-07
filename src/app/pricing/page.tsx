@@ -18,25 +18,56 @@ export default function PricingPage() {
         setError("");
 
         try {
-            const response = await fetch("/api/subscriptions/create", {
+            // Map plan types to product IDs and amounts
+            const productMap = {
+                monthly: {
+                    productId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // $14.99 monthly unlimited
+                    amount: 1499,
+                },
+                yearly: {
+                    productId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // Using same product for now
+                    amount: 14999, // $149.99 yearly (10 months price)
+                },
+            };
+
+            const selectedProduct = productMap[planType];
+
+            const response = await fetch("/api/payments/create", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    productId: planType === "monthly" ? "monthly" : "yearly",
+                    billing: {
+                        name:
+                            user.fullName ||
+                            `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+                        email: user.emailAddresses[0]?.emailAddress || "",
+                        phoneNumber: "",
+                        city: "",
+                        state: "",
+                        country: "US",
+                        street: "",
+                        zipcode: "",
+                    },
+                    productCart: [
+                        {
+                            product_id: selectedProduct.productId,
+                            quantity: 1,
+                        },
+                    ],
                 }),
             });
 
             if (response.ok) {
-                const { checkoutUrl } = await response.json();
-                window.location.href = checkoutUrl;
+                const { url } = await response.json();
+                window.location.href = url;
             } else {
                 const errorData = await response.json();
-                setError(errorData.error || "Failed to create subscription");
+                setError(errorData.error || "Failed to create payment");
             }
         } catch (error) {
-            console.error("Error creating subscription:", error);
+            console.error("Error creating payment:", error);
             setError("An error occurred while processing your request");
         } finally {
             setIsProcessing(false);
@@ -52,8 +83,7 @@ export default function PricingPage() {
                         Choose Your Plan
                     </h1>
                     <p className="text-lg text-gray-600 dark:text-gray-300">
-                        Unlock unlimited Reddit posting with our subscription
-                        plans
+                        Unlock unlimited Reddit posting with our premium plans
                     </p>
                 </div>
 
@@ -171,12 +201,12 @@ export default function PricingPage() {
                     <div className="space-y-6">
                         <div className="bg-white dark:bg-neutral-800 rounded-lg p-6 border border-gray-200 dark:border-neutral-700">
                             <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                                Can I cancel my subscription anytime?
+                                How do payments work?
                             </h3>
                             <p className="text-gray-600 dark:text-gray-300">
-                                Yes, you can cancel your subscription at any
-                                time. You'll retain access until the end of your
-                                current billing period.
+                                All purchases are one-time payments. You buy
+                                post credits that never expire and can be used
+                                whenever you need them.
                             </p>
                         </div>
                         <div className="bg-white dark:bg-neutral-800 rounded-lg p-6 border border-gray-200 dark:border-neutral-700">
