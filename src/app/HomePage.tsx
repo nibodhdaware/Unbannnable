@@ -11,6 +11,7 @@ import {
     type PostRequirement,
 } from "@/lib/reddit-api";
 import Fuse from "fuse.js";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function HomePage() {
     // Initialize user sync and post tracking
@@ -93,12 +94,14 @@ export default function HomePage() {
 
     const filteredSubreddits = useMemo(() => {
         if (!searchQuery.trim()) {
+            // When no search query, show all subreddits sorted alphabetically
             const combinedSubreddits = [...allSubreddits, ...subreddits];
             const uniqueSubreddits = combinedSubreddits.filter(
                 (subreddit, index, self) =>
                     index === self.findIndex((s) => s.id === subreddit.id),
             );
 
+            // Fix: Ensure proper alphabetical sorting
             return uniqueSubreddits.sort((a, b) =>
                 a.display_name
                     .toLowerCase()
@@ -106,7 +109,17 @@ export default function HomePage() {
             );
         }
 
-        return fuse.search(searchQuery).map((result) => result.item);
+        // When there's a search query, use Fuse.js search results
+        const searchResults = fuse
+            .search(searchQuery)
+            .map((result) => result.item);
+
+        // Also sort search results alphabetically
+        return searchResults.sort((a, b) =>
+            a.display_name
+                .toLowerCase()
+                .localeCompare(b.display_name.toLowerCase()),
+        );
     }, [fuse, searchQuery, allSubreddits, subreddits]);
 
     useEffect(() => {
@@ -1760,79 +1773,104 @@ ${rules
             </div>
 
             {/* Pricing Modal */}
-            {showPricingModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-neutral-900 rounded-2xl p-8 max-w-lg w-full border border-neutral-200 dark:border-neutral-700 shadow-xl">
-                        <div className="text-center">
-                            <div className="mb-6">
-                                <div className="w-16 h-16 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg
-                                        className="w-8 h-8 text-white"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">
-                                    Purchase Post Credit
-                                </h3>
-                                <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                    You've run out of free posts. Purchase a
-                                    post credit to continue.
-                                </p>
-                            </div>
-
-                            {/* Single Plan Display */}
-                            <div className="mb-8">
-                                <div className="relative p-8 border-2 border-[#FF4500] bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-xl text-center shadow-lg">
-                                    <div className="mb-6">
-                                        <p className="text-4xl font-bold mb-3 text-[#FF4500]">
-                                            $1.99
-                                        </p>
-                                        <h4 className="font-semibold text-xl text-neutral-900 dark:text-white">
-                                            1 Post Credit
-                                        </h4>
+            <AnimatePresence>
+                {showPricingModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowPricingModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="bg-white dark:bg-neutral-900 rounded-2xl p-8 max-w-lg w-full border border-neutral-200 dark:border-neutral-700 shadow-xl"
+                            onClick={(e: React.MouseEvent) =>
+                                e.stopPropagation()
+                            }
+                        >
+                            <div className="text-center">
+                                <div className="mb-6">
+                                    <div className="w-16 h-16 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <svg
+                                            className="w-8 h-8 text-white"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
                                     </div>
-                                    <p className="text-base text-neutral-600 dark:text-neutral-400 mb-6">
-                                        Get your message heard without the risk
+                                    <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">
+                                        Purchase Post Credit
+                                    </h3>
+                                    <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                        You've run out of free posts. Purchase a
+                                        post credit to continue.
                                     </p>
-                                    <ul className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
-                                        <li>✓ AI-optimized content</li>
-                                        <li>✓ Reddit safety check</li>
-                                        <li>✓ Instant access</li>
-                                    </ul>
                                 </div>
-                            </div>
 
-                            <div className="mb-6">
-                                <button
-                                    onClick={() =>
-                                        handleSubscription("onePost")
-                                    }
-                                    disabled={isProcessingPayment}
-                                    className="w-full py-3 px-6 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors font-medium disabled:opacity-50"
+                                {/* Single Plan Display */}
+                                <div className="mb-8">
+                                    <div className="relative p-8 border-2 border-[#FF4500] bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-xl text-center shadow-lg">
+                                        <div className="mb-6">
+                                            <p className="text-4xl font-bold mb-3 text-[#FF4500]">
+                                                $1.99
+                                            </p>
+                                            <h4 className="font-semibold text-xl text-neutral-900 dark:text-white">
+                                                1 Post Credit
+                                            </h4>
+                                        </div>
+                                        <p className="text-base text-neutral-600 dark:text-neutral-400 mb-6">
+                                            Get your message heard without the
+                                            risk
+                                        </p>
+                                        <ul className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
+                                            <li>✓ AI-optimized content</li>
+                                            <li>✓ Reddit safety check</li>
+                                            <li>✓ Instant access</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        transition={{ duration: 0.1 }}
+                                        onClick={() =>
+                                            handleSubscription("onePost")
+                                        }
+                                        disabled={isProcessingPayment}
+                                        className="w-full py-3 px-6 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors font-medium disabled:opacity-50"
+                                    >
+                                        {isProcessingPayment
+                                            ? "Processing..."
+                                            : "Purchase for $1.99"}
+                                    </motion.button>
+                                </div>
+
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    transition={{ duration: 0.1 }}
+                                    onClick={() => setShowPricingModal(false)}
+                                    className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 text-sm"
                                 >
-                                    {isProcessingPayment
-                                        ? "Processing..."
-                                        : "Purchase for $1.99"}
-                                </button>
+                                    Cancel
+                                </motion.button>
                             </div>
-
-                            <button
-                                onClick={() => setShowPricingModal(false)}
-                                className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 text-sm"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Billing Form Modal */}
             {showBillingForm && (

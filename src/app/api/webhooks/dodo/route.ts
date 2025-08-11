@@ -71,6 +71,22 @@ export async function POST(request: NextRequest) {
                 await handlePaymentEvent(data, "failed");
                 break;
 
+            case "payment.pending":
+                await handlePaymentEvent(data, "pending");
+                break;
+
+            case "payment.cancelled":
+                await handlePaymentEvent(data, "cancelled");
+                break;
+
+            case "payment.refunded":
+                await handleRefundEvent(data);
+                break;
+
+            case "payment.disputed":
+                await handleDisputeEvent(data);
+                break;
+
             default:
                 console.log("Unhandled webhook event type:", type);
         }
@@ -161,32 +177,33 @@ async function handlePaymentEvent(
             }
         }
 
-        // Create payment record for successful payments
-        if (status === "succeeded" || status === "completed") {
-            const paymentRecord = await convex.mutation(
-                api.payments.createPayment,
-                {
-                    paymentId: paymentId,
-                    userId: userId,
-                    amount: amount || 199,
-                    currency: currency,
-                    status,
-                    paymentMethod: "dodo",
-                    customerEmail: customerEmail || undefined,
-                    customerName: customerName || undefined,
-                    paymentType: "one_time",
-                    metadata: JSON.stringify(metadata),
-                },
-            );
-
-            console.log("Payment recorded successfully:", {
-                paymentId,
-                userId,
-                amount,
+        // Create payment record for all payment events
+        const paymentRecord = await convex.mutation(
+            api.payments.createPayment,
+            {
+                paymentId: paymentId,
+                userId: userId,
+                amount: amount || 199,
+                currency: currency,
                 status,
-                recordId: paymentRecord,
-            });
+                paymentMethod: "dodo",
+                customerEmail: customerEmail || undefined,
+                customerName: customerName || undefined,
+                paymentType: "one_time",
+                metadata: JSON.stringify(metadata),
+            },
+        );
 
+        console.log("Payment recorded successfully:", {
+            paymentId,
+            userId,
+            amount,
+            status,
+            recordId: paymentRecord,
+        });
+
+        // Only allocate posts for successful payments
+        if (status === "succeeded" || status === "completed") {
             // Allocate posts to user if payment is successful and user exists
             if (userId && paymentRecord) {
                 try {
@@ -204,7 +221,7 @@ async function handlePaymentEvent(
                         api.payments.allocatePostsFromPayment,
                         {
                             paymentId,
-                            userId,
+                            userId: userId as any, // userId is checked above
                             planType,
                         },
                     );
@@ -229,5 +246,93 @@ async function handlePaymentEvent(
         }
     } catch (error) {
         console.error("Error handling payment event:", error);
+    }
+}
+
+async function handleRefundEvent(data: Record<string, unknown>) {
+    try {
+        const paymentId = data.payment_id as string;
+        const refundAmount = data.refund_amount as number;
+        const refundId = data.refund_id as string;
+
+        if (!paymentId) {
+            console.error("Missing payment ID in refund webhook data");
+            return;
+        }
+
+        console.log("Processing refund event:", {
+            paymentId,
+            refundAmount,
+            refundId,
+            fullData: data,
+        });
+
+        // Update payment status in database
+        await convex.mutation(api.payments.updatePaymentStatus, {
+            paymentId,
+            status: "refunded",
+            refundAmount,
+            metadata: JSON.stringify({
+                refundId,
+                refundDate: new Date().toISOString(),
+            }),
+        });
+
+        console.log("Refund processed successfully:", {
+            paymentId,
+            refundAmount,
+            refundId,
+        });
+
+        // TODO: Implement business logic for refunds
+        // - Revoke posts if needed
+        // - Send notification to user
+        // - Update user's post allocation
+    } catch (error) {
+        console.error("Error handling refund event:", error);
+    }
+}
+
+async function handleDisputeEvent(data: Record<string, unknown>) {
+    try {
+        const paymentId = data.payment_id as string;
+        const disputeId = data.dispute_id as string;
+        const disputeReason = data.dispute_reason as string;
+
+        if (!paymentId) {
+            console.error("Missing payment ID in dispute webhook data");
+            return;
+        }
+
+        console.log("Processing dispute event:", {
+            paymentId,
+            disputeId,
+            disputeReason,
+            fullData: data,
+        });
+
+        // Update payment status in database
+        await convex.mutation(api.payments.updatePaymentStatus, {
+            paymentId,
+            status: "disputed",
+            metadata: JSON.stringify({
+                disputeId,
+                disputeReason,
+                disputeDate: new Date().toISOString(),
+            }),
+        });
+
+        console.log("Dispute recorded successfully:", {
+            paymentId,
+            disputeId,
+            disputeReason,
+        });
+
+        // TODO: Implement dispute handling logic
+        // - Notify admin about dispute
+        // - Temporarily suspend user's posts
+        // - Send email notification
+    } catch (error) {
+        console.error("Error handling dispute event:", error);
     }
 }

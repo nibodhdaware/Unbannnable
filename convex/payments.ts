@@ -347,3 +347,40 @@ export const syncPaymentToDatabase = mutation({
         };
     },
 });
+
+// Update payment status (for refunds, disputes, etc.)
+export const updatePaymentStatus = mutation({
+    args: {
+        paymentId: v.string(),
+        status: v.string(),
+        refundAmount: v.optional(v.number()),
+        metadata: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const existingPayment = await ctx.db
+            .query("payments")
+            .filter((q) => q.eq(q.field("paymentId"), args.paymentId))
+            .first();
+
+        if (!existingPayment) {
+            throw new Error(`Payment not found: ${args.paymentId}`);
+        }
+
+        const updateData: any = {
+            status: args.status,
+            updatedAt: Date.now(),
+        };
+
+        if (args.refundAmount !== undefined) {
+            updateData.refundAmount = args.refundAmount;
+        }
+
+        if (args.metadata) {
+            updateData.metadata = args.metadata;
+        }
+
+        await ctx.db.patch(existingPayment._id, updateData);
+
+        return existingPayment._id;
+    },
+});

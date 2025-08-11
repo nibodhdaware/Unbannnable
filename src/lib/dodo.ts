@@ -69,9 +69,8 @@ export const createOneTimePaymentLink = async (
             })),
             payment_link: true,
             return_url:
-                process.env.NODE_ENV === "development"
-                    ? "http://localhost:3001/success"
-                    : "https://unbannnable.vercel.app/success",
+                process.env.NEXT_PUBLIC_RETURN_URL ||
+                "https://unbannnable.com/success",
             metadata: {
                 userId: params.userId,
                 clerkId: params.clerkId,
