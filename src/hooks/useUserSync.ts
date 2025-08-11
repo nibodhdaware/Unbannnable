@@ -18,8 +18,6 @@ export function useUserSync() {
 
     const syncUserToDatabase = async (user: any) => {
         try {
-            console.log("Syncing user to database:", user.id);
-
             const response = await fetch("/api/users/sync", {
                 method: "POST",
                 headers: {
@@ -47,8 +45,7 @@ export function useUserSync() {
                 return;
             }
 
-            const result = await response.json();
-            console.log("User synced successfully:", result);
+            await response.json();
         } catch (error) {
             console.error("Error syncing user:", error);
         }

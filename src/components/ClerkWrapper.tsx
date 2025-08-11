@@ -12,10 +12,9 @@ export default function ClerkWrapper({ children }: ClerkWrapperProps) {
     const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
     if (!publishableKey) {
-        console.warn(
-            "Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY - Clerk features will be disabled",
+        throw new Error(
+            "Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable",
         );
-        return <ConvexClientProvider>{children}</ConvexClientProvider>;
     }
 
     return (

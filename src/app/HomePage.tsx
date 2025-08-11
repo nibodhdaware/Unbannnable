@@ -129,23 +129,13 @@ export default function HomePage() {
     // Function to parse AI output and extract optimized content
     const parseAIOutput = (output: string) => {
         try {
-            console.log("Full AI Output:", output); // Debug log
-
             // Extract optimized title - improved regex
             const titleMatch = output.match(
                 /\*\*OPTIMIZED_TITLE:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*TITLE_REASONING|\n\s*\*\*|$)/i,
             );
             if (titleMatch && titleMatch[1]) {
                 const title = titleMatch[1].trim();
-                console.log("Extracted Title:", title);
                 setOptimizedTitle(title);
-                console.log("Set optimizedTitle state to:", title);
-            } else {
-                console.log("Title not found in AI output");
-                console.log(
-                    "Available output for title matching:",
-                    output.substring(0, 500),
-                );
             }
 
             // Extract title reasoning - improved regex
@@ -155,9 +145,6 @@ export default function HomePage() {
             if (titleReasoningMatch && titleReasoningMatch[1]) {
                 const reasoning = titleReasoningMatch[1].trim();
                 setTitleReasoning(reasoning);
-                console.log("Extracted Title Reasoning:", reasoning);
-            } else {
-                console.log("Title reasoning not found in AI output");
             }
 
             // Extract optimized body - improved regex
@@ -167,9 +154,6 @@ export default function HomePage() {
             if (bodyMatch && bodyMatch[1]) {
                 const body = bodyMatch[1].trim();
                 setOptimizedBody(body);
-                console.log("Extracted Body:", body);
-            } else {
-                console.log("Body not found in AI output");
             }
 
             // Extract body reasoning - improved regex
@@ -179,9 +163,6 @@ export default function HomePage() {
             if (bodyReasoningMatch && bodyReasoningMatch[1]) {
                 const reasoning = bodyReasoningMatch[1].trim();
                 setBodyReasoning(reasoning);
-                console.log("Extracted Body Reasoning:", reasoning);
-            } else {
-                console.log("Body reasoning not found in AI output");
             }
 
             // Extract recommended flair - improved regex
@@ -191,9 +172,6 @@ export default function HomePage() {
             if (flairMatch && flairMatch[1]) {
                 const flair = flairMatch[1].trim();
                 setOptimizedFlair(flair);
-                console.log("Extracted Flair:", flair);
-            } else {
-                console.log("Flair not found in AI output");
             }
 
             // Extract flair reasoning - improved regex
@@ -203,9 +181,6 @@ export default function HomePage() {
             if (flairReasoningMatch && flairReasoningMatch[1]) {
                 const reasoning = flairReasoningMatch[1].trim();
                 setFlairReasoning(reasoning);
-                console.log("Extracted Flair Reasoning:", reasoning);
-            } else {
-                console.log("Flair reasoning not found in AI output");
             }
         } catch (error) {
             console.error("Error parsing AI output:", error);
@@ -250,52 +225,7 @@ export default function HomePage() {
                     err instanceof Error ? err.message : "Unknown error"
                 }`,
             );
-
-            // Fallback subreddits
-            const fallbackSubreddits: Subreddit[] = [
-                {
-                    id: "1",
-                    display_name: "AskReddit",
-                    public_description:
-                        "Ask and answer thought-provoking questions",
-                    subscribers: 40000000,
-                },
-                {
-                    id: "2",
-                    display_name: "funny",
-                    public_description: "Welcome to r/Funny",
-                    subscribers: 50000000,
-                },
-                {
-                    id: "3",
-                    display_name: "science",
-                    public_description:
-                        "This community is a place to share and discuss new scientific research",
-                    subscribers: 28000000,
-                },
-                {
-                    id: "4",
-                    display_name: "technology",
-                    public_description:
-                        "Subreddit dedicated to the news and discussions about the creation and use of technology",
-                    subscribers: 14000000,
-                },
-                {
-                    id: "5",
-                    display_name: "gaming",
-                    public_description:
-                        "A subreddit for (almost) anything related to games",
-                    subscribers: 37000000,
-                },
-                {
-                    id: "6",
-                    display_name: "buildapc",
-                    public_description:
-                        "Planning on building a computer but need some advice?",
-                    subscribers: 5000000,
-                },
-            ];
-            setAllSubreddits(fallbackSubreddits);
+            setAllSubreddits([]);
         } finally {
             setLoadingSubreddits(false);
         }
@@ -435,9 +365,6 @@ export default function HomePage() {
                 throw new Error(data.error || "Failed to create post");
             }
 
-            console.log(
-                `Post recorded successfully! (${data.postType} post used)`,
-            );
             return true;
         } catch (error) {
             console.error("Error creating post record:", error);
@@ -568,32 +495,6 @@ Please provide your response in exactly this format:
             }
 
             // Fallback: If parsing didn't extract content, try to set some basic optimized content
-            setTimeout(() => {
-                if (
-                    !optimizedTitle &&
-                    !optimizedBody &&
-                    !optimizedFlair &&
-                    title.trim()
-                ) {
-                    console.log(
-                        "Fallback: AI parsing failed completely, using original content",
-                    );
-                    setOptimizedTitle(title.trim());
-                    setTitleReasoning(
-                        "Enhanced title for better engagement and readability",
-                    );
-                    if (flairs.length > 0) {
-                        setOptimizedFlair(flairs[0].text);
-                        setFlairReasoning(
-                            "Selected most appropriate flair for content categorization",
-                        );
-                    }
-                } else {
-                    console.log("AI parsing succeeded, skipping fallback");
-                }
-            }, 500);
-
-            // Fallback: If parsing didn't extract content, try to set some basic optimized content
             // Use a longer timeout to ensure state has been updated, and add better checks
             setTimeout(() => {
                 // Only use fallback if AI parsing completely failed to extract any content
@@ -603,9 +504,6 @@ Please provide your response in exactly this format:
                     !optimizedFlair &&
                     title.trim()
                 ) {
-                    console.log(
-                        "Fallback: AI parsing failed completely, using original content",
-                    );
                     setOptimizedTitle(title.trim());
                     setTitleReasoning(
                         "Enhanced title for better engagement and readability",
@@ -616,8 +514,6 @@ Please provide your response in exactly this format:
                             "Selected most appropriate flair for content categorization",
                         );
                     }
-                } else {
-                    console.log("AI parsing succeeded, skipping fallback");
                 }
             }, 500);
         } catch (error) {
@@ -842,8 +738,6 @@ ${rules
             });
 
             const data = await response.json();
-            console.log("API Response status:", response.status);
-            console.log("API Response data:", data);
 
             if (!response.ok) {
                 throw new Error(

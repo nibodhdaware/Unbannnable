@@ -34,8 +34,6 @@ export async function ensureAdminStatus(
                 isAdmin: true,
                 role: "admin",
             });
-
-            console.log(`Admin status granted to ${email}`);
         }
     } catch (error) {
         console.error("Error setting admin status:", error);
