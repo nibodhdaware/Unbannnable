@@ -8,7 +8,7 @@ export default function PricingPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState("");
 
-    const handleSubscribe = async (planType: "monthly" | "yearly") => {
+    const handleSubscribe = async () => {
         if (!user) {
             setError("Please sign in to continue");
             return;
@@ -20,17 +20,13 @@ export default function PricingPage() {
         try {
             // Map plan types to product IDs and amounts
             const productMap = {
-                monthly: {
-                    productId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // $14.99 monthly unlimited
-                    amount: 1499,
-                },
-                yearly: {
-                    productId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // Using same product for now
-                    amount: 14999, // $149.99 yearly (10 months price)
+                post: {
+                    productId: "pdt_YuBZGtdCE3Crz89JDgLkf", // $1.99 monthly unlimited
+                    amount: 199,
                 },
             };
 
-            const selectedProduct = productMap[planType];
+            const selectedProduct = productMap["post"];
 
             const response = await fetch("/api/payments/create", {
                 method: "POST",
@@ -181,7 +177,7 @@ export default function PricingPage() {
                                 </li>
                             </ul>
                             <button
-                                onClick={() => handleSubscribe("monthly")}
+                                onClick={() => handleSubscribe()}
                                 disabled={isProcessing}
                                 className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
                             >
