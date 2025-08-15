@@ -48,8 +48,9 @@ export default function PricingPage() {
                     },
                     productCart: [
                         {
-                            product_id: selectedProduct.productId,
+                            productId: selectedProduct.productId,
                             quantity: 1,
+                            amount: selectedProduct.amount,
                         },
                     ],
                 }),

@@ -2,8 +2,7 @@ import DodoPayments from "dodopayments";
 
 export const dodoClient = new DodoPayments({
     bearerToken: process.env.DODO_PAYMENTS_API_KEY!,
-    environment:
-        process.env.NODE_ENV === "production" ? "live_mode" : "test_mode",
+    environment: "live_mode",
 });
 
 export interface CreateOneTimePaymentParams {
@@ -27,58 +26,65 @@ export interface CreateOneTimePaymentParams {
 export const createOneTimePaymentLink = async (
     params: CreateOneTimePaymentParams,
 ) => {
-    if (!process.env.DODO_PAYMENTS_API_KEY) {
-        throw new Error("DodoPay API key not configured");
+    try {
+        console.log("Creating DodoPay payment link with SDK...");
+        console.log(
+            "Input productCart:",
+            JSON.stringify(params.productCart, null, 2),
+        );
+
+        const mappedProductCart = params.productCart.map((item) => {
+            const mapped = {
+                product_id: item.productId,
+                quantity: item.quantity,
+                amount: item.amount || 0,
+            };
+            console.log(
+                "Mapping item:",
+                JSON.stringify(item, null, 2),
+                "to:",
+                JSON.stringify(mapped, null, 2),
+            );
+            return mapped;
+        });
+
+        console.log(
+            "Final mapped productCart:",
+            JSON.stringify(mappedProductCart, null, 2),
+        );
+
+        const payment = await dodoClient.payments.create({
+            customer: {
+                email: params.email,
+                name: params.name,
+                phone_number: params.phoneNumber,
+                create_new_customer: true,
+            },
+            billing: {
+                city: params.city,
+                country: params.country as any,
+                state: params.state,
+                street: params.street,
+                zipcode: params.zipcode,
+            },
+            product_cart: mappedProductCart,
+            payment_link: true,
+            return_url:
+                process.env.NEXT_PUBLIC_RETURN_URL ||
+                "https://unbannnable.com/success",
+            metadata: {
+                userId: params.userId,
+                clerkId: params.clerkId,
+            },
+        });
+
+        console.log("DodoPay payment link created successfully via SDK.");
+        return payment;
+    } catch (error: any) {
+        console.error("Error using DodoPay SDK:", error);
+        // Re-throw the error to be caught by the API route handler
+        throw new Error(
+            `DodoPay SDK error: ${error.message || "An unknown error occurred"}`,
+        );
     }
-
-    const paymentPayload = {
-        billing: {
-            city: params.city,
-            country: params.country as any,
-            state: params.state,
-            street: params.street,
-            zipcode: params.zipcode,
-        },
-        customer: {
-            email: params.email,
-            name: params.name,
-            create_new_customer: true,
-            ...(params.phoneNumber && { phone_number: params.phoneNumber }),
-        },
-        product_cart: params.productCart.map((item) => ({
-            product_id: item.productId,
-            quantity: item.quantity,
-            ...(item.amount && { amount: item.amount }),
-        })),
-        payment_link: true,
-        return_url:
-            process.env.NEXT_PUBLIC_RETURN_URL ||
-            "https://unbannnable.com/success",
-        metadata: {
-            userId: params.userId,
-            clerkId: params.clerkId,
-        },
-    };
-
-    const apiUrl =
-        process.env.NODE_ENV === "production"
-            ? "https://live.dodopayments.com"
-            : "https://test.dodopayments.com";
-
-    const response = await fetch(`${apiUrl}/payments`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(paymentPayload),
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`DodoPay API error: ${response.status} - ${errorText}`);
-    }
-
-    const payment = await response.json();
-    return payment;
 };

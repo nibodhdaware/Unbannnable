@@ -15,6 +15,10 @@ export async function POST(req: Request) {
 
         const { billing, productCart } = await req.json();
 
+        console.log("Received payment request:");
+        console.log("- billing:", JSON.stringify(billing, null, 2));
+        console.log("- productCart:", JSON.stringify(productCart, null, 2));
+
         if (!billing || !productCart) {
             return new NextResponse("Missing required fields", { status: 400 });
         }

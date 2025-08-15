@@ -672,7 +672,7 @@ ${rules
     // Subscription plans configuration
     const subscriptionPlans = {
         onePost: {
-            productId: "pdt_Sqt14rBf5vO14Z8ReuHqB", // Use the actual Dodo product ID
+            productId: "pdt_YuBZGtdCE3Crz89JDgLkf", // Use the actual Dodo product ID
             price: 1.99,
             amount: 199, // Price in cents
             name: "1 post",
