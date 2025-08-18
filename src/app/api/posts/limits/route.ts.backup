@@ -18,10 +18,12 @@ export async function GET() {
             );
         }
 
-        // Check if user is admin by email first
-        const isAdminByEmail = user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com";
-        
-        if (isAdminByEmail) {
+        // Check if user is admin using Convex
+        const adminStatus = await convex.query(api.users.isAdmin, {
+            clerkId: user.id,
+        });
+
+        if (adminStatus) {
             return NextResponse.json({
                 hasSubscription: true,
                 postsRemaining: -1, // Unlimited for admin
@@ -35,8 +37,12 @@ export async function GET() {
             clerkId: user.id,
             fullName: user.fullName || undefined,
             email: user.emailAddresses[0]?.emailAddress || "",
-            isAdmin: false,
-            role: "user",
+            isAdmin:
+                user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com",
+            role:
+                user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com"
+                    ? "admin"
+                    : "user",
         });
 
         // Get user from Convex

@@ -1,53 +1,25 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export function useAdmin() {
     const { user, isLoaded } = useUser();
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (!isLoaded || !user) {
-            setLoading(false);
-            return;
-        }
+    const adminStatus = useQuery(
+        api.users.isAdmin,
+        user?.id ? { clerkId: user.id } : "skip",
+    );
 
-        const checkAdminStatus = async () => {
-            try {
-                const response = await fetch("/api/users/role", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        clerkId: user.id,
-                    }),
-                });
+    // Check by email/name locally as fallback
+    const email = user?.emailAddresses[0]?.emailAddress;
+    const fullName = user?.fullName;
+    const isAdminByEmail =
+        email === "nibod1248@gmail.com" || fullName === "Nibodh Daware";
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setIsAdmin(data.isAdmin);
-                }
-            } catch (error) {
-                console.error("Error checking admin status:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        // Also check by email/name locally
-        const email = user.emailAddresses[0]?.emailAddress;
-        const fullName = user.fullName;
-
-        if (email === "nibod1248@gmail.com" || fullName === "Nibodh Daware") {
-            setIsAdmin(true);
-            setLoading(false);
-        } else {
-            checkAdminStatus();
-        }
-    }, [user, isLoaded]);
+    const isAdmin = adminStatus || isAdminByEmail;
+    const loading = !isLoaded || (user && adminStatus === undefined);
 
     return {
         isAdmin,

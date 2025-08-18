@@ -37,6 +37,34 @@ interface PostRequirement {
     is_flair_required: boolean;
 }
 
+interface AlternativeSubreddit {
+    display_name: string;
+    public_description: string;
+    subscribers: number;
+    url: string;
+    reason: string;
+}
+
+interface AlternativeSubredditsResponse {
+    strictRules: string[];
+    alternatives: AlternativeSubreddit[];
+    message: string;
+}
+
+interface PostViabilityResult {
+    canPost: boolean;
+    reason: string;
+    conflictingRules: string[];
+    suggestions: string[];
+}
+
+interface PostViabilityResponse {
+    subreddit: string;
+    analysis: PostViabilityResult;
+    rulesCount: number;
+    message: string;
+}
+
 class RedditAPI {
     async fetchSubreddits(limit: number = 50): Promise<Subreddit[]> {
         try {
@@ -154,7 +182,72 @@ class RedditAPI {
             throw error;
         }
     }
+
+    async fetchAlternativeSubreddits(
+        subredditName: string,
+        title: string = "",
+        body: string = "",
+    ): Promise<AlternativeSubredditsResponse | null> {
+        try {
+            const response = await fetch(
+                `/api/reddit/alternative-subreddits?subreddit=${encodeURIComponent(
+                    subredditName,
+                )}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`,
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(
+                `Error fetching alternative subreddits for r/${subredditName}:`,
+                error,
+            );
+            throw error;
+        }
+    }
+
+    async checkPostViability(
+        subredditName: string,
+        title: string,
+        body: string = "",
+    ): Promise<PostViabilityResponse> {
+        try {
+            const response = await fetch(
+                `/api/reddit/check-post-viability?subreddit=${encodeURIComponent(
+                    subredditName,
+                )}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`,
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(
+                `Error checking post viability for r/${subredditName}:`,
+                error,
+            );
+            throw error;
+        }
+    }
 }
 
 export const redditAPI = new RedditAPI();
-export type { Subreddit, Flair, SubredditRule, PostRequirement };
+export type {
+    Subreddit,
+    Flair,
+    SubredditRule,
+    PostRequirement,
+    AlternativeSubreddit,
+    AlternativeSubredditsResponse,
+    PostViabilityResult,
+    PostViabilityResponse,
+};

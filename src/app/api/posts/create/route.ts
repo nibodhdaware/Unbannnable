@@ -29,7 +29,12 @@ export async function POST(request: NextRequest) {
             clerkId: user.id,
             fullName: user.fullName || undefined,
             email: user.emailAddresses[0]?.emailAddress || "",
-            isAdmin: false, // Remove admin check for now
+            isAdmin:
+                user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com",
+            role:
+                user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com"
+                    ? "admin"
+                    : "user",
         });
 
         // Get user from Convex
@@ -44,34 +49,49 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if user can create a post
-        const canCreate = await convex.query(api.posts.canUserCreatePost, {
-            userId: userRecord._id,
-        });
+        // Check if user is admin
+        const isAdminUser =
+            userRecord.isAdmin === true ||
+            userRecord.email === "nibod1248@gmail.com";
 
-        if (!canCreate.canCreate) {
-            const postStats = await convex.query(api.posts.getUserPostStats, {
+        // Determine post type and check limits
+        let postType: "free" | "purchased" | "unlimited";
+
+        if (isAdminUser) {
+            // Admin users get unlimited posts
+            postType = "unlimited";
+        } else {
+            // Check if user can create a post
+            const canCreate = await convex.query(api.posts.canUserCreatePost, {
                 userId: userRecord._id,
             });
 
-            return NextResponse.json(
-                {
-                    error: "No posts remaining",
-                    message: "You need to purchase more posts to continue.",
-                    postStats,
-                },
-                { status: 403 },
-            );
-        }
+            if (!canCreate.canCreate) {
+                const postStats = await convex.query(
+                    api.posts.getUserPostStats,
+                    {
+                        userId: userRecord._id,
+                    },
+                );
 
-        // Determine post type
-        let postType: "free" | "purchased" | "unlimited";
-        if (canCreate.reason === "unlimited") {
-            postType = "unlimited";
-        } else if (canCreate.reason === "free") {
-            postType = "free";
-        } else {
-            postType = "purchased";
+                return NextResponse.json(
+                    {
+                        error: "No posts remaining",
+                        message: "You need to purchase more posts to continue.",
+                        postStats,
+                    },
+                    { status: 403 },
+                );
+            }
+
+            // Determine post type for non-admin users
+            if (canCreate.reason === "unlimited") {
+                postType = "unlimited";
+            } else if (canCreate.reason === "free") {
+                postType = "free";
+            } else {
+                postType = "purchased";
+            }
         }
 
         // Create the post

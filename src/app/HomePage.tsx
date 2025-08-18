@@ -9,6 +9,9 @@ import {
     type Flair,
     type SubredditRule,
     type PostRequirement,
+    type AlternativeSubreddit,
+    type AlternativeSubredditsResponse,
+    type PostViabilityResponse,
 } from "@/lib/reddit-api";
 import Fuse from "fuse.js";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,6 +58,27 @@ export default function HomePage() {
     const [flairReasoning, setFlairReasoning] = useState<string>("");
     const [showOptimizationSummary, setShowOptimizationSummary] =
         useState(false);
+
+    // Alternative subreddits states
+    const [alternativeSubreddits, setAlternativeSubreddits] =
+        useState<AlternativeSubredditsResponse | null>(null);
+    const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+    const [showAlternatives, setShowAlternatives] = useState(false);
+
+    // Post viability states
+    const [postViability, setPostViability] =
+        useState<PostViabilityResponse | null>(null);
+    const [loadingViability, setLoadingViability] = useState(false);
+    const [showViabilityWarning, setShowViabilityWarning] = useState(false);
+
+    // Draft storage states
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [draftPost, setDraftPost] = useState<{
+        title: string;
+        body: string;
+        subreddit: string;
+        flair: string;
+    } | null>(null);
 
     // Subscription-related states
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -669,6 +693,201 @@ ${rules
         return errors;
     };
 
+    // Function to detect content type based on title and body
+    const detectContentType = (title: string, body: string): string => {
+        const text = `${title} ${body}`.toLowerCase();
+
+        // Check for product-related keywords
+        if (
+            text.includes("product") ||
+            text.includes("app") ||
+            text.includes("software") ||
+            text.includes("tool") ||
+            text.includes("website") ||
+            text.includes("platform") ||
+            text.includes("saas") ||
+            text.includes("application")
+        ) {
+            return "product-promotion";
+        }
+
+        // Check for service-related keywords
+        if (
+            text.includes("service") ||
+            text.includes("freelance") ||
+            text.includes("hire") ||
+            text.includes("consulting") ||
+            text.includes("help") ||
+            text.includes("assistance") ||
+            text.includes("support") ||
+            text.includes("work")
+        ) {
+            return "service-promotion";
+        }
+
+        // Check for business-related keywords
+        if (
+            text.includes("business") ||
+            text.includes("company") ||
+            text.includes("startup") ||
+            text.includes("entrepreneur") ||
+            text.includes("brand") ||
+            text.includes("marketing") ||
+            text.includes("promote") ||
+            text.includes("advertise")
+        ) {
+            return "self-promotion";
+        }
+
+        return "self-promotion";
+    };
+
+    // Function to check if post can be made in the current subreddit
+    const checkPostViability = async () => {
+        if (!subreddit.trim() || !title.trim()) {
+            console.log("❌ Missing subreddit or title for viability check");
+            return null;
+        }
+
+        console.log("🔍 Starting viability check for:", {
+            subreddit,
+            title,
+            body,
+        });
+        setLoadingViability(true);
+        setShowViabilityWarning(false);
+        setPostViability(null);
+
+        try {
+            const viability = await redditAPI.checkPostViability(
+                subreddit,
+                title,
+                body,
+            );
+
+            console.log("📊 Viability API response:", viability);
+            setPostViability(viability);
+
+            if (!viability.analysis.canPost) {
+                console.log(
+                    "❌ Post cannot be made according to viability check",
+                );
+                setShowViabilityWarning(true);
+            } else {
+                console.log("✅ Post can be made according to viability check");
+            }
+
+            return viability;
+        } catch (error) {
+            console.error("❌ Error checking post viability:", error);
+            return null;
+        } finally {
+            setLoadingViability(false);
+        }
+    };
+
+    // Function to check for strict rules and suggest alternatives
+    const checkStrictRulesAndSuggestAlternatives = async () => {
+        if (!subreddit.trim() || !title.trim()) return;
+
+        setLoadingAlternatives(true);
+        setShowAlternatives(false);
+        setAlternativeSubreddits(null);
+
+        try {
+            const alternatives = await redditAPI.fetchAlternativeSubreddits(
+                subreddit,
+                title,
+                body,
+            );
+
+            if (alternatives && alternatives.alternatives.length > 0) {
+                setAlternativeSubreddits(alternatives);
+                setShowAlternatives(true);
+            }
+        } catch (error) {
+            console.error("Error checking alternative subreddits:", error);
+        } finally {
+            setLoadingAlternatives(false);
+        }
+    };
+
+    // Debounced function to automatically check alternatives
+    const debouncedCheckAlternatives = useMemo(() => {
+        let timeoutId: NodeJS.Timeout;
+        return () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                if (subreddit && title && title.length > 10) {
+                    checkStrictRulesAndSuggestAlternatives();
+                }
+            }, 2000); // Wait 2 seconds after user stops typing
+        };
+    }, [subreddit, title, body]);
+
+    // Function to save draft post
+    const saveDraftPost = () => {
+        if (title.trim() || body.trim() || subreddit.trim()) {
+            const draft = {
+                title: title.trim(),
+                body: body.trim(),
+                subreddit: subreddit.trim(),
+                flair: flair.trim(),
+            };
+            setDraftPost(draft);
+            localStorage.setItem("reddit-unbanr-draft", JSON.stringify(draft));
+        }
+    };
+
+    // Function to restore draft post
+    const restoreDraftPost = () => {
+        const savedDraft = localStorage.getItem("reddit-unbanr-draft");
+        if (savedDraft) {
+            try {
+                const draft = JSON.parse(savedDraft);
+                setTitle(draft.title || "");
+                setBody(draft.body || "");
+                setSubreddit(draft.subreddit || "");
+                setSearchQuery(draft.subreddit || "");
+                setFlair(draft.flair || "");
+                setDraftPost(draft);
+
+                // Load subreddit data if subreddit is set
+                if (draft.subreddit) {
+                    handleSubredditChange(draft.subreddit);
+                }
+            } catch (error) {
+                console.error("Error restoring draft:", error);
+            }
+        }
+    };
+
+    // Function to clear draft post
+    const clearDraftPost = () => {
+        setDraftPost(null);
+        localStorage.removeItem("reddit-unbanr-draft");
+    };
+
+    // Check for draft post on component mount
+    useEffect(() => {
+        if (isLoaded && user && draftPost) {
+            // User just logged in, restore the draft
+            restoreDraftPost();
+            setShowLoginModal(false);
+        } else if (isLoaded && !user) {
+            // User is logged out, check for saved draft
+            const savedDraft = localStorage.getItem("reddit-unbanr-draft");
+            if (savedDraft) {
+                try {
+                    const draft = JSON.parse(savedDraft);
+                    setDraftPost(draft);
+                } catch (error) {
+                    console.error("Error loading draft:", error);
+                }
+            }
+        }
+    }, [isLoaded, user]);
+
     // Subscription plans configuration
     const subscriptionPlans = {
         onePost: {
@@ -761,8 +980,17 @@ ${rules
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Check if user is logged in
+        if (!user) {
+            // Save draft and show login modal
+            saveDraftPost();
+            setShowLoginModal(true);
+            return;
+        }
+
         const errors = validateForm();
         setValidationErrors(errors);
         if (errors.length === 0) {
@@ -772,7 +1000,31 @@ ${rules
                 return;
             }
 
-            // Generate AI-optimized post immediately
+            // First check if the post can be made in the current subreddit
+            console.log("🔍 Checking post viability for:", {
+                subreddit,
+                title,
+                body,
+            });
+            const viability = await checkPostViability();
+            console.log("📊 Viability result:", viability);
+
+            // If viability check failed or post cannot be made
+            if (!viability || !viability.analysis.canPost) {
+                console.log("❌ Post cannot be made, showing alternatives");
+                // Post cannot be made, check for alternatives and show warning
+                await checkStrictRulesAndSuggestAlternatives();
+                setShowViabilityWarning(true);
+                // Clear any existing AI output to show the warning instead
+                setAiOutput("");
+                setOptimizedTitle("");
+                setOptimizedBody("");
+                setOptimizedFlair("");
+                return; // Don't generate AI post if it can't be posted
+            }
+
+            console.log("✅ Post can be made, proceeding with AI optimization");
+            // Post can be made, proceed with AI optimization
             generateAIOptimizedPost();
         }
     };
@@ -780,8 +1032,30 @@ ${rules
     const handleConfirmPost = async () => {
         setShowPricingModal(false);
 
-        // Just generate AI-optimized post (post record already created)
-        // This is called after payment, so user now has posts available
+        // Check viability first, then generate AI optimization if possible
+        console.log("🔍 handleConfirmPost: Checking viability after payment");
+        const viability = await checkPostViability();
+
+        // If viability check failed or post cannot be made
+        if (!viability || !viability.analysis.canPost) {
+            console.log(
+                "❌ handleConfirmPost: Post cannot be made, showing alternatives",
+            );
+            // Post cannot be made, check for alternatives and show warning
+            await checkStrictRulesAndSuggestAlternatives();
+            setShowViabilityWarning(true);
+            // Clear any existing AI output to show the warning instead
+            setAiOutput("");
+            setOptimizedTitle("");
+            setOptimizedBody("");
+            setOptimizedFlair("");
+            return; // Don't generate AI post if it can't be posted
+        }
+
+        console.log(
+            "✅ handleConfirmPost: Post can be made, proceeding with AI optimization",
+        );
+        // Post can be made, proceed with AI optimization
         await generateAIOptimizedPost();
 
         // Mark that user is no longer on first post
@@ -827,7 +1101,9 @@ ${rules
                                     {postStats.hasUnlimitedAccess ? (
                                         <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                            Unlimited Posts
+                                            {postStats.isAdmin
+                                                ? "Admin - Unlimited Posts"
+                                                : "Unlimited Posts"}
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
@@ -841,27 +1117,31 @@ ${rules
                             )}
 
                             {/* Buy More Posts Button */}
-                            {!postsLoading && !postStats.hasUnlimitedAccess && (
-                                <button
-                                    onClick={() => setShowPricingModal(true)}
-                                    className="px-4 py-2 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium flex items-center gap-2"
-                                >
-                                    <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
+                            {!postsLoading &&
+                                !postStats.hasUnlimitedAccess &&
+                                !postStats.isAdmin && (
+                                    <button
+                                        onClick={() =>
+                                            setShowPricingModal(true)
+                                        }
+                                        className="px-4 py-2 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium flex items-center gap-2"
                                     >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                                        />
-                                    </svg>
-                                    Buy Posts
-                                </button>
-                            )}
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                            />
+                                        </svg>
+                                        Buy Posts
+                                    </button>
+                                )}
 
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
@@ -888,9 +1168,27 @@ ${rules
                     {/* Left Column - Post Creation Form */}
                     <div className="lg:col-span-1">
                         <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 h-[85vh] flex flex-col">
-                            <h2 className="text-2xl font-bold mb-6 text-neutral-900 dark:text-white text-center">
-                                Create a Post
-                            </h2>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                    Create a Post
+                                </h2>
+                                {draftPost && !user && (
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                        <svg
+                                            className="w-3 h-3"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        Draft Saved
+                                    </div>
+                                )}
+                            </div>
 
                             {error && (
                                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
@@ -1064,9 +1362,10 @@ ${rules
                                         placeholder="Title your post"
                                         maxLength={300}
                                         value={title}
-                                        onChange={(e) =>
-                                            setTitle(e.target.value)
-                                        }
+                                        onChange={(e) => {
+                                            setTitle(e.target.value);
+                                            debouncedCheckAlternatives();
+                                        }}
                                     />
                                     <div className="text-xs text-neutral-500 mt-1 text-right">
                                         {title.length}/300
@@ -1120,9 +1419,10 @@ ${rules
                                         className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-[#FF4500] resize-vertical"
                                         placeholder="Write your post here..."
                                         value={body}
-                                        onChange={(e) =>
-                                            setBody(e.target.value)
-                                        }
+                                        onChange={(e) => {
+                                            setBody(e.target.value);
+                                            debouncedCheckAlternatives();
+                                        }}
                                     />
                                 </div>
 
@@ -1319,6 +1619,175 @@ ${rules
                                             Generating AI optimization...
                                         </p>
                                     </div>
+                                ) : showViabilityWarning &&
+                                  postViability &&
+                                  !postViability.analysis.canPost ? (
+                                    <div className="space-y-4">
+                                        {/* Strict Rules Warning Display */}
+                                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 space-y-4">
+                                            <div className="flex items-center mb-3">
+                                                <svg
+                                                    className="w-5 h-5 text-red-600 dark:text-red-400 mr-2"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path
+                                                        fillRule="evenodd"
+                                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                        clipRule="evenodd"
+                                                    />
+                                                </svg>
+                                                <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
+                                                    Post May Violate Rules
+                                                </h3>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <p className="text-sm text-red-700 dark:text-red-300">
+                                                    {postViability.message}
+                                                </p>
+
+                                                <div>
+                                                    <h4 className="font-medium text-sm text-red-800 dark:text-red-200 mb-2">
+                                                        Conflicting Rules:
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {postViability.analysis.conflictingRules.map(
+                                                            (rule, index) => (
+                                                                <span
+                                                                    key={index}
+                                                                    className="bg-red-200 text-red-800 px-3 py-1 rounded-full text-xs font-medium"
+                                                                >
+                                                                    {rule}
+                                                                </span>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {postViability.analysis
+                                                    .suggestions.length > 0 && (
+                                                    <div>
+                                                        <h4 className="font-medium text-sm text-red-800 dark:text-red-200 mb-2">
+                                                            Suggestions:
+                                                        </h4>
+                                                        <ul className="list-disc list-inside space-y-1 text-sm text-red-700 dark:text-red-300">
+                                                            {postViability.analysis.suggestions.map(
+                                                                (
+                                                                    suggestion,
+                                                                    index,
+                                                                ) => (
+                                                                    <li
+                                                                        key={
+                                                                            index
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            suggestion
+                                                                        }
+                                                                    </li>
+                                                                ),
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Alternative Subreddits */}
+                                        {showAlternatives &&
+                                            alternativeSubreddits && (
+                                                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 space-y-4">
+                                                    <div className="flex items-center mb-3">
+                                                        <svg
+                                                            className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2"
+                                                            fill="currentColor"
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                                clipRule="evenodd"
+                                                            />
+                                                        </svg>
+                                                        <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
+                                                            Alternative
+                                                            Subreddits
+                                                        </h3>
+                                                    </div>
+
+                                                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                                        {
+                                                            alternativeSubreddits.message
+                                                        }
+                                                    </p>
+
+                                                    <div className="space-y-3">
+                                                        {alternativeSubreddits.alternatives.map(
+                                                            (alt, index) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className="bg-white dark:bg-neutral-800 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3"
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex-1">
+                                                                            <a
+                                                                                href={
+                                                                                    alt.url
+                                                                                }
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="font-medium text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                                                                            >
+                                                                                r/
+                                                                                {
+                                                                                    alt.display_name
+                                                                                }
+                                                                            </a>
+                                                                            <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1 line-clamp-2">
+                                                                                {
+                                                                                    alt.public_description
+                                                                                }
+                                                                            </p>
+                                                                            <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                                                                {
+                                                                                    alt.reason
+                                                                                }{" "}
+                                                                                •{" "}
+                                                                                {alt.subscribers.toLocaleString()}{" "}
+                                                                                members
+                                                                            </p>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setSubreddit(
+                                                                                    alt.display_name,
+                                                                                );
+                                                                                setSearchQuery(
+                                                                                    alt.display_name,
+                                                                                );
+                                                                                setShowAlternatives(
+                                                                                    false,
+                                                                                );
+                                                                                setShowViabilityWarning(
+                                                                                    false,
+                                                                                );
+                                                                                handleSubredditChange(
+                                                                                    alt.display_name,
+                                                                                );
+                                                                            }}
+                                                                            className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
+                                                                        >
+                                                                            Use
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                    </div>
                                 ) : aiOutput ? (
                                     <div className="space-y-4">
                                         {/* Raw AI Output (hidden by default, can be toggled) */}
@@ -1391,13 +1860,6 @@ ${rules
                                                         readOnly
                                                         className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                                                     />
-                                                    {/* Debug info */}
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Debug: &ldquo;
-                                                        {optimizedTitle}
-                                                        &rdquo; (length:{" "}
-                                                        {optimizedTitle.length})
-                                                    </div>
                                                 </div>
                                             )}
 
@@ -1650,7 +2112,7 @@ ${rules
                             </div>
 
                             {/* Regenerate Button - Always visible at bottom */}
-                            {aiOutput && (
+                            {aiOutput && !showViabilityWarning && (
                                 <div className="pt-3 border-t border-neutral-200 dark:border-neutral-700 mt-auto">
                                     <button
                                         onClick={generateAIOptimizedPost}
@@ -2187,6 +2649,97 @@ ${rules
                     </div>
                 </div>
             )}
+
+            {/* Login Modal */}
+            <AnimatePresence>
+                {showLoginModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowLoginModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="bg-white dark:bg-neutral-900 rounded-2xl p-8 max-w-lg w-full border border-neutral-200 dark:border-neutral-700 shadow-xl"
+                            onClick={(e: React.MouseEvent) =>
+                                e.stopPropagation()
+                            }
+                        >
+                            <div className="text-center">
+                                <div className="mb-6">
+                                    <div className="w-16 h-16 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <svg
+                                            className="w-8 h-8 text-white"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M18 8A6 6 0 00 6 8c0 7-3 9-3 9s3 2 9 2 9-2 9-2-3-2-3-9a6 6 0 00-6-6zm-2 0a2 2 0 11-4 0 2 2 0 014 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">
+                                        Login Required
+                                    </h3>
+                                    <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+                                        Please log in to create your post. Your
+                                        draft has been saved and will be
+                                        restored after login.
+                                    </p>
+                                </div>
+
+                                {draftPost && (
+                                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm">
+                                            Draft Post Saved:
+                                        </h4>
+                                        <div className="text-left text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                                            <div>
+                                                <strong>Title:</strong>{" "}
+                                                {draftPost.title || "Not set"}
+                                            </div>
+                                            <div>
+                                                <strong>Subreddit:</strong>{" "}
+                                                {draftPost.subreddit ||
+                                                    "Not set"}
+                                            </div>
+                                            <div>
+                                                <strong>Content:</strong>{" "}
+                                                {draftPost.body
+                                                    ? `${draftPost.body.substring(0, 50)}...`
+                                                    : "Not set"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    <SignInButton mode="modal">
+                                        <button className="w-full py-3 px-4 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors font-medium text-sm">
+                                            Login to Continue
+                                        </button>
+                                    </SignInButton>
+
+                                    <button
+                                        onClick={() => setShowLoginModal(false)}
+                                        className="w-full py-3 px-4 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

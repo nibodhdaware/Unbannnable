@@ -49,8 +49,12 @@ export const createPost = mutation({
             createdAt: now,
         });
 
-        // Update user's post usage based on type
-        if (postType === "free") {
+        // Update user's post usage based on type (skip for admin users)
+        if (
+            postType === "free" &&
+            !user.isAdmin &&
+            user.email !== "nibod1248@gmail.com"
+        ) {
             const currentFreeUsed = user.freePostsUsed || 0;
             await ctx.db.patch(args.userId, {
                 freePostsUsed: currentFreeUsed + 1,
@@ -83,6 +87,23 @@ async function getUserPostStatsInternal(ctx: any, userId: any) {
             totalPostsUsed: 0,
             hasUnlimitedAccess: false,
             unlimitedExpiry: null,
+            isAdmin: false,
+        };
+    }
+
+    // Check if user is admin
+    const isAdminUser =
+        user.isAdmin === true || user.email === "nibod1248@gmail.com";
+
+    if (isAdminUser) {
+        return {
+            freePostsUsed: 0,
+            freePostsRemaining: 0,
+            purchasedPostsRemaining: 0,
+            totalPostsUsed: 0,
+            hasUnlimitedAccess: true,
+            unlimitedExpiry: null,
+            isAdmin: true,
         };
     }
 
@@ -122,6 +143,7 @@ async function getUserPostStatsInternal(ctx: any, userId: any) {
         totalPostsUsed: postsThisMonth.length,
         hasUnlimitedAccess,
         unlimitedExpiry: user.unlimitedMonthlyExpiry || null,
+        isAdmin: false,
     };
 }
 
@@ -172,6 +194,22 @@ export const getUserPostStats = query({
             };
         }
 
+        // Check if user is admin
+        const isAdminUser =
+            user.isAdmin === true || user.email === "nibod1248@gmail.com";
+
+        if (isAdminUser) {
+            return {
+                freePostsUsed: 0,
+                freePostsRemaining: 0,
+                purchasedPostsRemaining: 0,
+                totalPostsUsed: 0,
+                hasUnlimitedAccess: true,
+                unlimitedExpiry: null,
+                isAdmin: true,
+            };
+        }
+
         const freePostsUsed = user.freePostsUsed || 0;
         const totalPurchasedPosts = user.totalPurchasedPosts || 0;
 
@@ -208,6 +246,7 @@ export const getUserPostStats = query({
             totalPostsUsed: postsThisMonth.length,
             hasUnlimitedAccess,
             unlimitedExpiry: user.unlimitedMonthlyExpiry || null,
+            isAdmin: false,
         };
     },
 });
@@ -223,6 +262,18 @@ export const canUserCreatePost = query({
                 canCreate: false,
                 reason: "user_not_found",
                 postsRemaining: 0,
+            };
+        }
+
+        // Check if user is admin
+        const isAdminUser =
+            user.isAdmin === true || user.email === "nibod1248@gmail.com";
+
+        if (isAdminUser) {
+            return {
+                canCreate: true,
+                reason: "admin_unlimited",
+                postsRemaining: "unlimited",
             };
         }
 
