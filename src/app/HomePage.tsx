@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
 import { useUserPosts } from "@/hooks/useUserPosts";
@@ -46,6 +46,9 @@ export default function HomePage() {
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [showPricingModal, setShowPricingModal] = useState(false);
     const [isFirstPost, setIsFirstPost] = useState(true);
+
+    // Track latest fetch to avoid race conditions when switching subreddits quickly
+    const latestFetchIdRef = useRef(0);
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [aiOutput, setAiOutput] = useState<string>("");
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -262,6 +265,11 @@ export default function HomePage() {
         setIsDropdownOpen(false);
         setRules([]);
         setPostRequirements(null);
+        // Clear previous flairs immediately so UI doesn't show stale options
+        setFlairs([]);
+
+        // Increment fetch id for this request
+        const fetchId = ++latestFetchIdRef.current;
 
         if (selectedSubreddit) {
             try {
@@ -282,6 +290,9 @@ export default function HomePage() {
                             .catch(() => null),
                     ]);
 
+                // Ignore if a newer subreddit change happened since this request started
+                if (fetchId !== latestFetchIdRef.current) return;
+
                 setFlairs(flairData);
                 setRules(rulesData);
                 setPostRequirements(requirementsData);
@@ -290,10 +301,14 @@ export default function HomePage() {
                     `Failed to fetch data for ${selectedSubreddit}:`,
                     err,
                 );
+                // Ignore if stale
+                if (fetchId !== latestFetchIdRef.current) return;
                 setFlairs([]);
                 setRules([]);
                 setPostRequirements(null);
             } finally {
+                // Ignore if stale
+                if (fetchId !== latestFetchIdRef.current) return;
                 setLoadingFlairs(false);
                 setLoadingRules(false);
                 setLoadingRequirements(false);
@@ -1388,6 +1403,7 @@ ${rules
                                         )}
                                     </label>
                                     <select
+                                        key={subreddit || "no-sr"}
                                         className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4500]"
                                         value={flair}
                                         onChange={(e) =>

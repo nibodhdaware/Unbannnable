@@ -28,8 +28,8 @@ async function getAccessToken(): Promise<string> {
         return accessToken;
     }
 
-    const clientId = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID;
-    const clientSecret = process.env.NEXT_PUBLIC_REDDIT_CLIENT_SECRET;
+    const clientId = process.env.REDDIT_CLIENT_ID;
+    const clientSecret = process.env.REDDIT_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         throw new Error("Reddit API credentials not found");

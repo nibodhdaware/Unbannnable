@@ -110,11 +110,24 @@ class RedditAPI {
     }
 
     async fetchSubredditFlairs(subredditName: string): Promise<Flair[]> {
+        // Reddit's public API now requires authentication, so we'll use our server-side scraping
+        console.log(
+            `🔍 Fetching flairs via server-side scraping for r/${subredditName}`,
+        );
+
+        // Fallback to our server API
         try {
+            console.log(`🔄 Using server fallback API for r/${subredditName}`);
             const response = await fetch(
                 `/api/reddit/flairs?subreddit=${encodeURIComponent(
                     subredditName,
-                )}`,
+                )}&t=${Date.now()}`,
+                {
+                    cache: "no-cache",
+                    headers: {
+                        "Cache-Control": "no-cache",
+                    },
+                },
             );
 
             if (!response.ok) {
