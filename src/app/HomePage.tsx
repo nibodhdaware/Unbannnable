@@ -477,9 +477,7 @@ Please provide your response in exactly this format:
 [Explain why this flair is the best choice for the content and community]`;
 
             // Use Gemini API directly instead of ai-bind
-            const apiKey =
-                process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-                "AIzaSyDjyDhQmJHb-fNwNmShUkqpCd-QG8Y9T7o";
+            const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
             let result = "";
             try {
