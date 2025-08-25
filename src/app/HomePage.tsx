@@ -16,6 +16,149 @@ import {
 import Fuse from "fuse.js";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Component to fetch and display AI-generated subreddit alternatives
+const AISubredditCard = ({
+    subredditName,
+    reason,
+    onUse,
+}: {
+    subredditName: string;
+    reason: string;
+    onUse: () => void;
+}) => {
+    const [subredditData, setSubredditData] = useState<{
+        display_name: string;
+        public_description: string;
+        subscribers: number;
+        url: string;
+    } | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        const fetchSubredditData = async () => {
+            try {
+                setLoading(true);
+                setError(false);
+
+                console.log(`Fetching data for r/${subredditName}...`);
+
+                // Fetch subreddit data from Reddit API
+                const response = await fetch(
+                    `/api/reddit/subreddit-info?subreddit=${encodeURIComponent(subredditName)}`,
+                );
+
+                console.log(
+                    `Response status for r/${subredditName}:`,
+                    response.status,
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setSubredditData({
+                        display_name: data.display_name,
+                        public_description:
+                            data.public_description ||
+                            "No description available",
+                        subscribers: data.subscribers || 0,
+                        url: `https://reddit.com/r/${data.display_name}`,
+                    });
+                } else {
+                    console.error(
+                        `API error for r/${subredditName}:`,
+                        response.status,
+                        response.statusText,
+                    );
+                    setError(true);
+                }
+            } catch (err) {
+                console.error(
+                    `Error fetching data for r/${subredditName}:`,
+                    err,
+                );
+                setError(true);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSubredditData();
+    }, [subredditName]);
+
+    if (loading) {
+        return (
+            <div className="bg-white dark:bg-neutral-800 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <div className="animate-pulse">
+                            <div className="h-4 bg-yellow-200 dark:bg-yellow-700 rounded w-24 mb-2"></div>
+                            <div className="h-3 bg-yellow-200 dark:bg-yellow-700 rounded w-32"></div>
+                        </div>
+                    </div>
+                    <div className="ml-3 w-12 h-6 bg-yellow-200 dark:bg-yellow-700 rounded animate-pulse"></div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !subredditData) {
+        return (
+            <div className="bg-white dark:bg-neutral-800 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <a
+                            href={`https://reddit.com/r/${subredditName}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                            r/{subredditName}
+                        </a>
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            {reason}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onUse}
+                        className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
+                    >
+                        Use
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white dark:bg-neutral-800 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+                <div className="flex-1">
+                    <a
+                        href={subredditData.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                        r/{subredditData.display_name}
+                    </a>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1 line-clamp-2">
+                        {subredditData.public_description}
+                    </p>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                        {reason}
+                    </p>
+                </div>
+                <button
+                    onClick={onUse}
+                    className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
+                >
+                    Use
+                </button>
+            </div>
+        </div>
+    );
+};
+
 export default function HomePage() {
     // Initialize user sync and post tracking
     const { user, isLoaded } = useUserSync();
@@ -156,6 +299,86 @@ export default function HomePage() {
     // Function to parse AI output and extract optimized content
     const parseAIOutput = (output: string) => {
         try {
+            // Extract violation detection - new field
+            const violationMatch = output.match(
+                /\*\*VIOLATION_DETECTED:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_REASON|\n\s*\*\*|$)/i,
+            );
+            const hasViolations =
+                violationMatch &&
+                violationMatch[1]?.trim().toUpperCase() === "YES";
+
+            // Extract violation reason - new field
+            const violationReasonMatch = output.match(
+                /\*\*VIOLATION_REASON:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_SUGGESTIONS|\n\s*\*\*|$)/i,
+            );
+            const violationReason = violationReasonMatch
+                ? violationReasonMatch[1].trim()
+                : "";
+
+            // Extract violation suggestions - new field
+            const violationSuggestionsMatch = output.match(
+                /\*\*VIOLATION_SUGGESTIONS:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*ALTERNATIVE_SUBREDDITS|\n\s*\*\*|$)/i,
+            );
+            const violationSuggestions = violationSuggestionsMatch
+                ? violationSuggestionsMatch[1].trim()
+                : "";
+
+            // Extract alternative subreddits - new field
+            const alternativeSubredditsMatch = output.match(
+                /\*\*ALTERNATIVE_SUBREDDITS:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*OPTIMIZED_TITLE|\n\s*\*\*|$)/i,
+            );
+            const alternativeSubredditsText = alternativeSubredditsMatch
+                ? alternativeSubredditsMatch[1].trim()
+                : "";
+
+            // Parse alternative subreddits into structured format
+            let parsedAlternatives: AlternativeSubreddit[] = [];
+            if (
+                alternativeSubredditsText &&
+                alternativeSubredditsText !== "No alternatives needed"
+            ) {
+                const alternatives = alternativeSubredditsText
+                    .split(";")
+                    .map((alt) => alt.trim())
+                    .filter((alt) => alt);
+                parsedAlternatives = alternatives
+                    .map((alt) => {
+                        const match = alt.match(/r\/([^-]+)\s*-\s*(.+)/);
+                        if (match) {
+                            return {
+                                display_name: match[1].trim(),
+                                public_description: "",
+                                subscribers: 0,
+                                url: `https://reddit.com/r/${match[1].trim()}`,
+                                reason: match[2].trim(),
+                            };
+                        }
+                        return null;
+                    })
+                    .filter(Boolean) as AlternativeSubreddit[];
+            }
+
+            // If violations detected, set the alternative subreddits and show warning
+            if (hasViolations) {
+                setAlternativeSubreddits({
+                    strictRules: [violationReason],
+                    alternatives: parsedAlternatives,
+                    message: violationReason,
+                });
+                setShowAlternatives(true);
+                setShowViabilityWarning(true);
+
+                // Clear optimization fields since we can't optimize
+                setOptimizedTitle("");
+                setOptimizedBody("");
+                setOptimizedFlair("");
+                setTitleReasoning("");
+                setBodyReasoning("");
+                setFlairReasoning("");
+                return;
+            }
+
+            // If no violations, proceed with normal parsing
             // Extract optimized title - improved regex
             const titleMatch = output.match(
                 /\*\*OPTIMIZED_TITLE:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*TITLE_REASONING|\n\s*\*\*|$)/i,
@@ -209,6 +432,11 @@ export default function HomePage() {
                 const reasoning = flairReasoningMatch[1].trim();
                 setFlairReasoning(reasoning);
             }
+
+            // Clear any existing violation warnings since no violations were detected
+            setShowViabilityWarning(false);
+            setShowAlternatives(false);
+            setAlternativeSubreddits(null);
         } catch (error) {
             console.error("Error parsing AI output:", error);
         }
@@ -434,8 +662,8 @@ export default function HomePage() {
                     flairs.map((f) => f.text).join(", ") || "None available",
             };
 
-            // Enhanced prompt for AI optimization
-            const prompt = `You are a Reddit post optimization expert. Analyze the user's draft post and optimize it for maximum engagement and compliance with subreddit rules.
+            // Enhanced prompt for AI optimization with rule checking
+            const prompt = `You are a Reddit post optimization expert. Your task is to FIRST check if the user's draft post violates any subreddit rules or requirements, and then either suggest alternatives or optimize the post accordingly.
 
 **USER'S DRAFT POST:**
 - Title: "${context.title}"
@@ -446,35 +674,58 @@ export default function HomePage() {
 - Post Requirements: ${context.postRequirements}
 - Available Flairs: ${context.availableFlairs}
 
-**OPTIMIZATION TASK:**
-Create an optimized version that:
-1. Increases engagement potential
-2. Complies with all subreddit rules
-3. Uses community-appropriate language and tone
-4. Includes relevant keywords
-5. Encourages meaningful discussion
-6. Selects the most appropriate flair
+**STEP 1: RULE VIOLATION ANALYSIS**
+Carefully analyze the draft post against the subreddit rules and requirements. Look for:
+- Self-promotion or advertising content
+- Personal information sharing
+- Spam or low-effort content
+- Content that doesn't match the subreddit's purpose
+- Violations of specific subreddit rules
+- Non-compliance with post requirements (title length, flair requirements, etc.)
 
-**REQUIRED OUTPUT FORMAT:**
-Please provide your response in exactly this format:
+**STEP 2: DECISION MAKING**
+If the post violates rules or requirements:
+- Set VIOLATION_DETECTED to "YES"
+- Provide VIOLATION_REASON with specific rule violations
+- Suggest VIOLATION_SUGGESTIONS for how to fix the content
+- Set ALTERNATIVE_SUBREDDITS to suggest 3-5 alternative subreddits where this content would be appropriate
+
+If the post complies with rules and requirements:
+- Set VIOLATION_DETECTED to "NO"
+- Proceed with normal optimization
+
+**STEP 3: OUTPUT FORMAT**
+Provide your response in exactly this format:
+
+**VIOLATION_DETECTED:**
+[YES or NO]
+
+**VIOLATION_REASON:**
+[If YES, explain which specific rules are violated. If NO, write "No violations detected"]
+
+**VIOLATION_SUGGESTIONS:**
+[If YES, provide specific suggestions to fix the violations. If NO, write "No suggestions needed"]
+
+**ALTERNATIVE_SUBREDDITS:**
+[If YES, suggest 3-5 alternative subreddits in format: "r/subreddit1 - reason1; r/subreddit2 - reason2; etc." If NO, write "No alternatives needed"]
 
 **OPTIMIZED_TITLE:**
-[Your optimized title here]
+[If NO violations, provide optimized title. If YES violations, write "Cannot optimize - rule violations detected"]
 
 **TITLE_REASONING:**
-[Explain specifically why this title is better - mention keywords, engagement hooks, community appeal, length considerations, and rule compliance]
+[If NO violations, explain optimization reasoning. If YES violations, write "Cannot optimize - rule violations detected"]
 
 **OPTIMIZED_BODY:**
-[Your optimized body text here]
+[If NO violations, provide optimized body. If YES violations, write "Cannot optimize - rule violations detected"]
 
 **BODY_REASONING:**
-[Explain specifically why this body is better - mention structure improvements, clarity enhancements, community engagement elements, and rule compliance]
+[If NO violations, explain optimization reasoning. If YES violations, write "Cannot optimize - rule violations detected"]
 
 **RECOMMENDED_FLAIR:**
-[Select the most appropriate flair from available options, or suggest "Discussion" if none fit perfectly]
+[If NO violations, select appropriate flair. If YES violations, write "Cannot optimize - rule violations detected"]
 
 **FLAIR_REASONING:**
-[Explain why this flair is the best choice for the content and community]`;
+[If NO violations, explain flair choice. If YES violations, write "Cannot optimize - rule violations detected"]`;
 
             // Use Gemini API directly instead of ai-bind
             const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -814,12 +1065,15 @@ ${rules
                 body,
             );
 
-            if (alternatives && alternatives.alternatives.length > 0) {
+            if (
+                alternatives &&
+                alternatives.alternatives &&
+                alternatives.alternatives.length > 0
+            ) {
                 setAlternativeSubreddits(alternatives);
                 setShowAlternatives(true);
             }
         } catch (error) {
-            console.error("Error checking alternative subreddits:", error);
         } finally {
             setLoadingAlternatives(false);
         }
@@ -1013,31 +1267,18 @@ ${rules
                 return;
             }
 
-            // First check if the post can be made in the current subreddit
-            console.log("🔍 Checking post viability for:", {
+            // Clear any existing warnings and alternatives
+            setShowViabilityWarning(false);
+            setShowAlternatives(false);
+            setAlternativeSubreddits(null);
+
+            console.log("🔍 Starting AI analysis with rule checking for:", {
                 subreddit,
                 title,
                 body,
             });
-            const viability = await checkPostViability();
-            console.log("📊 Viability result:", viability);
 
-            // If viability check failed or post cannot be made
-            if (!viability || !viability.analysis.canPost) {
-                console.log("❌ Post cannot be made, showing alternatives");
-                // Post cannot be made, check for alternatives and show warning
-                await checkStrictRulesAndSuggestAlternatives();
-                setShowViabilityWarning(true);
-                // Clear any existing AI output to show the warning instead
-                setAiOutput("");
-                setOptimizedTitle("");
-                setOptimizedBody("");
-                setOptimizedFlair("");
-                return; // Don't generate AI post if it can't be posted
-            }
-
-            console.log("✅ Post can be made, proceeding with AI optimization");
-            // Post can be made, proceed with AI optimization
+            // The AI will now handle both rule checking and optimization
             generateAIOptimizedPost();
         }
     };
@@ -1045,30 +1286,16 @@ ${rules
     const handleConfirmPost = async () => {
         setShowPricingModal(false);
 
-        // Check viability first, then generate AI optimization if possible
-        console.log("🔍 handleConfirmPost: Checking viability after payment");
-        const viability = await checkPostViability();
-
-        // If viability check failed or post cannot be made
-        if (!viability || !viability.analysis.canPost) {
-            console.log(
-                "❌ handleConfirmPost: Post cannot be made, showing alternatives",
-            );
-            // Post cannot be made, check for alternatives and show warning
-            await checkStrictRulesAndSuggestAlternatives();
-            setShowViabilityWarning(true);
-            // Clear any existing AI output to show the warning instead
-            setAiOutput("");
-            setOptimizedTitle("");
-            setOptimizedBody("");
-            setOptimizedFlair("");
-            return; // Don't generate AI post if it can't be posted
-        }
+        // Clear any existing warnings and alternatives
+        setShowViabilityWarning(false);
+        setShowAlternatives(false);
+        setAlternativeSubreddits(null);
 
         console.log(
-            "✅ handleConfirmPost: Post can be made, proceeding with AI optimization",
+            "🔍 handleConfirmPost: Starting AI analysis with rule checking after payment",
         );
-        // Post can be made, proceed with AI optimization
+
+        // The AI will now handle both rule checking and optimization
         await generateAIOptimizedPost();
 
         // Mark that user is no longer on first post
@@ -1633,9 +1860,24 @@ ${rules
                                             Generating AI optimization...
                                         </p>
                                     </div>
-                                ) : showViabilityWarning &&
-                                  postViability &&
-                                  !postViability.analysis.canPost ? (
+                                ) : (showViabilityWarning &&
+                                      postViability &&
+                                      !postViability.analysis.canPost) ||
+                                  (aiOutput &&
+                                      aiOutput.includes(
+                                          "VIOLATION_DETECTED:",
+                                      ) &&
+                                      (() => {
+                                          const violationMatch = aiOutput.match(
+                                              /\*\*VIOLATION_DETECTED:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_REASON|\n\s*\*\*|$)/i,
+                                          );
+                                          return (
+                                              violationMatch &&
+                                              violationMatch[1]
+                                                  ?.trim()
+                                                  .toUpperCase() === "YES"
+                                          );
+                                      })()) ? (
                                     <div className="space-y-4">
                                         {/* Strict Rules Warning Display */}
                                         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 space-y-4">
@@ -1658,7 +1900,21 @@ ${rules
 
                                             <div className="space-y-3">
                                                 <p className="text-sm text-red-700 dark:text-red-300">
-                                                    {postViability.message}
+                                                    {postViability?.message ||
+                                                        (aiOutput &&
+                                                        aiOutput.includes(
+                                                            "VIOLATION_REASON:",
+                                                        )
+                                                            ? (() => {
+                                                                  const reasonMatch =
+                                                                      aiOutput.match(
+                                                                          /\*\*VIOLATION_REASON:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_SUGGESTIONS|\n\s*\*\*|$)/i,
+                                                                      );
+                                                                  return reasonMatch
+                                                                      ? reasonMatch[1].trim()
+                                                                      : "Rule violations detected";
+                                                              })()
+                                                            : "Rule violations detected")}
                                                 </p>
 
                                                 <div>
@@ -1666,27 +1922,64 @@ ${rules
                                                         Conflicting Rules:
                                                     </h4>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {postViability.analysis.conflictingRules.map(
-                                                            (rule, index) => (
-                                                                <span
-                                                                    key={index}
-                                                                    className="bg-red-200 text-red-800 px-3 py-1 rounded-full text-xs font-medium"
-                                                                >
-                                                                    {rule}
-                                                                </span>
-                                                            ),
-                                                        )}
+                                                        {/* Show API-detected conflicting rules */}
+                                                        {(
+                                                            postViability
+                                                                ?.analysis
+                                                                ?.conflictingRules ||
+                                                            []
+                                                        ).map((rule, index) => (
+                                                            <span
+                                                                key={index}
+                                                                className="bg-red-200 text-red-800 px-3 py-1 rounded-full text-xs font-medium"
+                                                            >
+                                                                {rule}
+                                                            </span>
+                                                        ))}
+
+                                                        {/* Show AI-detected violations */}
+                                                        {aiOutput &&
+                                                            aiOutput.includes(
+                                                                "VIOLATION_REASON:",
+                                                            ) &&
+                                                            (() => {
+                                                                const reasonMatch =
+                                                                    aiOutput.match(
+                                                                        /\*\*VIOLATION_REASON:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_SUGGESTIONS|\n\s*\*\*|$)/i,
+                                                                    );
+                                                                if (
+                                                                    reasonMatch &&
+                                                                    reasonMatch[1].trim() !==
+                                                                        "No violations detected"
+                                                                ) {
+                                                                    return (
+                                                                        <span className="bg-red-200 text-red-800 px-3 py-1 rounded-full text-xs font-medium">
+                                                                            AI
+                                                                            Detected
+                                                                            Violation
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
                                                     </div>
                                                 </div>
 
-                                                {postViability.analysis
-                                                    .suggestions.length > 0 && (
+                                                {(
+                                                    postViability?.analysis
+                                                        ?.suggestions || []
+                                                ).length > 0 && (
                                                     <div>
                                                         <h4 className="font-medium text-sm text-red-800 dark:text-red-200 mb-2">
                                                             Suggestions:
                                                         </h4>
                                                         <ul className="list-disc list-inside space-y-1 text-sm text-red-700 dark:text-red-300">
-                                                            {postViability.analysis.suggestions.map(
+                                                            {(
+                                                                postViability
+                                                                    ?.analysis
+                                                                    ?.suggestions ||
+                                                                []
+                                                            ).map(
                                                                 (
                                                                     suggestion,
                                                                     index,
@@ -1705,104 +1998,273 @@ ${rules
                                                         </ul>
                                                     </div>
                                                 )}
+
+                                                {/* AI-Generated Violation Suggestions */}
+                                                {aiOutput &&
+                                                    aiOutput.includes(
+                                                        "VIOLATION_SUGGESTIONS:",
+                                                    ) && (
+                                                        <div>
+                                                            <h4 className="font-medium text-sm text-red-800 dark:text-red-200 mb-2">
+                                                                AI Suggestions
+                                                                to Fix
+                                                                Violations:
+                                                            </h4>
+                                                            <div className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-3 rounded border border-red-200 dark:border-red-700">
+                                                                {(() => {
+                                                                    const suggestionsMatch =
+                                                                        aiOutput.match(
+                                                                            /\*\*VIOLATION_SUGGESTIONS:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*ALTERNATIVE_SUBREDDITS|\n\s*\*\*|$)/i,
+                                                                        );
+                                                                    return suggestionsMatch
+                                                                        ? suggestionsMatch[1].trim()
+                                                                        : "No specific suggestions available";
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                             </div>
                                         </div>
 
                                         {/* Alternative Subreddits */}
-                                        {showAlternatives &&
-                                            alternativeSubreddits && (
-                                                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 space-y-4">
-                                                    <div className="flex items-center mb-3">
-                                                        <svg
-                                                            className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2"
-                                                            fill="currentColor"
-                                                            viewBox="0 0 20 20"
-                                                        >
-                                                            <path
-                                                                fillRule="evenodd"
-                                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                                                clipRule="evenodd"
-                                                            />
-                                                        </svg>
-                                                        <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
-                                                            Alternative
-                                                            Subreddits
-                                                        </h3>
-                                                    </div>
+                                        {(() => {
+                                            // Check if we should show API alternatives
+                                            const shouldShowAPIAlternatives =
+                                                Boolean(
+                                                    showAlternatives &&
+                                                        alternativeSubreddits,
+                                                );
 
-                                                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                                                        {
-                                                            alternativeSubreddits.message
-                                                        }
-                                                    </p>
+                                            // Check if we should show AI alternatives
+                                            const shouldShowAIAlternatives =
+                                                Boolean(
+                                                    aiOutput &&
+                                                        aiOutput.includes(
+                                                            "ALTERNATIVE_SUBREDDITS:",
+                                                        ) &&
+                                                        (() => {
+                                                            const alternativesMatch =
+                                                                aiOutput.match(
+                                                                    /\*\*ALTERNATIVE_SUBREDDITS:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*OPTIMIZED_TITLE|\n\s*\*\*|$)/i,
+                                                                );
+                                                            return (
+                                                                alternativesMatch &&
+                                                                alternativesMatch[1]?.trim() !==
+                                                                    "No alternatives needed"
+                                                            );
+                                                        })(),
+                                                );
 
-                                                    <div className="space-y-3">
-                                                        {alternativeSubreddits.alternatives.map(
-                                                            (alt, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className="bg-white dark:bg-neutral-800 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3"
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div className="flex-1">
-                                                                            <a
-                                                                                href={
-                                                                                    alt.url
-                                                                                }
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                className="font-medium text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                                            // If either condition is true, show the alternatives section
+                                            if (
+                                                shouldShowAPIAlternatives ||
+                                                shouldShowAIAlternatives
+                                            ) {
+                                                return (
+                                                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 space-y-4">
+                                                        <div className="flex items-center mb-3">
+                                                            <svg
+                                                                className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2"
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path
+                                                                    fillRule="evenodd"
+                                                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                                    clipRule="evenodd"
+                                                                />
+                                                            </svg>
+                                                            <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
+                                                                Alternative
+                                                                Subreddits
+                                                            </h3>
+                                                        </div>
+
+                                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                                            {alternativeSubreddits?.message ||
+                                                                "Alternative subreddits suggested by AI"}
+                                                        </p>
+
+                                                        <div className="space-y-3">
+                                                            {/* Show API-generated alternatives if available */}
+                                                            {(
+                                                                alternativeSubreddits?.alternatives ||
+                                                                []
+                                                            ).map(
+                                                                (
+                                                                    alt,
+                                                                    index,
+                                                                ) => (
+                                                                    <div
+                                                                        key={
+                                                                            index
+                                                                        }
+                                                                        className="bg-white dark:bg-neutral-800 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3"
+                                                                    >
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="flex-1">
+                                                                                <a
+                                                                                    href={
+                                                                                        alt.url
+                                                                                    }
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="font-medium text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                                                                                >
+                                                                                    r/
+                                                                                    {
+                                                                                        alt.display_name
+                                                                                    }
+                                                                                </a>
+                                                                                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1 line-clamp-2">
+                                                                                    {
+                                                                                        alt.public_description
+                                                                                    }
+                                                                                </p>
+                                                                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                                                                    {
+                                                                                        alt.reason
+                                                                                    }
+                                                                                </p>
+                                                                            </div>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setSubreddit(
+                                                                                        alt.display_name,
+                                                                                    );
+                                                                                    setSearchQuery(
+                                                                                        alt.display_name,
+                                                                                    );
+                                                                                    setShowAlternatives(
+                                                                                        false,
+                                                                                    );
+                                                                                    setShowViabilityWarning(
+                                                                                        false,
+                                                                                    );
+                                                                                    handleSubredditChange(
+                                                                                        alt.display_name,
+                                                                                    );
+                                                                                }}
+                                                                                className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
                                                                             >
-                                                                                r/
-                                                                                {
-                                                                                    alt.display_name
-                                                                                }
-                                                                            </a>
-                                                                            <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1 line-clamp-2">
-                                                                                {
-                                                                                    alt.public_description
-                                                                                }
-                                                                            </p>
-                                                                            <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                                                                {
-                                                                                    alt.reason
-                                                                                }{" "}
-                                                                                •{" "}
-                                                                                {alt.subscribers.toLocaleString()}{" "}
-                                                                                members
-                                                                            </p>
+                                                                                Use
+                                                                            </button>
                                                                         </div>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSubreddit(
-                                                                                    alt.display_name,
-                                                                                );
-                                                                                setSearchQuery(
-                                                                                    alt.display_name,
-                                                                                );
-                                                                                setShowAlternatives(
-                                                                                    false,
-                                                                                );
-                                                                                setShowViabilityWarning(
-                                                                                    false,
-                                                                                );
-                                                                                handleSubredditChange(
-                                                                                    alt.display_name,
-                                                                                );
-                                                                            }}
-                                                                            className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
-                                                                        >
-                                                                            Use
-                                                                        </button>
                                                                     </div>
-                                                                </div>
-                                                            ),
-                                                        )}
+                                                                ),
+                                                            )}
+
+                                                            {/* Show AI-generated alternatives */}
+                                                            {aiOutput &&
+                                                                aiOutput.includes(
+                                                                    "ALTERNATIVE_SUBREDDITS:",
+                                                                ) &&
+                                                                (() => {
+                                                                    const alternativesMatch =
+                                                                        aiOutput.match(
+                                                                            /\*\*ALTERNATIVE_SUBREDDITS:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*OPTIMIZED_TITLE|\n\s*\*\*|$)/i,
+                                                                        );
+
+                                                                    if (
+                                                                        alternativesMatch
+                                                                    ) {
+                                                                        const alternativesText =
+                                                                            alternativesMatch[1].trim();
+
+                                                                        if (
+                                                                            alternativesText !==
+                                                                            "No alternatives needed"
+                                                                        ) {
+                                                                            const alternatives =
+                                                                                alternativesText
+                                                                                    .split(
+                                                                                        ";",
+                                                                                    )
+                                                                                    .map(
+                                                                                        (
+                                                                                            alt,
+                                                                                        ) =>
+                                                                                            alt.trim(),
+                                                                                    )
+                                                                                    .filter(
+                                                                                        (
+                                                                                            alt,
+                                                                                        ) =>
+                                                                                            alt,
+                                                                                    );
+
+                                                                            return alternatives
+                                                                                .map(
+                                                                                    (
+                                                                                        alt,
+                                                                                        index,
+                                                                                    ) => {
+                                                                                        const match =
+                                                                                            alt.match(
+                                                                                                /r\/([^\s-]+)\s*-\s*(.+)/,
+                                                                                            );
+
+                                                                                        if (
+                                                                                            match
+                                                                                        ) {
+                                                                                            const subredditName =
+                                                                                                match[1].trim();
+                                                                                            return (
+                                                                                                <AISubredditCard
+                                                                                                    key={`ai-${index}`}
+                                                                                                    subredditName={
+                                                                                                        subredditName
+                                                                                                    }
+                                                                                                    reason={match[2].trim()}
+                                                                                                    onUse={() => {
+                                                                                                        setSubreddit(
+                                                                                                            subredditName,
+                                                                                                        );
+                                                                                                        setSearchQuery(
+                                                                                                            subredditName,
+                                                                                                        );
+                                                                                                        setShowAlternatives(
+                                                                                                            false,
+                                                                                                        );
+                                                                                                        setShowViabilityWarning(
+                                                                                                            false,
+                                                                                                        );
+                                                                                                        handleSubredditChange(
+                                                                                                            subredditName,
+                                                                                                        );
+                                                                                                    }}
+                                                                                                />
+                                                                                            );
+                                                                                        }
+                                                                                        return null;
+                                                                                    },
+                                                                                )
+                                                                                .filter(
+                                                                                    Boolean,
+                                                                                );
+                                                                        }
+                                                                    }
+                                                                    return null;
+                                                                })()}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
-                                ) : aiOutput ? (
+                                ) : aiOutput &&
+                                  !(() => {
+                                      const violationMatch = aiOutput.match(
+                                          /\*\*VIOLATION_DETECTED:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_REASON|\n\s*\*\*|$)/i,
+                                      );
+                                      return (
+                                          violationMatch &&
+                                          violationMatch[1]
+                                              ?.trim()
+                                              .toUpperCase() === "YES"
+                                      );
+                                  })() ? (
                                     <div className="space-y-4">
                                         {/* Raw AI Output (hidden by default, can be toggled) */}
                                         <details className="group">
@@ -1835,130 +2297,143 @@ ${rules
                                                 </h3>
                                             </div>
 
-                                            {optimizedTitle && (
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="text-xs font-medium text-green-800 dark:text-green-200">
-                                                            Optimized Title
-                                                        </label>
-                                                        <button
-                                                            onClick={() =>
-                                                                copyToClipboard(
-                                                                    optimizedTitle,
-                                                                    "Title",
-                                                                )
-                                                            }
-                                                            className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
-                                                            title="Copy to clipboard"
-                                                        >
-                                                            <svg
-                                                                className="w-4 h-4"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
+                                            {optimizedTitle &&
+                                                optimizedTitle !==
+                                                    "Cannot optimize - rule violations detected" && (
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                                Optimized Title
+                                                            </label>
+                                                            <button
+                                                                onClick={() =>
+                                                                    copyToClipboard(
+                                                                        optimizedTitle,
+                                                                        "Title",
+                                                                    )
+                                                                }
+                                                                className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                                title="Copy to clipboard"
                                                             >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={
-                                                                        2
-                                                                    }
-                                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                                />
-                                                            </svg>
-                                                        </button>
+                                                                <svg
+                                                                    className="w-4 h-4"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth={
+                                                                            2
+                                                                        }
+                                                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={
+                                                                optimizedTitle
+                                                            }
+                                                            readOnly
+                                                            className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                        />
                                                     </div>
-                                                    <input
-                                                        type="text"
-                                                        value={optimizedTitle}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                                                    />
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {optimizedBody && (
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="text-xs font-medium text-green-800 dark:text-green-200">
-                                                            Optimized Body
-                                                        </label>
-                                                        <button
-                                                            onClick={() =>
-                                                                copyToClipboard(
-                                                                    optimizedBody,
-                                                                    "Body",
-                                                                )
-                                                            }
-                                                            className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
-                                                            title="Copy to clipboard"
-                                                        >
-                                                            <svg
-                                                                className="w-4 h-4"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
+                                            {optimizedBody &&
+                                                optimizedBody !==
+                                                    "Cannot optimize - rule violations detected" && (
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                                Optimized Body
+                                                            </label>
+                                                            <button
+                                                                onClick={() =>
+                                                                    copyToClipboard(
+                                                                        optimizedBody,
+                                                                        "Body",
+                                                                    )
+                                                                }
+                                                                className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                                title="Copy to clipboard"
                                                             >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={
-                                                                        2
-                                                                    }
-                                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                                />
-                                                            </svg>
-                                                        </button>
+                                                                <svg
+                                                                    className="w-4 h-4"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth={
+                                                                            2
+                                                                        }
+                                                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <textarea
+                                                            value={
+                                                                optimizedBody
+                                                            }
+                                                            readOnly
+                                                            className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px] resize-vertical"
+                                                        />
                                                     </div>
-                                                    <textarea
-                                                        value={optimizedBody}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px] resize-vertical"
-                                                    />
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {optimizedFlair && (
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="text-xs font-medium text-green-800 dark:text-green-200">
-                                                            Recommended Flair
-                                                        </label>
-                                                        <button
-                                                            onClick={() =>
-                                                                copyToClipboard(
-                                                                    optimizedFlair,
-                                                                    "Flair",
-                                                                )
-                                                            }
-                                                            className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
-                                                            title="Copy to clipboard"
-                                                        >
-                                                            <svg
-                                                                className="w-4 h-4"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
+                                            {optimizedFlair &&
+                                                optimizedFlair !==
+                                                    "Cannot optimize - rule violations detected" && (
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                                Recommended
+                                                                Flair
+                                                            </label>
+                                                            <button
+                                                                onClick={() =>
+                                                                    copyToClipboard(
+                                                                        optimizedFlair,
+                                                                        "Flair",
+                                                                    )
+                                                                }
+                                                                className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                                title="Copy to clipboard"
                                                             >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={
-                                                                        2
-                                                                    }
-                                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                                />
-                                                            </svg>
-                                                        </button>
+                                                                <svg
+                                                                    className="w-4 h-4"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth={
+                                                                            2
+                                                                        }
+                                                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={
+                                                                optimizedFlair
+                                                            }
+                                                            readOnly
+                                                            className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                        />
                                                     </div>
-                                                    <input
-                                                        type="text"
-                                                        value={optimizedFlair}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                                                    />
-                                                </div>
-                                            )}
+                                                )}
 
                                             {/* Complete Optimization Summary Dropdown */}
                                             <div className="border-t border-green-300 dark:border-green-600 pt-3">
@@ -2098,6 +2573,47 @@ ${rules
                                                 )}
                                             </div>
                                         </div>
+
+                                        {/* Show message when no optimized content due to violations */}
+                                        {aiOutput &&
+                                            (() => {
+                                                const violationMatch =
+                                                    aiOutput.match(
+                                                        /\*\*VIOLATION_DETECTED:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_REASON|\n\s*\*\*|$)/i,
+                                                    );
+                                                return (
+                                                    violationMatch &&
+                                                    violationMatch[1]
+                                                        ?.trim()
+                                                        .toUpperCase() === "YES"
+                                                );
+                                            })() && (
+                                                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+                                                    <div className="flex items-center">
+                                                        <svg
+                                                            className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2"
+                                                            fill="currentColor"
+                                                            viewBox="0 0 20 20"
+                                                        >
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                                clipRule="evenodd"
+                                                            />
+                                                        </svg>
+                                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                                            Optimization skipped
+                                                            due to rule
+                                                            violations. Please
+                                                            review the
+                                                            suggestions above
+                                                            and fix the
+                                                            violations before
+                                                            optimizing.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
                                     </div>
                                 ) : (
                                     <div className="text-center text-neutral-500 dark:text-neutral-400 py-8">
