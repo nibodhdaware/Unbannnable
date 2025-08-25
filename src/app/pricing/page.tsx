@@ -22,7 +22,7 @@ export default function PricingPage() {
             const productMap = {
                 post: {
                     productId: "pdt_YuBZGtdCE3Crz89JDgLkf", // $1.99 monthly unlimited
-                    amount: 199,
+                    amount: 1,
                 },
             };
 

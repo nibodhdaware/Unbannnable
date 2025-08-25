@@ -183,7 +183,7 @@ async function handlePaymentEvent(
             {
                 paymentId: paymentId,
                 userId: userId,
-                amount: amount || 199,
+                amount: amount || 1,
                 currency: currency,
                 status,
                 paymentMethod: "dodo",
@@ -210,8 +210,12 @@ async function handlePaymentEvent(
                     // Determine plan type from amount
                     let planType = "onePost"; // default
 
-                    if (amount === 199)
+                    if (amount === 1)
                         planType = "onePost"; // $1.99
+                    else if (amount === 500)
+                        planType = "tenPosts"; // $5.00
+                    else if (amount === 1500)
+                        planType = "fiftyPosts"; // $15.00
                     else if (amount === 699)
                         planType = "fivePosts"; // $6.99
                     else if (amount === 1499)
