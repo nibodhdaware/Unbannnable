@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Check if metadata is provided in the request body
+        let metadata = null;
+        try {
+            const requestBody = await req.json();
+            metadata = requestBody.metadata;
+        } catch (error) {
+            console.log("Could not parse request body for metadata");
+        }
+
         const { amount, paymentId } = await req.json();
 
         if (!amount) {
@@ -50,52 +59,58 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Determine plan type from amount (handle both USD and INR)
+        // Determine plan type from metadata (more reliable than amount)
         let planType = "tenPosts"; // default
+        let postsToAllocate = 1; // default
 
         console.log("Manual allocation details:", {
             amount,
-            originalAmount: amount,
+            metadata,
         });
 
-        // Handle different currencies and amounts
-        // For USD amounts (handle both cents and dollars, and both string and number)
-        const numAmount = Number(amount);
-        const strAmount = String(amount);
-        if (
-            numAmount === 100 ||
-            numAmount === 1 ||
-            strAmount === "100" ||
-            strAmount === "1"
-        )
-            planType = "tenPosts"; // $1.00 for 10 posts (100 cents or 1 dollar)
-        else if (
-            numAmount === 500 ||
-            numAmount === 5 ||
-            strAmount === "500" ||
-            strAmount === "5"
-        )
-            planType = "hundredPosts"; // $5.00 for 100 posts (500 cents or 5 dollars)
-        else if (
-            numAmount === 1500 ||
-            numAmount === 15 ||
-            strAmount === "1500" ||
-            strAmount === "15"
-        )
-            planType = "fiveHundredPosts"; // $15.00 for 500 posts (1500 cents or 15 dollars)
+        // Check metadata for plan information
+        if (metadata && typeof metadata === "object") {
+            console.log("Metadata found:", metadata);
 
-        console.log("Manual plan type determined:", {
-            amount,
-            planType,
-            expectedPosts:
-                planType === "tenPosts"
-                    ? 10
-                    : planType === "hundredPosts"
-                      ? 100
-                      : planType === "fiveHundredPosts"
-                        ? 500
-                        : 1,
-        });
+            // Check for quantity in metadata
+            if ((metadata as any).quantity) {
+                const quantity = Number((metadata as any).quantity);
+                console.log("Quantity from metadata:", quantity);
+
+                if (quantity === 10) {
+                    planType = "tenPosts";
+                    postsToAllocate = 10;
+                } else if (quantity === 100) {
+                    planType = "hundredPosts";
+                    postsToAllocate = 100;
+                } else if (quantity === 500) {
+                    planType = "fiveHundredPosts";
+                    postsToAllocate = 500;
+                }
+            }
+
+            // Also check for plan type in metadata
+            if ((metadata as any).planType) {
+                planType = (metadata as any).planType;
+                console.log("Plan type from metadata:", planType);
+            }
+        }
+
+        // Fallback: Use amount-based logic if no metadata
+        if (planType === "onePost") {
+            console.log("No metadata found, using amount-based fallback");
+            const numAmount = Number(amount);
+            if (numAmount === 100 || numAmount === 1) {
+                planType = "tenPosts";
+                postsToAllocate = 10;
+            } else if (numAmount === 500 || numAmount === 5) {
+                planType = "hundredPosts";
+                postsToAllocate = 100;
+            } else if (numAmount === 1500 || numAmount === 15) {
+                planType = "fiveHundredPosts";
+                postsToAllocate = 500;
+            }
+        }
 
         console.log("Allocating posts manually:", {
             paymentId: paymentId || `manual_${Date.now()}`,

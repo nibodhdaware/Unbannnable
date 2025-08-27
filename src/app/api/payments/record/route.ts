@@ -94,68 +94,92 @@ export async function POST(req: NextRequest) {
         // Also allocate posts if payment was successful
         if (status === "succeeded" || status === "completed") {
             try {
-                // Determine plan type from amount (handle both USD and INR)
+                // Determine plan type from metadata (more reliable than amount)
                 let planType = "onePost"; // default
+                let postsToAllocate = 1; // default
 
                 console.log("Record route allocation details:", {
                     amount,
-                    originalAmount: amount,
-                    amountType: typeof amount,
-                    amountAsNumber: Number(amount),
-                    amountAsString: String(amount),
-                    amountComparison: {
-                        is100: amount === 100,
-                        is1: amount === 1,
-                        isString1: amount === "1",
-                        isNumber1: Number(amount) === 1,
-                        isString100: amount === "100",
-                        isNumber100: Number(amount) === 100,
-                    },
+                    currency,
+                    metadata,
+                    productCart,
                 });
 
-                // Handle different currencies and amounts
-                // For USD amounts (handle both cents and dollars, and both string and number)
-                const numAmount = Number(amount);
-                if (
-                    numAmount === 100 ||
-                    numAmount === 1 ||
-                    amount === "100" ||
-                    amount === "1"
-                )
-                    planType = "tenPosts"; // $1.00 for 10 posts (100 cents or 1 dollar)
-                else if (
-                    numAmount === 500 ||
-                    numAmount === 5 ||
-                    amount === "500" ||
-                    amount === "5"
-                )
-                    planType = "hundredPosts"; // $5.00 for 100 posts (500 cents or 5 dollars)
-                else if (
-                    numAmount === 1500 ||
-                    numAmount === 15 ||
-                    amount === "1500" ||
-                    amount === "15"
-                )
-                    planType = "fiveHundredPosts"; // $15.00 for 500 posts (1500 cents or 15 dollars)
+                // Check metadata for plan information
+                if (metadata) {
+                    console.log("Metadata found:", metadata);
+
+                    // Check for quantity in metadata
+                    if (metadata.quantity) {
+                        const quantity = Number(metadata.quantity);
+                        console.log("Quantity from metadata:", quantity);
+
+                        if (quantity === 10) {
+                            planType = "tenPosts";
+                            postsToAllocate = 10;
+                        } else if (quantity === 100) {
+                            planType = "hundredPosts";
+                            postsToAllocate = 100;
+                        } else if (quantity === 500) {
+                            planType = "fiveHundredPosts";
+                            postsToAllocate = 500;
+                        }
+                    }
+
+                    // Also check for plan type in metadata
+                    if (metadata.planType) {
+                        planType = metadata.planType;
+                        console.log("Plan type from metadata:", planType);
+                    }
+                }
+
+                // Fallback: Check product cart for plan information
+                if (productCart && productCart.length > 0) {
+                    console.log("Product cart found:", productCart);
+
+                    // Check if product cart contains plan information
+                    for (const product of productCart) {
+                        if (product.product_id) {
+                            console.log("Product ID:", product.product_id);
+
+                            // Map product IDs to plan types
+                            if (
+                                product.product_id.includes("ten") ||
+                                product.product_id.includes("10")
+                            ) {
+                                planType = "tenPosts";
+                                postsToAllocate = 10;
+                            } else if (
+                                product.product_id.includes("hundred") ||
+                                product.product_id.includes("100")
+                            ) {
+                                planType = "hundredPosts";
+                                postsToAllocate = 100;
+                            } else if (
+                                product.product_id.includes("five") ||
+                                product.product_id.includes("500")
+                            ) {
+                                planType = "fiveHundredPosts";
+                                postsToAllocate = 500;
+                            }
+                        }
+                    }
+                }
 
                 console.log("Record route plan type determined:", {
                     amount,
+                    currency,
                     planType,
-                    expectedPosts:
-                        planType === "tenPosts"
-                            ? 10
-                            : planType === "hundredPosts"
-                              ? 100
-                              : planType === "fiveHundredPosts"
-                                ? 500
-                                : 1,
+                    postsToAllocate,
+                    metadata,
+                    productCart,
                 });
 
                 console.log("Allocating posts from record route:", {
                     paymentId,
                     userId: user._id,
                     planType,
-                    amount,
+                    postsToAllocate,
                 });
 
                 const allocation = await convex.mutation(
@@ -170,6 +194,7 @@ export async function POST(req: NextRequest) {
                 console.log("Posts allocated successfully from record route:", {
                     paymentId,
                     planType,
+                    postsToAllocate,
                     allocation,
                 });
 
