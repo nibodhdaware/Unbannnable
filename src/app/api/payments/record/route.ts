@@ -94,9 +94,16 @@ export async function POST(req: NextRequest) {
         // Also allocate posts if payment was successful
         if (status === "succeeded" || status === "completed") {
             try {
-                // Determine plan type from amount
+                // Determine plan type from amount (handle both USD and INR)
                 let planType = "onePost"; // default
 
+                console.log("Record route allocation details:", {
+                    amount,
+                    originalAmount: amount,
+                });
+
+                // Handle different currencies and amounts
+                // For USD amounts in cents
                 if (amount === 100)
                     planType = "tenPosts"; // $1.00 for 10 posts
                 else if (amount === 500)
@@ -109,6 +116,21 @@ export async function POST(req: NextRequest) {
                     planType = "fivePosts"; // $6.99 (legacy)
                 else if (amount === 1499)
                     planType = "unlimited_monthly_1499"; // $14.99 (legacy)
+                // Handle INR amounts (approximate conversion)
+                else if (amount >= 80 && amount <= 90)
+                    planType = "hundredPosts"; // ~$5.00 USD equivalent in INR
+                else if (amount >= 15 && amount <= 25)
+                    planType = "tenPosts"; // ~$1.00 USD equivalent in INR
+                else if (amount >= 1200 && amount <= 1300)
+                    planType = "fiveHundredPosts"; // ~$15.00 USD equivalent in INR
+
+                console.log("Record route plan type determined:", {
+                    amount,
+                    planType,
+                    expectedPosts: planType === "tenPosts" ? 10 : 
+                                   planType === "hundredPosts" ? 100 : 
+                                   planType === "fiveHundredPosts" ? 500 : 1
+                });
                 else if (amount === 999) planType = "fivePosts"; // Mock payments
 
                 console.log("Allocating posts from record route:", {

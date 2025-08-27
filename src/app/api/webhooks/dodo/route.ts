@@ -216,22 +216,55 @@ async function handlePaymentEvent(
             // Allocate posts to user if payment is successful and user exists
             if (userId && paymentRecord) {
                 try {
-                    // Determine plan type from amount
+                    // Determine plan type from amount and currency
                     let planType = "onePost"; // default
+                    const currency = (data.currency as string) || "USD";
 
-                    if (amount === 100)
-                        planType = "tenPosts"; // $1.00 for 10 posts
-                    else if (amount === 500)
-                        planType = "hundredPosts"; // $5.00 for 100 posts
-                    else if (amount === 1500)
-                        planType = "fiveHundredPosts"; // $15.00 for 500 posts
-                    else if (amount === 1)
-                        planType = "onePost"; // $1.00 for 1 post (legacy)
-                    else if (amount === 699)
-                        planType = "fivePosts"; // $6.99 (legacy)
-                    else if (amount === 1499)
-                        planType = "unlimited_monthly_1499"; // $14.99 (legacy)
-                    else if (amount === 999) planType = "fivePosts"; // Mock payments
+                    console.log("Payment allocation details:", {
+                        amount,
+                        currency,
+                        originalAmount: amount,
+                    });
+
+                    // Handle different currencies and amounts
+                    if (currency === "USD" || currency === "INR") {
+                        // For USD amounts in cents
+                        if (amount === 100)
+                            planType = "tenPosts"; // $1.00 for 10 posts
+                        else if (amount === 500)
+                            planType = "hundredPosts"; // $5.00 for 100 posts
+                        else if (amount === 1500)
+                            planType = "fiveHundredPosts"; // $15.00 for 500 posts
+                        else if (amount === 1)
+                            planType = "onePost"; // $1.00 for 1 post (legacy)
+                        else if (amount === 699)
+                            planType = "fivePosts"; // $6.99 (legacy)
+                        else if (amount === 1499)
+                            planType = "unlimited_monthly_1499"; // $14.99 (legacy)
+                        else if (amount === 999)
+                            planType = "fivePosts"; // Mock payments
+                        // Handle INR amounts (approximate conversion)
+                        else if (amount >= 80 && amount <= 90)
+                            planType = "hundredPosts"; // ~$5.00 USD equivalent in INR
+                        else if (amount >= 15 && amount <= 25)
+                            planType = "tenPosts"; // ~$1.00 USD equivalent in INR
+                        else if (amount >= 1200 && amount <= 1300)
+                            planType = "fiveHundredPosts"; // ~$15.00 USD equivalent in INR
+                    }
+
+                    console.log("Plan type determined:", {
+                        amount,
+                        currency,
+                        planType,
+                        expectedPosts:
+                            planType === "tenPosts"
+                                ? 10
+                                : planType === "hundredPosts"
+                                  ? 100
+                                  : planType === "fiveHundredPosts"
+                                    ? 500
+                                    : 1,
+                    });
 
                     console.log("Allocating posts for payment:", {
                         paymentId,
