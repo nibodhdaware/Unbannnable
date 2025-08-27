@@ -116,6 +116,8 @@ export async function POST(req: NextRequest) {
                     planType = "fivePosts"; // $6.99 (legacy)
                 else if (amount === 1499)
                     planType = "unlimited_monthly_1499"; // $14.99 (legacy)
+                else if (amount === 999)
+                    planType = "fivePosts"; // Mock payments
                 // Handle INR amounts (approximate conversion)
                 else if (amount >= 80 && amount <= 90)
                     planType = "hundredPosts"; // ~$5.00 USD equivalent in INR
@@ -127,11 +129,15 @@ export async function POST(req: NextRequest) {
                 console.log("Record route plan type determined:", {
                     amount,
                     planType,
-                    expectedPosts: planType === "tenPosts" ? 10 : 
-                                   planType === "hundredPosts" ? 100 : 
-                                   planType === "fiveHundredPosts" ? 500 : 1
+                    expectedPosts:
+                        planType === "tenPosts"
+                            ? 10
+                            : planType === "hundredPosts"
+                              ? 100
+                              : planType === "fiveHundredPosts"
+                                ? 500
+                                : 1,
                 });
-                else if (amount === 999) planType = "fivePosts"; // Mock payments
 
                 console.log("Allocating posts from record route:", {
                     paymentId,
