@@ -91,6 +91,74 @@ export async function POST(req: NextRequest) {
 
         console.log("Payment recorded successfully:", paymentId);
 
+        // Also allocate posts if payment was successful
+        if (status === "succeeded" || status === "completed") {
+            try {
+                // Determine plan type from amount
+                let planType = "onePost"; // default
+
+                if (amount === 100)
+                    planType = "tenPosts"; // $1.00 for 10 posts
+                else if (amount === 500)
+                    planType = "hundredPosts"; // $5.00 for 100 posts
+                else if (amount === 1500)
+                    planType = "fiveHundredPosts"; // $15.00 for 500 posts
+                else if (amount === 1)
+                    planType = "onePost"; // $1.00 for 1 post (legacy)
+                else if (amount === 699)
+                    planType = "fivePosts"; // $6.99 (legacy)
+                else if (amount === 1499)
+                    planType = "unlimited_monthly_1499"; // $14.99 (legacy)
+                else if (amount === 999) planType = "fivePosts"; // Mock payments
+
+                console.log("Allocating posts from record route:", {
+                    paymentId,
+                    userId: user._id,
+                    planType,
+                    amount,
+                });
+
+                const allocation = await convex.mutation(
+                    api.payments.allocatePostsFromPayment,
+                    {
+                        paymentId,
+                        userId: user._id,
+                        planType,
+                    },
+                );
+
+                console.log("Posts allocated successfully from record route:", {
+                    paymentId,
+                    planType,
+                    allocation,
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    message:
+                        "Payment recorded and posts allocated successfully",
+                    paymentId,
+                    convexPaymentId: newPaymentId,
+                    allocation,
+                });
+            } catch (allocationError) {
+                console.error(
+                    "Error allocating posts from record route:",
+                    allocationError,
+                );
+                return NextResponse.json({
+                    success: true,
+                    message: "Payment recorded but post allocation failed",
+                    paymentId,
+                    convexPaymentId: newPaymentId,
+                    allocationError:
+                        allocationError instanceof Error
+                            ? allocationError.message
+                            : "Unknown error",
+                });
+            }
+        }
+
         return NextResponse.json({
             success: true,
             message: "Payment recorded successfully",

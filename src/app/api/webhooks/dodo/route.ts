@@ -110,7 +110,10 @@ async function handlePaymentEvent(
         const amount = (data.amount || data.total_amount) as number;
         const currency = (data.currency as string) || "USD";
         const metadata = (data.metadata as Record<string, unknown>) || {};
-        const clerkUserId = (metadata.clerk_user_id as string) || "";
+        const clerkUserId =
+            (metadata.clerk_user_id as string) ||
+            (metadata.clerkId as string) ||
+            "";
 
         // Try multiple possible fields for customer data
         const customerData = (data.customer as Record<string, unknown>) || {};
@@ -140,13 +143,19 @@ async function handlePaymentEvent(
         // Find user by clerk ID if available
         let userId = null;
         if (clerkUserId) {
+            console.log("Looking up user by clerk ID:", clerkUserId);
             const user = await convex.query(api.users.getUserByClerkId, {
                 clerkId: clerkUserId,
             });
 
             if (user) {
                 userId = user._id;
+                console.log("Found user by clerk ID:", user._id);
+            } else {
+                console.log("User not found by clerk ID:", clerkUserId);
             }
+        } else {
+            console.log("No clerk user ID found in metadata");
         }
 
         // If we don't have a clerk user ID, try to find user by email
@@ -210,16 +219,26 @@ async function handlePaymentEvent(
                     // Determine plan type from amount
                     let planType = "onePost"; // default
 
-                    if (amount === 1)
-                        planType = "onePost"; // $1.99
+                    if (amount === 100)
+                        planType = "tenPosts"; // $1.00 for 10 posts
                     else if (amount === 500)
-                        planType = "tenPosts"; // $5.00
+                        planType = "hundredPosts"; // $5.00 for 100 posts
                     else if (amount === 1500)
-                        planType = "fiftyPosts"; // $15.00
+                        planType = "fiveHundredPosts"; // $15.00 for 500 posts
+                    else if (amount === 1)
+                        planType = "onePost"; // $1.00 for 1 post (legacy)
                     else if (amount === 699)
-                        planType = "fivePosts"; // $6.99
+                        planType = "fivePosts"; // $6.99 (legacy)
                     else if (amount === 1499)
-                        planType = "unlimited_monthly_1499"; // $14.99
+                        planType = "unlimited_monthly_1499"; // $14.99 (legacy)
+                    else if (amount === 999) planType = "fivePosts"; // Mock payments
+
+                    console.log("Allocating posts for payment:", {
+                        paymentId,
+                        userId,
+                        planType,
+                        amount,
+                    });
 
                     const allocation = await convex.mutation(
                         api.payments.allocatePostsFromPayment,

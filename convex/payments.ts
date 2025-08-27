@@ -82,6 +82,12 @@ export const allocatePostsFromPayment = mutation({
             case "tenPosts":
                 postsToAdd = 10;
                 break;
+            case "hundredPosts":
+                postsToAdd = 100;
+                break;
+            case "fiveHundredPosts":
+                postsToAdd = 500;
+                break;
             case "fiftyPosts":
                 postsToAdd = 50;
                 break;
@@ -263,9 +269,10 @@ export const syncPaymentToDatabase = mutation({
             let planType = "onePost";
 
             // Determine plan type from amount
-            if (amount === 1) planType = "onePost";
-            else if (amount === 500) planType = "tenPosts";
-            else if (amount === 1500) planType = "fiftyPosts";
+            if (amount === 100) planType = "tenPosts";
+            else if (amount === 500) planType = "hundredPosts";
+            else if (amount === 1500) planType = "fiveHundredPosts";
+            else if (amount === 1) planType = "onePost";
             else if (amount === 699) planType = "fivePosts";
             else if (amount === 999)
                 planType = "fivePosts"; // Mock payments
@@ -286,6 +293,12 @@ export const syncPaymentToDatabase = mutation({
                         break;
                     case "tenPosts":
                         postsToAdd = 10;
+                        break;
+                    case "hundredPosts":
+                        postsToAdd = 100;
+                        break;
+                    case "fiveHundredPosts":
+                        postsToAdd = 500;
                         break;
                     case "fiftyPosts":
                         postsToAdd = 50;

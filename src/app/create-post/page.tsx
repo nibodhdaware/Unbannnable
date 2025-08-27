@@ -8,6 +8,11 @@ interface PostLimits {
     hasSubscription: boolean;
     postsRemaining: number;
     unlimited: boolean;
+    isAdmin?: boolean;
+    postsUsed?: number;
+    totalPurchasedPosts?: number;
+    freePostsRemaining?: number;
+    purchasedPostsRemaining?: number;
 }
 
 export default function CreatePostPage() {
@@ -31,15 +36,6 @@ export default function CreatePostPage() {
     });
 
     const checkPostLimits = async () => {
-        if (isAdmin) {
-            setPostLimits({
-                hasSubscription: true,
-                postsRemaining: -1, // -1 indicates unlimited
-                unlimited: true,
-            });
-            return;
-        }
-
         try {
             const response = await fetch("/api/posts/limits");
             if (response.ok) {
@@ -86,10 +82,8 @@ export default function CreatePostPage() {
             if (response.ok) {
                 setSuccess("Post created successfully!");
                 setFormData({ title: "", content: "", subreddit: "" });
-                // Refresh post limits for non-admin users
-                if (!isAdmin) {
-                    checkPostLimits();
-                }
+                // Refresh post limits for all users (including admin)
+                checkPostLimits();
             } else {
                 const errorData = await response.json();
                 setError(errorData.error || "Failed to create post");
@@ -130,16 +124,37 @@ export default function CreatePostPage() {
                 )}
 
                 {/* Post Limits Display */}
-                {postLimits && !isAdmin && (
+                {postLimits && (
                     <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-md mb-4">
-                        {postLimits.hasSubscription ? (
+                        {postLimits.isAdmin ? (
+                            <span>
+                                👑 Admin Access: Unlimited Posts (Used{" "}
+                                {postLimits.postsUsed || 0} this month)
+                                {postLimits.totalPurchasedPosts &&
+                                    postLimits.totalPurchasedPosts > 0 && (
+                                        <span className="block text-sm mt-1">
+                                            Purchased posts available:{" "}
+                                            {postLimits.totalPurchasedPosts}
+                                        </span>
+                                    )}
+                            </span>
+                        ) : postLimits.hasSubscription ? (
                             <span>
                                 ✅ Subscription Active - Unlimited Posts
                             </span>
                         ) : (
                             <span>
-                                📝 Free Tier: {postLimits.postsRemaining} posts
-                                remaining
+                                📝 Posts Remaining: {postLimits.postsRemaining}{" "}
+                                total
+                                {postLimits.freePostsRemaining !==
+                                    undefined && (
+                                    <span className="block text-sm mt-1">
+                                        Free: {postLimits.freePostsRemaining} |
+                                        Purchased:{" "}
+                                        {postLimits.purchasedPostsRemaining ||
+                                            0}
+                                    </span>
+                                )}
                                 {postLimits.postsRemaining <= 0 && (
                                     <span className="block text-red-600 mt-1">
                                         Post limit reached.{" "}
@@ -147,7 +162,7 @@ export default function CreatePostPage() {
                                             href="/pricing"
                                             className="underline"
                                         >
-                                            Subscribe for unlimited posts
+                                            Buy more posts
                                         </a>
                                     </span>
                                 )}

@@ -229,8 +229,8 @@ export default function HomePage() {
     // Subscription-related states
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<
-        "onePost" | "tenPosts" | "fiftyPosts"
-    >("fiftyPosts");
+        "tenPosts" | "hundredPosts" | "fiveHundredPosts"
+    >("fiveHundredPosts");
     const [showBillingForm, setShowBillingForm] = useState(false);
     const [billingData, setBillingData] = useState({
         name: "",
@@ -1159,11 +1159,11 @@ ${rules
 
     // Subscription plans configuration
     const subscriptionPlans = {
-        onePost: {
-            productId: "pdt_YuBZGtdCE3Crz89JDgLkf", // Use the actual Dodo product ID
-            price: 1,
-            amount: 1, // Price in cents
-            name: "1 post",
+        tenPosts: {
+            productId: "pdt_YuBZGtdCE3Crz89JDgLkf", // $1.00 for 10 posts
+            price: 1.0,
+            amount: 100, // Price in cents
+            name: "10 posts",
             description: "Perfect for testing the waters",
             features: [
                 "AI-optimized content",
@@ -1171,11 +1171,11 @@ ${rules
                 "Instant access",
             ],
         },
-        tenPosts: {
-            productId: "pdt_c5oTeIMDSCUcUc2vLCcTe",
+        hundredPosts: {
+            productId: "pdt_c5oTeIMDSCUcUc2vLCcTe", // $5.00 for 100 posts
             price: 5.0,
             amount: 500, // Price in cents
-            name: "10 posts",
+            name: "100 posts",
             description: "Great value for regular users",
             features: [
                 "AI-optimized content",
@@ -1184,11 +1184,11 @@ ${rules
                 "Better value per post",
             ],
         },
-        fiftyPosts: {
-            productId: "pdt_7zSMnSK9jUYRZ5mfqkfAq",
+        fiveHundredPosts: {
+            productId: "pdt_7zSMnSK9jUYRZ5mfqkfAq", // $15.00 for 500 posts
             price: 15.0,
             amount: 1500, // Price in cents
-            name: "50 posts",
+            name: "500 posts",
             description: "Most popular choice",
             features: [
                 "AI-optimized content",
@@ -1202,7 +1202,7 @@ ${rules
     };
 
     const handleSubscription = async (
-        planType: "onePost" | "tenPosts" | "fiftyPosts",
+        planType: "tenPosts" | "hundredPosts" | "fiveHundredPosts",
     ) => {
         // Set the selected plan
         setSelectedPlan(planType);
@@ -2788,77 +2788,6 @@ ${rules
                                 {/* Multi-Plan Display */}
                                 <div className="mb-8">
                                     <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory pt-4 justify-start sm:justify-center">
-                                        {/* 1 Post Plan */}
-                                        <div
-                                            className={`relative p-4 sm:p-6 border-2 rounded-xl text-center shadow-lg cursor-pointer transition-all flex-shrink-0 w-full min-w-[240px] sm:min-w-[260px] max-w-[280px] snap-start ${
-                                                selectedPlan === "onePost"
-                                                    ? "border-[#FF4500] bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20"
-                                                    : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-[#FF4500]/50"
-                                            }`}
-                                            onClick={() =>
-                                                setSelectedPlan("onePost")
-                                            }
-                                        >
-                                            <div className="mb-4">
-                                                <div className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
-                                                    $
-                                                    {subscriptionPlans.onePost.price.toFixed(
-                                                        2,
-                                                    )}
-                                                </div>
-                                                <div className="text-base font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
-                                                    {
-                                                        subscriptionPlans
-                                                            .onePost.name
-                                                    }
-                                                </div>
-                                                <div className="text-sm text-neutral-600 dark:text-neutral-400">
-                                                    {
-                                                        subscriptionPlans
-                                                            .onePost.description
-                                                    }
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2 mb-4">
-                                                {subscriptionPlans.onePost.features.map(
-                                                    (feature, index) => (
-                                                        <div
-                                                            key={index}
-                                                            className="flex items-center justify-center text-sm text-neutral-700 dark:text-neutral-300"
-                                                        >
-                                                            <svg
-                                                                className="w-4 h-4 text-green-500 mr-2 flex-shrink-0"
-                                                                fill="currentColor"
-                                                                viewBox="0 0 20 20"
-                                                            >
-                                                                <path
-                                                                    fillRule="evenodd"
-                                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                                    clipRule="evenodd"
-                                                                />
-                                                            </svg>
-                                                            {feature}
-                                                        </div>
-                                                    ),
-                                                )}
-                                            </div>
-                                            {selectedPlan === "onePost" && (
-                                                <div className="absolute top-4 right-4">
-                                                    <svg
-                                                        className="w-6 h-6 text-[#FF4500]"
-                                                        fill="currentColor"
-                                                        viewBox="0 0 20 20"
-                                                    >
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                                            clipRule="evenodd"
-                                                        />
-                                                    </svg>
-                                                </div>
-                                            )}
-                                        </div>
-
                                         {/* 10 Posts Plan */}
                                         <div
                                             className={`relative p-4 sm:p-6 border-2 rounded-xl text-center shadow-lg cursor-pointer transition-all flex-shrink-0 w-full min-w-[240px] sm:min-w-[260px] max-w-[280px] snap-start ${
@@ -2931,54 +2860,40 @@ ${rules
                                             )}
                                         </div>
 
-                                        {/* 50 Posts Plan */}
+                                        {/* 100 Posts Plan */}
                                         <div
                                             className={`relative p-4 sm:p-6 border-2 rounded-xl text-center shadow-lg cursor-pointer transition-all flex-shrink-0 w-full min-w-[240px] sm:min-w-[260px] max-w-[280px] snap-start ${
-                                                selectedPlan === "fiftyPosts"
+                                                selectedPlan === "hundredPosts"
                                                     ? "border-[#FF4500] bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20"
                                                     : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-[#FF4500]/50"
                                             }`}
                                             onClick={() =>
-                                                setSelectedPlan("fiftyPosts")
+                                                setSelectedPlan("hundredPosts")
                                             }
                                         >
-                                            {/* Most Popular Badge */}
-                                            {subscriptionPlans.fiftyPosts
-                                                .isPopular && (
-                                                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-[#FF4500] text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center z-10">
-                                                    <svg
-                                                        className="w-3 h-3 mr-1"
-                                                        fill="currentColor"
-                                                        viewBox="0 0 20 20"
-                                                    >
-                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                    </svg>
-                                                    Most Popular
-                                                </div>
-                                            )}
                                             <div className="mb-4">
                                                 <div className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
                                                     $
-                                                    {subscriptionPlans.fiftyPosts.price.toFixed(
+                                                    {subscriptionPlans.hundredPosts.price.toFixed(
                                                         2,
                                                     )}
                                                 </div>
                                                 <div className="text-base font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
                                                     {
                                                         subscriptionPlans
-                                                            .fiftyPosts.name
+                                                            .hundredPosts.name
                                                     }
                                                 </div>
                                                 <div className="text-sm text-neutral-600 dark:text-neutral-400">
                                                     {
                                                         subscriptionPlans
-                                                            .fiftyPosts
+                                                            .hundredPosts
                                                             .description
                                                     }
                                                 </div>
                                             </div>
                                             <div className="space-y-2 mb-4">
-                                                {subscriptionPlans.fiftyPosts.features.map(
+                                                {subscriptionPlans.hundredPosts.features.map(
                                                     (feature, index) => (
                                                         <div
                                                             key={index}
@@ -3000,7 +2915,99 @@ ${rules
                                                     ),
                                                 )}
                                             </div>
-                                            {selectedPlan === "fiftyPosts" && (
+                                            {selectedPlan ===
+                                                "hundredPosts" && (
+                                                <div className="absolute top-4 right-4">
+                                                    <svg
+                                                        className="w-6 h-6 text-[#FF4500]"
+                                                        fill="currentColor"
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 500 Posts Plan */}
+                                        <div
+                                            className={`relative p-4 sm:p-6 border-2 rounded-xl text-center shadow-lg cursor-pointer transition-all flex-shrink-0 w-full min-w-[240px] sm:min-w-[260px] max-w-[280px] snap-start ${
+                                                selectedPlan ===
+                                                "fiveHundredPosts"
+                                                    ? "border-[#FF4500] bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20"
+                                                    : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-[#FF4500]/50"
+                                            }`}
+                                            onClick={() =>
+                                                setSelectedPlan(
+                                                    "fiveHundredPosts",
+                                                )
+                                            }
+                                        >
+                                            {/* Most Popular Badge */}
+                                            {subscriptionPlans.fiveHundredPosts
+                                                .isPopular && (
+                                                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-[#FF4500] text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center z-10">
+                                                    <svg
+                                                        className="w-3 h-3 mr-1"
+                                                        fill="currentColor"
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                    </svg>
+                                                    Most Popular
+                                                </div>
+                                            )}
+                                            <div className="mb-4">
+                                                <div className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+                                                    $
+                                                    {subscriptionPlans.fiveHundredPosts.price.toFixed(
+                                                        2,
+                                                    )}
+                                                </div>
+                                                <div className="text-base font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                                                    {
+                                                        subscriptionPlans
+                                                            .fiveHundredPosts
+                                                            .name
+                                                    }
+                                                </div>
+                                                <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                                                    {
+                                                        subscriptionPlans
+                                                            .fiveHundredPosts
+                                                            .description
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2 mb-4">
+                                                {subscriptionPlans.fiveHundredPosts.features.map(
+                                                    (feature, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="flex items-center justify-center text-sm text-neutral-700 dark:text-neutral-300"
+                                                        >
+                                                            <svg
+                                                                className="w-4 h-4 text-green-500 mr-2 flex-shrink-0"
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path
+                                                                    fillRule="evenodd"
+                                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                                    clipRule="evenodd"
+                                                                />
+                                                            </svg>
+                                                            {feature}
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                            {selectedPlan ===
+                                                "fiveHundredPosts" && (
                                                 <div className="absolute top-4 right-4">
                                                     <svg
                                                         className="w-6 h-6 text-[#FF4500]"

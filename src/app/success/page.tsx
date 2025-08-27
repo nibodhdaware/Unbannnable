@@ -92,7 +92,8 @@ export default function SuccessPage() {
 
                 // Save payment to our database if user is available and payment was successful
                 if (user && details.status === "succeeded") {
-                    await savePaymentToDatabase(details);
+                    const result = await savePaymentToDatabase(details);
+                    console.log("Payment save result:", result);
                 }
             } catch (error) {
                 console.error("Error fetching payment details:", error);
@@ -142,8 +143,14 @@ export default function SuccessPage() {
                     response.status,
                     errorData,
                 );
+                return { error: errorData };
             } else {
-                console.log("Payment successfully recorded in database");
+                const result = await response.json();
+                console.log(
+                    "Payment successfully recorded in database:",
+                    result,
+                );
+                return result;
             }
         } catch (error) {
             console.error("Error saving payment:", error);
@@ -180,8 +187,8 @@ export default function SuccessPage() {
                 </h1>
 
                 <p className="text-gray-600 mb-6">
-                    Thank you for your purchase! You now have access to premium
-                    features.
+                    Thank you for your purchase! Your posts have been added to
+                    your account.
                 </p>
 
                 {/* User Info */}
@@ -235,7 +242,7 @@ export default function SuccessPage() {
                 {/* Features List */}
                 <div className="bg-green-50 rounded-lg p-4 mb-6 text-left">
                     <h3 className="font-medium text-green-900 mb-3">
-                        Your Premium Features
+                        What You've Unlocked
                     </h3>
                     <ul className="space-y-2">
                         <li className="flex items-center text-sm text-green-700">
@@ -250,7 +257,7 @@ export default function SuccessPage() {
                                     clipRule="evenodd"
                                 />
                             </svg>
-                            Unlimited AI optimizations
+                            Additional Reddit posts (never expire)
                         </li>
                         <li className="flex items-center text-sm text-green-700">
                             <svg
@@ -264,7 +271,7 @@ export default function SuccessPage() {
                                     clipRule="evenodd"
                                 />
                             </svg>
-                            Priority support
+                            AI-optimized content suggestions
                         </li>
                         <li className="flex items-center text-sm text-green-700">
                             <svg
@@ -278,21 +285,7 @@ export default function SuccessPage() {
                                     clipRule="evenodd"
                                 />
                             </svg>
-                            Advanced analytics
-                        </li>
-                        <li className="flex items-center text-sm text-green-700">
-                            <svg
-                                className="w-4 h-4 mr-2 text-green-600"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                            Reddit posting assistance
+                            Reddit safety checks
                         </li>
                     </ul>
                 </div>

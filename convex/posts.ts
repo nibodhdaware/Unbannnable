@@ -49,12 +49,8 @@ export const createPost = mutation({
             createdAt: now,
         });
 
-        // Update user's post usage based on type (skip for admin users)
-        if (
-            postType === "free" &&
-            !user.isAdmin &&
-            user.email !== "nibod1248@gmail.com"
-        ) {
+        // Update user's post usage based on type
+        if (postType === "free") {
             const currentFreeUsed = user.freePostsUsed || 0;
             await ctx.db.patch(args.userId, {
                 freePostsUsed: currentFreeUsed + 1,
@@ -63,6 +59,13 @@ export const createPost = mutation({
             console.log(
                 `User ${args.userId} used free post. Total free posts used: ${currentFreeUsed + 1}`,
             );
+        } else if (postType === "purchased") {
+            // For purchased posts, we track usage but don't decrement totalPurchasedPosts
+            // The decrementing is handled by the monthly usage tracking
+            console.log(`User ${args.userId} used purchased post.`);
+        } else if (postType === "unlimited") {
+            // For unlimited posts (admin), we still track usage for analytics
+            console.log(`User ${args.userId} used unlimited post (admin).`);
         }
 
         console.log(`Created ${postType} post for user ${args.userId}:`, {
@@ -199,14 +202,29 @@ export const getUserPostStats = query({
             user.isAdmin === true || user.email === "nibod1248@gmail.com";
 
         if (isAdminUser) {
+            // Get total posts used this month for admin users too
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+
+            const postsThisMonth = await ctx.db
+                .query("posts")
+                .withIndex("by_user_and_date", (q) =>
+                    q
+                        .eq("userId", userId)
+                        .gte("createdAt", startOfMonth.getTime()),
+                )
+                .collect();
+
             return {
                 freePostsUsed: 0,
                 freePostsRemaining: 0,
                 purchasedPostsRemaining: 0,
-                totalPostsUsed: 0,
+                totalPostsUsed: postsThisMonth.length,
                 hasUnlimitedAccess: true,
                 unlimitedExpiry: null,
                 isAdmin: true,
+                postsThisMonth: postsThisMonth.length, // Additional field for admin
             };
         }
 
@@ -270,10 +288,25 @@ export const canUserCreatePost = query({
             user.isAdmin === true || user.email === "nibod1248@gmail.com";
 
         if (isAdminUser) {
+            // Get total posts used this month for admin users
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+
+            const postsThisMonth = await ctx.db
+                .query("posts")
+                .withIndex("by_user_and_date", (q) =>
+                    q
+                        .eq("userId", userId)
+                        .gte("createdAt", startOfMonth.getTime()),
+                )
+                .collect();
+
             return {
                 canCreate: true,
                 reason: "admin_unlimited",
                 postsRemaining: "unlimited",
+                postsUsed: postsThisMonth.length, // Show admin their usage
             };
         }
 
