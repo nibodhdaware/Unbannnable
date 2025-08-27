@@ -228,12 +228,29 @@ async function handlePaymentEvent(
 
                     // Handle different currencies and amounts
                     if (currency === "USD" || currency === "INR") {
-                        // For USD amounts (handle both cents and dollars)
-                        if (amount === 100 || amount === 1)
+                        // For USD amounts (handle both cents and dollars, and both string and number)
+                        const numAmount = Number(amount);
+                        const strAmount = String(amount);
+                        if (
+                            numAmount === 100 ||
+                            numAmount === 1 ||
+                            strAmount === "100" ||
+                            strAmount === "1"
+                        )
                             planType = "tenPosts"; // $1.00 for 10 posts (100 cents or 1 dollar)
-                        else if (amount === 500 || amount === 5)
+                        else if (
+                            numAmount === 500 ||
+                            numAmount === 5 ||
+                            strAmount === "500" ||
+                            strAmount === "5"
+                        )
                             planType = "hundredPosts"; // $5.00 for 100 posts (500 cents or 5 dollars)
-                        else if (amount === 1500 || amount === 15)
+                        else if (
+                            numAmount === 1500 ||
+                            numAmount === 15 ||
+                            strAmount === "1500" ||
+                            strAmount === "15"
+                        )
                             planType = "fiveHundredPosts"; // $15.00 for 500 posts (1500 cents or 15 dollars)
                     }
 

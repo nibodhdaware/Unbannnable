@@ -95,20 +95,47 @@ export async function POST(req: NextRequest) {
         if (status === "succeeded" || status === "completed") {
             try {
                 // Determine plan type from amount (handle both USD and INR)
-                let planType = "tenPosts"; // default
+                let planType = "onePost"; // default
 
                 console.log("Record route allocation details:", {
                     amount,
                     originalAmount: amount,
+                    amountType: typeof amount,
+                    amountAsNumber: Number(amount),
+                    amountAsString: String(amount),
+                    amountComparison: {
+                        is100: amount === 100,
+                        is1: amount === 1,
+                        isString1: amount === "1",
+                        isNumber1: Number(amount) === 1,
+                        isString100: amount === "100",
+                        isNumber100: Number(amount) === 100,
+                    },
                 });
 
                 // Handle different currencies and amounts
-                // For USD amounts (handle both cents and dollars)
-                if (amount === 100 || amount === 1)
+                // For USD amounts (handle both cents and dollars, and both string and number)
+                const numAmount = Number(amount);
+                if (
+                    numAmount === 100 ||
+                    numAmount === 1 ||
+                    amount === "100" ||
+                    amount === "1"
+                )
                     planType = "tenPosts"; // $1.00 for 10 posts (100 cents or 1 dollar)
-                else if (amount === 500 || amount === 5)
+                else if (
+                    numAmount === 500 ||
+                    numAmount === 5 ||
+                    amount === "500" ||
+                    amount === "5"
+                )
                     planType = "hundredPosts"; // $5.00 for 100 posts (500 cents or 5 dollars)
-                else if (amount === 1500 || amount === 15)
+                else if (
+                    numAmount === 1500 ||
+                    numAmount === 15 ||
+                    amount === "1500" ||
+                    amount === "15"
+                )
                     planType = "fiveHundredPosts"; // $15.00 for 500 posts (1500 cents or 15 dollars)
 
                 console.log("Record route plan type determined:", {

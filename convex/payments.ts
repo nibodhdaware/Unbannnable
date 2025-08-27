@@ -86,7 +86,8 @@ export const allocatePostsFromPayment = mutation({
                 postsToAdd = 500;
                 break;
             default:
-                throw new Error("Unknown plan type");
+                console.error("Unknown plan type:", planType);
+                postsToAdd = 1; // Default to 1 post for unknown plan types
         }
 
         // Update user's purchased posts or unlimited access
