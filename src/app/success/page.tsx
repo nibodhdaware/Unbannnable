@@ -673,7 +673,6 @@ export default function SuccessPage() {
                             <span className="font-medium">Amount:</span>{" "}
                             {getCurrencySymbol(paymentDetails.currency)}
                             {(paymentDetails.amount / 100).toFixed(2)}{" "}
-                            {paymentDetails.currency}
                         </p>
                         <p className="text-sm text-blue-700">
                             <span className="font-medium">Date:</span>{" "}

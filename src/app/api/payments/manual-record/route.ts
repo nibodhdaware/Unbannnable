@@ -59,15 +59,13 @@ export async function POST(req: NextRequest) {
         });
 
         // Handle different currencies and amounts
-        // For USD amounts in cents
-        if (amount === 100)
-            planType = "tenPosts"; // $1.00 for 10 posts
-        else if (amount === 500)
-            planType = "hundredPosts"; // $5.00 for 100 posts
-        else if (amount === 1500)
-            planType = "fiveHundredPosts"; // $15.00 for 500 posts
-        else if (amount === 1)
-            planType = "onePost"; // $1.00 for 1 post (legacy)
+        // For USD amounts (handle both cents and dollars)
+        if (amount === 100 || amount === 1)
+            planType = "tenPosts"; // $1.00 for 10 posts (100 cents or 1 dollar)
+        else if (amount === 500 || amount === 5)
+            planType = "hundredPosts"; // $5.00 for 100 posts (500 cents or 5 dollars)
+        else if (amount === 1500 || amount === 15)
+            planType = "fiveHundredPosts"; // $15.00 for 500 posts (1500 cents or 15 dollars)
         else if (amount === 699)
             planType = "fivePosts"; // $6.99 (legacy)
         else if (amount === 1499)
