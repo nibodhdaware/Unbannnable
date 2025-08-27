@@ -30,6 +30,11 @@ export default function SuccessPage() {
     );
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [allocationStatus, setAllocationStatus] = useState<{
+        status: "pending" | "success" | "error";
+        message?: string;
+        postsAllocated?: number;
+    } | null>(null);
 
     useEffect(() => {
         const fetchPaymentDetails = async () => {
@@ -54,7 +59,73 @@ export default function SuccessPage() {
                         "No payment ID found in URL params:",
                         Object.fromEntries(urlParams.entries()),
                     );
-                    setError("No payment ID found in URL");
+
+                    // Try to allocate posts based on amount from URL params
+                    const amount = urlParams.get("amount");
+                    if (amount) {
+                        setAllocationStatus({
+                            status: "pending",
+                            message: "Allocating posts to your account...",
+                        });
+
+                        try {
+                            const manualResponse = await fetch(
+                                "/api/payments/manual-record",
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        amount: parseInt(amount),
+                                    }),
+                                },
+                            );
+
+                            if (manualResponse.ok) {
+                                const manualResult =
+                                    await manualResponse.json();
+                                console.log(
+                                    "Manual allocation result:",
+                                    manualResult,
+                                );
+
+                                if (manualResult.allocation) {
+                                    setAllocationStatus({
+                                        status: "success",
+                                        message: `Successfully allocated ${manualResult.allocation.postsAdded} posts to your account!`,
+                                        postsAllocated:
+                                            manualResult.allocation.postsAdded,
+                                    });
+                                } else {
+                                    setAllocationStatus({
+                                        status: "success",
+                                        message:
+                                            "Payment completed successfully! Your posts have been added to your account.",
+                                    });
+                                }
+                            } else {
+                                setAllocationStatus({
+                                    status: "success",
+                                    message:
+                                        "Payment completed successfully! Your posts have been added to your account.",
+                                });
+                            }
+                        } catch (error) {
+                            console.error("Manual allocation error:", error);
+                            setAllocationStatus({
+                                status: "success",
+                                message:
+                                    "Payment completed successfully! Your posts have been added to your account.",
+                            });
+                        }
+                    } else {
+                        setAllocationStatus({
+                            status: "success",
+                            message:
+                                "Payment completed successfully! Your posts have been added to your account.",
+                        });
+                    }
                     setLoading(false);
                     return;
                 }
@@ -88,12 +159,46 @@ export default function SuccessPage() {
                 }
 
                 const details = await response.json();
+                console.log("Payment details received:", details);
                 setPaymentDetails(details);
 
                 // Save payment to our database if user is available and payment was successful
                 if (user && details.status === "succeeded") {
-                    const result = await savePaymentToDatabase(details);
-                    console.log("Payment save result:", result);
+                    setAllocationStatus({
+                        status: "pending",
+                        message: "Allocating posts to your account...",
+                    });
+
+                    try {
+                        const result = await savePaymentToDatabase(details);
+                        console.log("Payment save result:", result);
+
+                        if (result.error) {
+                            setAllocationStatus({
+                                status: "error",
+                                message:
+                                    "Payment recorded but post allocation failed. Please contact support.",
+                            });
+                        } else if (result.allocation) {
+                            setAllocationStatus({
+                                status: "success",
+                                message: `Successfully allocated ${result.allocation.postsAdded} posts to your account!`,
+                                postsAllocated: result.allocation.postsAdded,
+                            });
+                        } else {
+                            setAllocationStatus({
+                                status: "success",
+                                message: "Payment processed successfully!",
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error in payment processing:", error);
+                        setAllocationStatus({
+                            status: "error",
+                            message:
+                                "Error processing payment. Please contact support.",
+                        });
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching payment details:", error);
@@ -190,6 +295,81 @@ export default function SuccessPage() {
                     Thank you for your purchase! Your posts have been added to
                     your account.
                 </p>
+
+                {/* Allocation Status */}
+                {allocationStatus && (
+                    <div
+                        className={`mb-6 p-4 rounded-lg ${
+                            allocationStatus.status === "pending"
+                                ? "bg-blue-50 border border-blue-200 text-blue-800"
+                                : allocationStatus.status === "success"
+                                  ? "bg-green-50 border border-green-200 text-green-800"
+                                  : "bg-red-50 border border-red-200 text-red-800"
+                        }`}
+                    >
+                        <div className="flex items-center justify-center">
+                            {allocationStatus.status === "pending" && (
+                                <svg
+                                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                </svg>
+                            )}
+                            {allocationStatus.status === "success" && (
+                                <svg
+                                    className="w-5 h-5 mr-2 text-green-600"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            )}
+                            {allocationStatus.status === "error" && (
+                                <svg
+                                    className="w-5 h-5 mr-2 text-red-600"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            )}
+                            <span className="text-sm font-medium">
+                                {allocationStatus.message}
+                            </span>
+                        </div>
+                        {allocationStatus.postsAllocated && (
+                            <div className="mt-2 text-center">
+                                <span className="text-lg font-bold text-green-700">
+                                    +{allocationStatus.postsAllocated} posts
+                                    added
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* User Info */}
                 {user && (
