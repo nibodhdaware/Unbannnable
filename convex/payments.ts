@@ -76,6 +76,9 @@ export const allocatePostsFromPayment = mutation({
 
         // Determine posts based on plan type
         switch (planType) {
+            case "onePost":
+                postsToAdd = 1;
+                break;
             case "tenPosts":
                 postsToAdd = 10;
                 break;
@@ -270,6 +273,9 @@ export const syncPaymentToDatabase = mutation({
 
                 // Determine posts based on plan type
                 switch (planType) {
+                    case "onePost":
+                        postsToAdd = 1;
+                        break;
                     case "tenPosts":
                         postsToAdd = 10;
                         break;

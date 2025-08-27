@@ -142,23 +142,27 @@ export async function POST(req: NextRequest) {
                         if (product.product_id) {
                             console.log("Product ID:", product.product_id);
 
-                            // Map product IDs to plan types
+                            // Map product IDs to plan types based on your DodoPay configuration
+                            // You need to replace these with your actual product IDs
                             if (
-                                product.product_id.includes("ten") ||
-                                product.product_id.includes("10")
+                                product.product_id ===
+                                "pdt_YuBZGtdCE3Crz89JDgLkf"
                             ) {
+                                // $1 for 10 posts
                                 planType = "tenPosts";
                                 postsToAllocate = 10;
                             } else if (
-                                product.product_id.includes("hundred") ||
-                                product.product_id.includes("100")
+                                product.product_id ===
+                                "pdt_c5oTeIMDSCUcUc2vLCcTe"
                             ) {
+                                // $5 for 100 posts
                                 planType = "hundredPosts";
                                 postsToAllocate = 100;
                             } else if (
-                                product.product_id.includes("five") ||
-                                product.product_id.includes("500")
+                                product.product_id ===
+                                "pdt_7zSMnSK9jUYRZ5mfqkfAq"
                             ) {
+                                // $15 for 500 posts
                                 planType = "fiveHundredPosts";
                                 postsToAllocate = 500;
                             }

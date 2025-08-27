@@ -255,6 +255,40 @@ async function handlePaymentEvent(
                         }
                     }
 
+                    // Map product IDs to plan types based on your DodoPay configuration
+                    // You need to replace these with your actual product IDs
+                    if (
+                        (data.product_cart as any[])?.some(
+                            (product: any) =>
+                                product.product_id ===
+                                "pdt_YuBZGtdCE3Crz89JDgLkf",
+                        )
+                    ) {
+                        // $1 for 10 posts
+                        planType = "tenPosts";
+                        postsToAllocate = 10;
+                    } else if (
+                        (data.product_cart as any[])?.some(
+                            (product: any) =>
+                                product.product_id ===
+                                "pdt_c5oTeIMDSCUcUc2vLCcTe",
+                        )
+                    ) {
+                        // $5 for 100 posts
+                        planType = "hundredPosts";
+                        postsToAllocate = 100;
+                    } else if (
+                        (data.product_cart as any[])?.some(
+                            (product: any) =>
+                                product.product_id ===
+                                "pdt_7zSMnSK9jUYRZ5mfqkfAq",
+                        )
+                    ) {
+                        // $15 for 500 posts
+                        planType = "fiveHundredPosts";
+                        postsToAllocate = 500;
+                    }
+
                     console.log("Webhook plan type determined:", {
                         amount,
                         currency,
