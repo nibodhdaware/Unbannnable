@@ -744,7 +744,7 @@ export default function SuccessPage() {
                     </button>
 
                     <p className="text-xs text-gray-500">
-                        Questions? Contact us at support@unbannnable.com
+                        Questions? Contact us at nibodhdaware@gmail.com
                     </p>
                 </div>
             </div>

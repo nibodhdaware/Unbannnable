@@ -76,9 +76,6 @@ export const allocatePostsFromPayment = mutation({
 
         // Determine posts based on plan type
         switch (planType) {
-            case "onePost":
-                postsToAdd = 1;
-                break;
             case "tenPosts":
                 postsToAdd = 10;
                 break;
@@ -87,17 +84,6 @@ export const allocatePostsFromPayment = mutation({
                 break;
             case "fiveHundredPosts":
                 postsToAdd = 500;
-                break;
-            case "fiftyPosts":
-                postsToAdd = 50;
-                break;
-            case "fivePosts":
-                postsToAdd = 5;
-                break;
-            case "fifteenPosts":
-            case "unlimited_monthly_1499":
-                // Set unlimited access for 30 days
-                setUnlimitedExpiry = true;
                 break;
             default:
                 throw new Error("Unknown plan type");
@@ -266,17 +252,12 @@ export const syncPaymentToDatabase = mutation({
             (!existingPayment || !existingPayment.postsAllocated)
         ) {
             const amount = paymentRecord.amount;
-            let planType = "onePost";
+            let planType = "tenPosts";
 
             // Determine plan type from amount
             if (amount === 100) planType = "tenPosts";
             else if (amount === 500) planType = "hundredPosts";
             else if (amount === 1500) planType = "fiveHundredPosts";
-            else if (amount === 1) planType = "onePost";
-            else if (amount === 699) planType = "fivePosts";
-            else if (amount === 999)
-                planType = "fivePosts"; // Mock payments
-            else if (amount === 1499) planType = "unlimited_monthly_1499";
 
             try {
                 // Call the post allocation function directly
@@ -288,9 +269,6 @@ export const syncPaymentToDatabase = mutation({
 
                 // Determine posts based on plan type
                 switch (planType) {
-                    case "onePost":
-                        postsToAdd = 1;
-                        break;
                     case "tenPosts":
                         postsToAdd = 10;
                         break;
@@ -299,16 +277,6 @@ export const syncPaymentToDatabase = mutation({
                         break;
                     case "fiveHundredPosts":
                         postsToAdd = 500;
-                        break;
-                    case "fiftyPosts":
-                        postsToAdd = 50;
-                        break;
-                    case "fivePosts":
-                        postsToAdd = 5;
-                        break;
-                    case "fifteenPosts":
-                    case "unlimited_monthly_1499":
-                        setUnlimitedExpiry = true;
                         break;
                     default:
                         throw new Error("Unknown plan type");
