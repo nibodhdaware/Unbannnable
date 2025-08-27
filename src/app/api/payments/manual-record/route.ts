@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Determine plan type from metadata (more reliable than amount)
-        let planType = "tenPosts"; // default
+        let planType = "onePost"; // default
         let postsToAllocate = 1; // default
 
         console.log("Manual allocation details:", {

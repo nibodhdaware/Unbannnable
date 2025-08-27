@@ -217,7 +217,7 @@ async function handlePaymentEvent(
             if (userId && paymentRecord) {
                 try {
                     // Determine plan type from metadata (more reliable than amount)
-                    let planType = "tenPosts"; // default
+                    let planType = "onePost"; // default
                     let postsToAllocate = 1; // default
 
                     console.log("Webhook allocation details:", {
