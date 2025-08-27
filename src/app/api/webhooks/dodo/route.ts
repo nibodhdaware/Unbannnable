@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
 
         // Verify webhook signature
         if (!signature || !webhookSecret) {
-            console.error("Missing signature or webhook secret");
             return NextResponse.json(
                 { error: "Missing signature or webhook secret" },
                 { status: 401 },
@@ -50,7 +49,6 @@ export async function POST(request: NextRequest) {
         }
 
         if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-            console.error("Invalid webhook signature");
             return NextResponse.json(
                 { error: "Invalid signature" },
                 { status: 401 },
@@ -59,8 +57,6 @@ export async function POST(request: NextRequest) {
 
         const body: WebhookEvent = JSON.parse(rawBody);
         const { type, data } = body;
-
-        console.log("Dodo webhook received:", { type, data });
 
         switch (type) {
             case "payment.succeeded":
@@ -88,7 +84,7 @@ export async function POST(request: NextRequest) {
                 break;
 
             default:
-                console.log("Unhandled webhook event type:", type);
+            // Unhandled webhook event type
         }
 
         return NextResponse.json({ received: true });
@@ -125,64 +121,52 @@ async function handlePaymentEvent(
             data.name) as string;
 
         if (!paymentId) {
-            console.error("Missing payment ID in webhook data");
             return;
         }
-
-        console.log("Processing payment event:", {
-            paymentId,
-            amount,
-            currency,
-            status,
-            customerEmail,
-            customerName,
-            clerkUserId,
-            fullData: data, // Log full data for debugging
-        });
 
         // Find user by clerk ID if available
         let userId = null;
         if (clerkUserId) {
-            console.log("Looking up user by clerk ID:", clerkUserId);
             const user = await convex.query(api.users.getUserByClerkId, {
                 clerkId: clerkUserId,
             });
 
             if (user) {
                 userId = user._id;
-                console.log("Found user by clerk ID:", user._id);
-            } else {
-                console.log("User not found by clerk ID:", clerkUserId);
-            }
-        } else {
-            console.log("No clerk user ID found in metadata");
-        }
-
-        // If we don't have a clerk user ID, try to find user by email
-        if (!userId && customerEmail) {
-            console.log("Looking up user by email:", customerEmail);
-
-            // Try to find existing user by email
-            const existingUser = await convex.query(api.users.getUserByEmail, {
-                email: customerEmail,
-            });
-
-            if (existingUser) {
-                userId = existingUser._id;
-                console.log("Found existing user by email:", existingUser._id);
             } else {
                 // Create new user record for this email
-                console.log(
-                    "Creating new user record for email:",
-                    customerEmail,
-                );
                 userId = await convex.mutation(api.users.createOrUpdateUser, {
                     clerkId: `manual_${Date.now()}`, // Temporary clerk ID for manual payments
                     email: customerEmail,
                     fullName: customerName || "Unknown User",
                     isAdmin: customerEmail === "nibod1248@gmail.com",
                 });
-                console.log("Created new user:", userId);
+            }
+        } else {
+            // If we don't have a clerk user ID, try to find user by email
+            if (customerEmail) {
+                // Try to find existing user by email
+                const existingUser = await convex.query(
+                    api.users.getUserByEmail,
+                    {
+                        email: customerEmail,
+                    },
+                );
+
+                if (existingUser) {
+                    userId = existingUser._id;
+                } else {
+                    // Create new user record for this email
+                    userId = await convex.mutation(
+                        api.users.createOrUpdateUser,
+                        {
+                            clerkId: `manual_${Date.now()}`, // Temporary clerk ID for manual payments
+                            email: customerEmail,
+                            fullName: customerName || "Unknown User",
+                            isAdmin: customerEmail === "nibod1248@gmail.com",
+                        },
+                    );
+                }
             }
         }
 
@@ -203,14 +187,6 @@ async function handlePaymentEvent(
             },
         );
 
-        console.log("Payment recorded successfully:", {
-            paymentId,
-            userId,
-            amount,
-            status,
-            recordId: paymentRecord,
-        });
-
         // Only allocate posts for successful payments
         if (status === "succeeded" || status === "completed") {
             // Allocate posts to user if payment is successful and user exists
@@ -220,21 +196,11 @@ async function handlePaymentEvent(
                     let planType = "onePost"; // default
                     let postsToAllocate = 1; // default
 
-                    console.log("Webhook allocation details:", {
-                        amount,
-                        currency,
-                        metadata,
-                        productCart: data.product_cart,
-                    });
-
                     // Check metadata for plan information
                     if (metadata && typeof metadata === "object") {
-                        console.log("Metadata found:", metadata);
-
                         // Check for quantity in metadata
                         if ((metadata as any).quantity) {
                             const quantity = Number((metadata as any).quantity);
-                            console.log("Quantity from metadata:", quantity);
 
                             if (quantity === 10) {
                                 planType = "tenPosts";
@@ -251,12 +217,10 @@ async function handlePaymentEvent(
                         // Also check for plan type in metadata
                         if ((metadata as any).planType) {
                             planType = (metadata as any).planType;
-                            console.log("Plan type from metadata:", planType);
                         }
                     }
 
                     // Map product IDs to plan types based on your DodoPay configuration
-                    // You need to replace these with your actual product IDs
                     if (
                         (data.product_cart as any[])?.some(
                             (product: any) =>
@@ -289,21 +253,6 @@ async function handlePaymentEvent(
                         postsToAllocate = 500;
                     }
 
-                    console.log("Webhook plan type determined:", {
-                        amount,
-                        currency,
-                        planType,
-                        postsToAllocate,
-                        metadata,
-                    });
-
-                    console.log("Allocating posts for payment:", {
-                        paymentId,
-                        userId,
-                        planType,
-                        postsToAllocate,
-                    });
-
                     const allocation = await convex.mutation(
                         api.payments.allocatePostsFromPayment,
                         {
@@ -312,25 +261,10 @@ async function handlePaymentEvent(
                             planType,
                         },
                     );
-
-                    console.log("Posts allocated successfully:", {
-                        paymentId,
-                        userId,
-                        planType,
-                        postsToAllocate,
-                        allocation,
-                    });
                 } catch (allocationError) {
                     console.error("Error allocating posts:", allocationError);
                 }
             }
-        } else {
-            console.log("Payment not in succeeded status:", {
-                paymentId,
-                status,
-                customerEmail,
-                amount,
-            });
         }
     } catch (error) {
         console.error("Error handling payment event:", error);
@@ -344,16 +278,8 @@ async function handleRefundEvent(data: Record<string, unknown>) {
         const refundId = data.refund_id as string;
 
         if (!paymentId) {
-            console.error("Missing payment ID in refund webhook data");
             return;
         }
-
-        console.log("Processing refund event:", {
-            paymentId,
-            refundAmount,
-            refundId,
-            fullData: data,
-        });
 
         // Update payment status in database
         await convex.mutation(api.payments.updatePaymentStatus, {
@@ -364,12 +290,6 @@ async function handleRefundEvent(data: Record<string, unknown>) {
                 refundId,
                 refundDate: new Date().toISOString(),
             }),
-        });
-
-        console.log("Refund processed successfully:", {
-            paymentId,
-            refundAmount,
-            refundId,
         });
 
         // TODO: Implement business logic for refunds
@@ -388,16 +308,8 @@ async function handleDisputeEvent(data: Record<string, unknown>) {
         const disputeReason = data.dispute_reason as string;
 
         if (!paymentId) {
-            console.error("Missing payment ID in dispute webhook data");
             return;
         }
-
-        console.log("Processing dispute event:", {
-            paymentId,
-            disputeId,
-            disputeReason,
-            fullData: data,
-        });
 
         // Update payment status in database
         await convex.mutation(api.payments.updatePaymentStatus, {
@@ -408,12 +320,6 @@ async function handleDisputeEvent(data: Record<string, unknown>) {
                 disputeReason,
                 disputeDate: new Date().toISOString(),
             }),
-        });
-
-        console.log("Dispute recorded successfully:", {
-            paymentId,
-            disputeId,
-            disputeReason,
         });
 
         // TODO: Implement dispute handling logic

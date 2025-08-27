@@ -15,15 +15,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Check if metadata is provided in the request body
-        let metadata = null;
-        try {
-            const requestBody = await req.json();
-            metadata = requestBody.metadata;
-        } catch (error) {
-            console.log("Could not parse request body for metadata");
-        }
-
         const { amount, paymentId } = await req.json();
 
         if (!amount) {
@@ -32,12 +23,6 @@ export async function POST(req: NextRequest) {
                 { status: 400 },
             );
         }
-
-        console.log("Manual payment record request:", {
-            amount,
-            paymentId,
-            userEmail: user.emailAddresses[0]?.emailAddress,
-        });
 
         // Get or create user
         await convex.mutation(api.users.createOrUpdateUser, {
@@ -63,19 +48,20 @@ export async function POST(req: NextRequest) {
         let planType = "onePost"; // default
         let postsToAllocate = 1; // default
 
-        console.log("Manual allocation details:", {
-            amount,
-            metadata,
-        });
+        // Check if metadata is provided in the request body
+        let metadata = null;
+        try {
+            const requestBody = await req.json();
+            metadata = requestBody.metadata;
+        } catch (error) {
+            // Could not parse request body for metadata
+        }
 
         // Check metadata for plan information
         if (metadata && typeof metadata === "object") {
-            console.log("Metadata found:", metadata);
-
             // Check for quantity in metadata
             if ((metadata as any).quantity) {
                 const quantity = Number((metadata as any).quantity);
-                console.log("Quantity from metadata:", quantity);
 
                 if (quantity === 10) {
                     planType = "tenPosts";
@@ -92,13 +78,11 @@ export async function POST(req: NextRequest) {
             // Also check for plan type in metadata
             if ((metadata as any).planType) {
                 planType = (metadata as any).planType;
-                console.log("Plan type from metadata:", planType);
             }
         }
 
         // Fallback: Use amount-based logic if no metadata
         if (planType === "onePost") {
-            console.log("No metadata found, using amount-based fallback");
             const numAmount = Number(amount);
             if (numAmount === 100 || numAmount === 1) {
                 planType = "tenPosts";
@@ -112,13 +96,6 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        console.log("Allocating posts manually:", {
-            paymentId: paymentId || `manual_${Date.now()}`,
-            userId: userRecord._id,
-            planType,
-            amount,
-        });
-
         const allocation = await convex.mutation(
             api.payments.allocatePostsFromPayment,
             {
@@ -128,15 +105,12 @@ export async function POST(req: NextRequest) {
             },
         );
 
-        console.log("Manual allocation successful:", allocation);
-
         return NextResponse.json({
             success: true,
             message: "Posts allocated successfully",
             allocation,
         });
     } catch (error) {
-        console.error("Manual payment record error:", error);
         return NextResponse.json(
             {
                 error: "Failed to allocate posts",

@@ -89,7 +89,6 @@ export const allocatePostsFromPayment = mutation({
                 postsToAdd = 500;
                 break;
             default:
-                console.error("Unknown plan type:", planType);
                 postsToAdd = 1; // Default to 1 post for unknown plan types
         }
 
@@ -101,16 +100,9 @@ export const allocatePostsFromPayment = mutation({
         if (setUnlimitedExpiry) {
             const thirtyDaysFromNow = Date.now() + 30 * 24 * 60 * 60 * 1000;
             updates.unlimitedMonthlyExpiry = thirtyDaysFromNow;
-            console.log(
-                "Setting unlimited access until:",
-                new Date(thirtyDaysFromNow).toISOString(),
-            );
         } else {
             const currentPurchased = user.totalPurchasedPosts || 0;
             updates.totalPurchasedPosts = currentPurchased + postsToAdd;
-            console.log(
-                `Adding ${postsToAdd} posts to user. Previous: ${currentPurchased}, New total: ${currentPurchased + postsToAdd}`,
-            );
         }
 
         await ctx.db.patch(userId, updates);
@@ -126,11 +118,6 @@ export const allocatePostsFromPayment = mutation({
                 postsAllocated: setUnlimitedExpiry ? -1 : postsToAdd, // -1 for unlimited
                 planType,
                 updatedAt: Date.now(),
-            });
-            console.log("Updated payment record with allocation info:", {
-                paymentId,
-                postsAllocated: setUnlimitedExpiry ? -1 : postsToAdd,
-                planType,
             });
         }
 

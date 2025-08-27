@@ -3,24 +3,19 @@ import { currentUser } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { createOneTimePaymentLink } from "@/lib/dodo";
+import { NextRequest } from "next/server";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
-        const user = await currentUser();
-        if (!user) {
-            return new NextResponse("Unauthorized", { status: 401 });
-        }
-
         const { billing, productCart } = await req.json();
 
-        console.log("Received payment request:");
-        console.log("- billing:", JSON.stringify(billing, null, 2));
-        console.log("- productCart:", JSON.stringify(productCart, null, 2));
-
         if (!billing || !productCart) {
-            return new NextResponse("Missing required fields", { status: 400 });
+            return NextResponse.json(
+                { error: "Missing billing or product cart information" },
+                { status: 400 },
+            );
         }
 
         let convexUser = await convex.query(api.users.getUserByClerkId, {

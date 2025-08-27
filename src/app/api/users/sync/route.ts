@@ -1,45 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
+import { currentUser } from "@clerk/nextjs/server";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
     try {
-        const { clerkId, email, fullName } = await req.json();
-
-        if (!clerkId || !email) {
+        const user = await currentUser();
+        if (!user) {
             return NextResponse.json(
-                { error: "Missing required fields" },
-                { status: 400 },
+                { error: "Unauthorized" },
+                { status: 401 },
             );
         }
 
-        console.log("Syncing user to Convex:", { clerkId, email, fullName });
+        const { clerkId, email, fullName } = user;
 
-        // Create or update user in Convex
         const userId = await convex.mutation(api.users.createOrUpdateUser, {
-            clerkId,
-            email,
+            clerkId: clerkId!,
+            email: email!,
             fullName: fullName || undefined,
             isAdmin: email === "nibod1248@gmail.com",
         });
 
-        console.log("User synced successfully in Convex:", { clerkId, userId });
-
         return NextResponse.json({
             success: true,
+            message: "User synced successfully",
             userId,
-            isAdmin: email === "nibod1248@gmail.com",
         });
     } catch (error) {
-        console.error("Convex sync error details:", error);
+        console.error("Error syncing user:", error);
         return NextResponse.json(
-            {
-                error: "Internal server error",
-                details:
-                    error instanceof Error ? error.message : "Unknown error",
-            },
+            { error: "Failed to sync user" },
             { status: 500 },
         );
     }

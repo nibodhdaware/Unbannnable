@@ -29,10 +29,6 @@ export async function POST(req: NextRequest) {
 
         // Check if Convex is configured
         if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
-            console.log(
-                "Development mode: No Convex configured, simulating payment record",
-            );
-
             return NextResponse.json({
                 success: true,
                 message: "Payment simulated successfully (no database)",
@@ -67,7 +63,6 @@ export async function POST(req: NextRequest) {
         );
 
         if (existingPayment) {
-            console.log("Payment already exists:", paymentId);
             return NextResponse.json({
                 success: true,
                 message: "Payment already recorded",
@@ -89,8 +84,6 @@ export async function POST(req: NextRequest) {
             paymentData,
         );
 
-        console.log("Payment recorded successfully:", paymentId);
-
         // Also allocate posts if payment was successful
         if (status === "succeeded" || status === "completed") {
             try {
@@ -98,21 +91,11 @@ export async function POST(req: NextRequest) {
                 let planType = "onePost"; // default
                 let postsToAllocate = 1; // default
 
-                console.log("Record route allocation details:", {
-                    amount,
-                    currency,
-                    metadata,
-                    productCart,
-                });
-
                 // Check metadata for plan information
                 if (metadata) {
-                    console.log("Metadata found:", metadata);
-
                     // Check for quantity in metadata
                     if (metadata.quantity) {
                         const quantity = Number(metadata.quantity);
-                        console.log("Quantity from metadata:", quantity);
 
                         if (quantity === 10) {
                             planType = "tenPosts";
@@ -129,21 +112,14 @@ export async function POST(req: NextRequest) {
                     // Also check for plan type in metadata
                     if (metadata.planType) {
                         planType = metadata.planType;
-                        console.log("Plan type from metadata:", planType);
                     }
                 }
 
-                // Fallback: Check product cart for plan information
+                // Check product cart for plan information
                 if (productCart && productCart.length > 0) {
-                    console.log("Product cart found:", productCart);
-
-                    // Check if product cart contains plan information
                     for (const product of productCart) {
                         if (product.product_id) {
-                            console.log("Product ID:", product.product_id);
-
                             // Map product IDs to plan types based on your DodoPay configuration
-                            // You need to replace these with your actual product IDs
                             if (
                                 product.product_id ===
                                 "pdt_YuBZGtdCE3Crz89JDgLkf"
@@ -170,22 +146,6 @@ export async function POST(req: NextRequest) {
                     }
                 }
 
-                console.log("Record route plan type determined:", {
-                    amount,
-                    currency,
-                    planType,
-                    postsToAllocate,
-                    metadata,
-                    productCart,
-                });
-
-                console.log("Allocating posts from record route:", {
-                    paymentId,
-                    userId: user._id,
-                    planType,
-                    postsToAllocate,
-                });
-
                 const allocation = await convex.mutation(
                     api.payments.allocatePostsFromPayment,
                     {
@@ -194,13 +154,6 @@ export async function POST(req: NextRequest) {
                         planType,
                     },
                 );
-
-                console.log("Posts allocated successfully from record route:", {
-                    paymentId,
-                    planType,
-                    postsToAllocate,
-                    allocation,
-                });
 
                 return NextResponse.json({
                     success: true,

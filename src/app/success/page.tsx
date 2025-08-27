@@ -305,10 +305,6 @@ export default function SuccessPage() {
             try {
                 // Get payment ID from URL params
                 const urlParams = new URLSearchParams(window.location.search);
-                console.log(
-                    "All URL parameters:",
-                    Object.fromEntries(urlParams.entries()),
-                );
 
                 const paymentId =
                     urlParams.get("payment_id") ||
@@ -316,14 +312,7 @@ export default function SuccessPage() {
                     urlParams.get("payment") ||
                     urlParams.get("session_id");
 
-                console.log("Extracted payment ID:", paymentId);
-
                 if (!paymentId) {
-                    console.log(
-                        "No payment ID found in URL params:",
-                        Object.fromEntries(urlParams.entries()),
-                    );
-
                     // Try to allocate posts based on amount from URL params
                     const amount = urlParams.get("amount");
                     if (amount) {
@@ -349,10 +338,6 @@ export default function SuccessPage() {
                             if (manualResponse.ok) {
                                 const manualResult =
                                     await manualResponse.json();
-                                console.log(
-                                    "Manual allocation result:",
-                                    manualResult,
-                                );
 
                                 if (manualResult.allocation) {
                                     setAllocationStatus({
@@ -394,8 +379,6 @@ export default function SuccessPage() {
                     return;
                 }
 
-                console.log("Fetching payment details for:", paymentId);
-
                 // Fetch payment details from our API (which will call Dodo API)
                 const response = await fetch(
                     `/api/payments/details?payment_id=${paymentId}`,
@@ -423,7 +406,6 @@ export default function SuccessPage() {
                 }
 
                 const details = await response.json();
-                console.log("Payment details received:", details);
                 setPaymentDetails(details);
 
                 // Save payment to our database if user is available and payment was successful
@@ -435,7 +417,6 @@ export default function SuccessPage() {
 
                     try {
                         const result = await savePaymentToDatabase(details);
-                        console.log("Payment save result:", result);
 
                         if (result.error) {
                             setAllocationStatus({
@@ -456,7 +437,6 @@ export default function SuccessPage() {
                             });
                         }
                     } catch (error) {
-                        console.error("Error in payment processing:", error);
                         setAllocationStatus({
                             status: "error",
                             message:
@@ -465,7 +445,6 @@ export default function SuccessPage() {
                     }
                 }
             } catch (error) {
-                console.error("Error fetching payment details:", error);
                 setError(
                     error instanceof Error ? error.message : "Unknown error",
                 );
@@ -507,22 +486,13 @@ export default function SuccessPage() {
 
             if (!response.ok) {
                 const errorData = await response.text();
-                console.error(
-                    "Failed to save payment to database:",
-                    response.status,
-                    errorData,
-                );
                 return { error: errorData };
             } else {
                 const result = await response.json();
-                console.log(
-                    "Payment successfully recorded in database:",
-                    result,
-                );
                 return result;
             }
         } catch (error) {
-            console.error("Error saving payment:", error);
+            // Error saving payment
         }
     };
 
