@@ -15,11 +15,26 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { clerkId, email, fullName } = user;
+        const { id, emailAddresses, fullName } = user;
+        const email = emailAddresses?.[0]?.emailAddress;
+
+        if (!id) {
+            return NextResponse.json(
+                { error: "User ID not found" },
+                { status: 400 },
+            );
+        }
+
+        if (!email) {
+            return NextResponse.json(
+                { error: "User email not found" },
+                { status: 400 },
+            );
+        }
 
         const userId = await convex.mutation(api.users.createOrUpdateUser, {
-            clerkId: clerkId!,
-            email: email!,
+            clerkId: id,
+            email: email,
             fullName: fullName || undefined,
             isAdmin: email === "nibod1248@gmail.com",
         });

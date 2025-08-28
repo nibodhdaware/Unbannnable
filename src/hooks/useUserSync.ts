@@ -23,16 +23,6 @@ export function useUserSync() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    clerkId: user.id,
-                    email:
-                        user.primaryEmailAddress?.emailAddress ||
-                        user.emailAddresses?.[0]?.emailAddress,
-                    fullName:
-                        user.fullName ||
-                        `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-                    username: user.username,
-                }),
             });
 
             if (!response.ok) {

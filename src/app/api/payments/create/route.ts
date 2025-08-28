@@ -9,6 +9,14 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
     try {
+        const user = await currentUser();
+        if (!user) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 },
+            );
+        }
+
         const { billing, productCart } = await req.json();
 
         if (!billing || !productCart) {
@@ -18,17 +26,27 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Ensure user has required fields
+        if (!user.id) {
+            return NextResponse.json(
+                { error: "User ID not found" },
+                { status: 400 },
+            );
+        }
+
+        const userEmail = user.emailAddresses?.[0]?.emailAddress;
+        if (!userEmail) {
+            return NextResponse.json(
+                { error: "User email not found" },
+                { status: 400 },
+            );
+        }
+
         let convexUser = await convex.query(api.users.getUserByClerkId, {
             clerkId: user.id,
         });
 
         if (!convexUser) {
-            const userEmail = user.emailAddresses[0]?.emailAddress;
-            if (!userEmail) {
-                return new NextResponse("User email not found", {
-                    status: 400,
-                });
-            }
             const newUserId = await convex.mutation(
                 api.users.createOrUpdateUser,
                 {
