@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
-import { DodoClient } from "@/lib/dodo";
+import { dodoClient } from "@/lib/dodo";
 
 export async function GET(req: NextRequest) {
     try {
@@ -14,10 +14,6 @@ export async function GET(req: NextRequest) {
                 { status: 400 },
             );
         }
-
-        const dodoClient = new DodoClient({
-            apiKey: process.env.DODO_API_KEY!,
-        });
 
         const payment = await dodoClient.payments.retrieve(paymentId);
 

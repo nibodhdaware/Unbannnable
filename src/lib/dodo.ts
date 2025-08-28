@@ -27,31 +27,14 @@ export const createOneTimePaymentLink = async (
     params: CreateOneTimePaymentParams,
 ) => {
     try {
-        console.log("Creating DodoPay payment link with SDK...");
-        console.log(
-            "Input productCart:",
-            JSON.stringify(params.productCart, null, 2),
-        );
-
         const mappedProductCart = params.productCart.map((item) => {
             const mapped = {
                 product_id: item.productId,
                 quantity: item.quantity,
                 amount: item.amount || 0,
             };
-            console.log(
-                "Mapping item:",
-                JSON.stringify(item, null, 2),
-                "to:",
-                JSON.stringify(mapped, null, 2),
-            );
             return mapped;
         });
-
-        console.log(
-            "Final mapped productCart:",
-            JSON.stringify(mappedProductCart, null, 2),
-        );
 
         const payment = await dodoClient.payments.create({
             customer: {
@@ -78,7 +61,6 @@ export const createOneTimePaymentLink = async (
             },
         });
 
-        console.log("DodoPay payment link created successfully via SDK.");
         return payment;
     } catch (error: any) {
         console.error("Error using DodoPay SDK:", error);
