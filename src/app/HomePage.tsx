@@ -1369,6 +1369,22 @@ ${rules
 
                     {/* Right side - Navigation and Authentication */}
                     <div className="flex items-center space-x-2 sm:space-x-4">
+                        {/* Product Hunt Badge */}
+                        <a
+                            href="https://www.producthunt.com/products/unbannnable?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-unbannnable"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hidden sm:block"
+                        >
+                            <img
+                                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1010314&theme=light&t=1756369550719"
+                                alt="Unbannnable - Reddit rule compliance made simple | Product Hunt"
+                                style={{ width: "250px", height: "54px" }}
+                                width="250"
+                                height="54"
+                            />
+                        </a>
+
                         <SignedIn>
                             {/* Post Counter */}
                             {!postsLoading && (
