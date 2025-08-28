@@ -24,10 +24,17 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        // Debug: Log the full payment object to understand its structure
+        console.log(
+            "Full DodoPay payment object:",
+            JSON.stringify(payment, null, 2),
+        );
+
         return NextResponse.json({
-            paymentId: payment.id,
+            paymentId: (payment as any).payment_id || (payment as any).id,
             status: payment.status,
-            amount: payment.amount,
+            amount:
+                (payment as any).amount || (payment as any).total_amount || 0,
             currency: payment.currency,
             customer: payment.customer,
             created_at: payment.created_at,

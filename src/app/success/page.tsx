@@ -18,6 +18,7 @@ interface PaymentDetails {
     product_cart?: Array<{
         product_id: string;
         quantity: number;
+        amount?: number;
     }>;
     metadata?: Record<string, string>;
 }
@@ -460,6 +461,29 @@ export default function SuccessPage() {
 
     const savePaymentToDatabase = async (details: PaymentDetails) => {
         try {
+            // Calculate amount from product cart if not available at top level
+            let amount = details.amount;
+            if (
+                !amount &&
+                details.product_cart &&
+                details.product_cart.length > 0
+            ) {
+                amount = details.product_cart.reduce((total, item) => {
+                    return total + (item.amount || 0);
+                }, 0);
+            }
+
+            // Ensure amount is a valid number
+            const finalAmount =
+                typeof amount === "number"
+                    ? amount
+                    : typeof amount === "string"
+                      ? parseFloat(amount)
+                      : 0;
+
+            // Ensure metadata is properly structured
+            const metadata = details.metadata || {};
+
             const response = await fetch("/api/payments/record", {
                 method: "POST",
                 headers: {
@@ -469,26 +493,32 @@ export default function SuccessPage() {
                     clerkId: user?.id,
                     email: user?.emailAddresses[0]?.emailAddress,
                     paymentId: details.paymentId,
-                    amount: details.amount, // Already in cents from Dodo
+                    amount: finalAmount,
                     currency: details.currency,
                     status: details.status,
                     paymentProvider: "dodo",
                     customerData: details.customer,
                     productCart: details.product_cart,
-                    metadata: details.metadata,
+                    metadata: metadata,
                     createdAt: details.created_at,
                 }),
             });
 
             if (!response.ok) {
                 const errorData = await response.text();
+                console.error(
+                    "Payment record error:",
+                    response.status,
+                    errorData,
+                );
                 return { error: errorData };
             } else {
                 const result = await response.json();
                 return result;
             }
         } catch (error) {
-            // Error saving payment
+            console.error("Error saving payment:", error);
+            return { error: "Failed to save payment" };
         }
     };
 
@@ -638,10 +668,25 @@ export default function SuccessPage() {
                         <p className="text-sm text-blue-700">
                             <span className="font-medium">Amount:</span>{" "}
                             {getCurrencySymbol(paymentDetails.currency)}
-                            {typeof paymentDetails.amount === "number" &&
-                            !isNaN(paymentDetails.amount)
-                                ? (paymentDetails.amount / 100).toFixed(2)
-                                : "0.00"}{" "}
+                            {(() => {
+                                let amount = paymentDetails.amount;
+                                if (
+                                    !amount &&
+                                    paymentDetails.product_cart &&
+                                    paymentDetails.product_cart.length > 0
+                                ) {
+                                    amount = paymentDetails.product_cart.reduce(
+                                        (total, item) => {
+                                            return total + (item.amount || 0);
+                                        },
+                                        0,
+                                    );
+                                }
+                                return typeof amount === "number" &&
+                                    !isNaN(amount)
+                                    ? (amount / 100).toFixed(2)
+                                    : "0.00";
+                            })()}{" "}
                         </p>
                         <p className="text-sm text-blue-700">
                             <span className="font-medium">Date:</span>{" "}
