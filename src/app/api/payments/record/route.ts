@@ -6,6 +6,8 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
     try {
+        const body = await req.json();
+
         const {
             clerkId,
             email,
@@ -18,11 +20,26 @@ export async function POST(req: NextRequest) {
             productCart,
             metadata,
             createdAt,
-        } = await req.json();
+        } = body;
 
-        if (!clerkId || !email || !paymentId) {
+        // Validate required fields
+        if (!clerkId) {
             return NextResponse.json(
-                { error: "Missing required payment information" },
+                { error: "Missing clerkId" },
+                { status: 400 },
+            );
+        }
+
+        if (!email) {
+            return NextResponse.json(
+                { error: "Missing email" },
+                { status: 400 },
+            );
+        }
+
+        if (!paymentId) {
+            return NextResponse.json(
+                { error: "Missing paymentId" },
                 { status: 400 },
             );
         }

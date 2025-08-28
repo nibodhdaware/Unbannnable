@@ -397,7 +397,11 @@ export default function SuccessPage() {
                     );
                 }
 
-                const details = await response.json();
+                const details: PaymentDetails = await response.json();
+
+                // Debug: Log the payment details to see what we're getting
+                console.log("Payment details received:", details);
+
                 setPaymentDetails(details);
 
                 // Save payment to our database if user is available and payment was successful
@@ -634,7 +638,10 @@ export default function SuccessPage() {
                         <p className="text-sm text-blue-700">
                             <span className="font-medium">Amount:</span>{" "}
                             {getCurrencySymbol(paymentDetails.currency)}
-                            {(paymentDetails.amount / 100).toFixed(2)}{" "}
+                            {typeof paymentDetails.amount === "number" &&
+                            !isNaN(paymentDetails.amount)
+                                ? (paymentDetails.amount / 100).toFixed(2)
+                                : "0.00"}{" "}
                         </p>
                         <p className="text-sm text-blue-700">
                             <span className="font-medium">Date:</span>{" "}
