@@ -1365,10 +1365,6 @@ ${rules
                         >
                             Unbannnable
                         </a>
-                    </div>
-
-                    {/* Right side - Navigation and Authentication */}
-                    <div className="flex items-center space-x-2 sm:space-x-4">
                         {/* Product Hunt Badge */}
                         <a
                             href="https://www.producthunt.com/products/unbannnable?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-unbannnable"
@@ -1384,7 +1380,10 @@ ${rules
                                 height="54"
                             />
                         </a>
+                    </div>
 
+                    {/* Right side - Navigation and Authentication */}
+                    <div className="flex items-center space-x-2 sm:space-x-4">
                         <SignedIn>
                             {/* Post Counter */}
                             {!postsLoading && (
