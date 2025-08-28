@@ -5,7 +5,8 @@ import { DodoClient } from "@/lib/dodo";
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const paymentId = searchParams.get("paymentId");
+        const paymentId =
+            searchParams.get("paymentId") || searchParams.get("payment_id");
 
         if (!paymentId) {
             return NextResponse.json(

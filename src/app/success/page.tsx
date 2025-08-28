@@ -361,7 +361,6 @@ export default function SuccessPage() {
                                 });
                             }
                         } catch (error) {
-                            console.error("Manual allocation error:", error);
                             setAllocationStatus({
                                 status: "success",
                                 message:
@@ -386,17 +385,10 @@ export default function SuccessPage() {
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    console.error("Payment details API error:", {
-                        status: response.status,
-                        statusText: response.statusText,
-                        errorData,
-                        paymentId,
-                        currentUserEmail: user?.emailAddresses[0]?.emailAddress,
-                    });
 
                     // Show more helpful error message for 403 errors
                     if (response.status === 403) {
-                        const message = `Payment access denied. This payment may belong to a different user. Current user: ${user?.emailAddresses[0]?.emailAddress}, Payment for: ${errorData.details?.paymentEmail || "unknown"}`;
+                        const message = `Payment access denied. This payment may belong to a different user.`;
                         throw new Error(message);
                     }
 
