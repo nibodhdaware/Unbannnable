@@ -5,16 +5,31 @@ import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 
-// Initialize PostHog
+// Initialize PostHog with improved error handling
 if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-        api_host:
-            process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
-        person_profiles: "identified_only",
-        loaded: (posthog) => {
-            if (process.env.NODE_ENV === "development") posthog.debug();
-        },
-    });
+    try {
+        posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+            api_host:
+                process.env.NEXT_PUBLIC_POSTHOG_HOST ||
+                "https://us.i.posthog.com",
+            person_profiles: "identified_only",
+            // Reduce requests that might be blocked
+            disable_session_recording: true,
+            autocapture: false,
+            capture_pageview: false, // We'll handle this manually
+            capture_pageleave: false,
+            // Handle errors gracefully
+            loaded: (posthog) => {
+                if (process.env.NODE_ENV === "development") {
+                    console.log("✅ PostHog loaded successfully");
+                }
+            },
+        });
+    } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+            console.warn("⚠️ PostHog initialization failed:", error);
+        }
+    }
 }
 
 interface PostHogProviderProps {
