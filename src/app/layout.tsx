@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import DynamicClientComponent from "./DynamicClientComponent"; // client logic here
 import ClerkWrapper from "@/components/ClerkWrapper";
@@ -36,6 +37,12 @@ export default function RootLayout({
                 className={`${inter.variable} ${jetbrainsMono.variable}`}
             >
                 <body>
+                    <Script
+                        async
+                        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3616361244136854"
+                        crossOrigin="anonymous"
+                        strategy="afterInteractive"
+                    />
                     <DynamicClientComponent />
                     {children}
                 </body>
