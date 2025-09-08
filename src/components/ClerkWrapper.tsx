@@ -2,6 +2,7 @@
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/lib/convex";
+import { PostHogProvider } from "@/lib/posthog";
 import { ReactNode } from "react";
 
 interface ClerkWrapperProps {
@@ -19,7 +20,9 @@ export default function ClerkWrapper({ children }: ClerkWrapperProps) {
 
     return (
         <ClerkProvider publishableKey={publishableKey}>
-            <ConvexClientProvider>{children}</ConvexClientProvider>
+            <ConvexClientProvider>
+                <PostHogProvider>{children}</PostHogProvider>
+            </ConvexClientProvider>
         </ClerkProvider>
     );
 }

@@ -15,6 +15,17 @@ import {
 } from "@/lib/reddit-api";
 import Fuse from "fuse.js";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+    usePostHogIdentify,
+    trackPageView,
+    trackUserAction,
+    trackFormSubmission,
+    trackFeatureUsage,
+    trackPostCreation,
+    trackAIGeneration,
+    trackPaymentEvent,
+    trackError,
+} from "@/lib/posthog";
 
 // Component to fetch and display AI-generated subreddit alternatives
 const AISubredditCard = ({
@@ -119,7 +130,13 @@ const AISubredditCard = ({
                         </p>
                     </div>
                     <button
-                        onClick={onUse}
+                        onClick={() => {
+                            trackFeatureUsage("alternative_subreddit_used", {
+                                original_subreddit: subredditName,
+                                reason: reason,
+                            });
+                            onUse();
+                        }}
                         className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
                     >
                         Use
@@ -149,7 +166,13 @@ const AISubredditCard = ({
                     </p>
                 </div>
                 <button
-                    onClick={onUse}
+                    onClick={() => {
+                        trackFeatureUsage("alternative_subreddit_used", {
+                            original_subreddit: subredditName,
+                            reason: reason,
+                        });
+                        onUse();
+                    }}
                     className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
                 >
                     Use
@@ -167,6 +190,17 @@ export default function HomePage() {
         canCreatePost,
         isLoading: postsLoading,
     } = useUserPosts();
+
+    // Initialize PostHog tracking
+    usePostHogIdentify();
+
+    // Track page view
+    useEffect(() => {
+        trackPageView("home", {
+            user_id: user?.id,
+            is_authenticated: !!user,
+        });
+    }, [user]);
 
     const [subreddit, setSubreddit] = useState("");
     const [title, setTitle] = useState("");
@@ -489,6 +523,12 @@ export default function HomePage() {
     };
 
     const handleSubredditChange = async (selectedSubreddit: string) => {
+        trackFeatureUsage("subreddit_selected", {
+            subreddit: selectedSubreddit,
+            user_id: user?.id,
+            previous_subreddit: subreddit,
+        });
+
         setSubreddit(selectedSubreddit);
         setFlair("");
         setSearchQuery(selectedSubreddit);
@@ -611,6 +651,14 @@ export default function HomePage() {
 
     const createPostRecord = async () => {
         try {
+            trackPostCreation({
+                subreddit: subreddit.trim(),
+                title_length: title.trim().length,
+                body_length: body.trim().length,
+                has_flair: !!flair.trim(),
+                user_id: user?.id,
+            });
+
             const response = await fetch("/api/posts/create", {
                 method: "POST",
                 headers: {
@@ -628,15 +676,33 @@ export default function HomePage() {
             if (!response.ok) {
                 if (response.status === 403) {
                     // User is out of posts
+                    trackPaymentEvent("limit_reached", {
+                        user_id: user?.id,
+                        context: "post_creation",
+                    });
                     setShowPricingModal(true);
                     return false;
                 }
+                trackError("post_creation_failed", {
+                    error: data.error,
+                    status: response.status,
+                    user_id: user?.id,
+                });
                 throw new Error(data.error || "Failed to create post");
             }
+
+            trackUserAction("post_created", {
+                subreddit: subreddit.trim(),
+                user_id: user?.id,
+            });
 
             return true;
         } catch (error) {
             console.error("Error creating post record:", error);
+            trackError("post_creation_exception", {
+                error: error instanceof Error ? error.message : "Unknown error",
+                user_id: user?.id,
+            });
             // Don't show error to user for post recording, just log it
             return false;
         }
@@ -644,6 +710,15 @@ export default function HomePage() {
 
     const generateAIOptimizedPost = async () => {
         if (!title.trim() || !subreddit.trim()) return;
+
+        trackAIGeneration("post_optimization", {
+            subreddit: subreddit.trim(),
+            title_length: title.trim().length,
+            body_length: body.trim().length,
+            has_rules: rules.length > 0,
+            has_requirements: !!postRequirements,
+            user_id: user?.id,
+        });
 
         setIsGeneratingAI(true);
 
@@ -1226,6 +1301,11 @@ ${rules
 
     const handleBillingSubmit = async () => {
         setIsProcessingPayment(true);
+
+        trackPaymentEvent("checkout_started", {
+            user_id: user?.id,
+        });
+
         try {
             const plan = subscriptionPlans[selectedPlan];
 
@@ -1285,8 +1365,20 @@ ${rules
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        trackFormSubmission("post_optimization", {
+            subreddit: subreddit.trim(),
+            title_length: title.trim().length,
+            body_length: body.trim().length,
+            has_flair: !!flair.trim(),
+            user_id: user?.id,
+            is_authenticated: !!user,
+        });
+
         // Check if user is logged in
         if (!user) {
+            trackUserAction("login_required", {
+                context: "form_submission",
+            });
             // Save draft and show login modal
             saveDraftPost();
             setShowLoginModal(true);
@@ -1298,6 +1390,10 @@ ${rules
         if (errors.length === 0) {
             // Check if user can create post before calling AI
             if (!canCreatePost.canCreate) {
+                trackPaymentEvent("limit_reached", {
+                    user_id: user?.id,
+                    context: "form_submission",
+                });
                 setShowPricingModal(true);
                 return;
             }
@@ -1315,10 +1411,22 @@ ${rules
 
             // The AI will now handle both rule checking and optimization
             generateAIOptimizedPost();
+        } else {
+            trackError("form_validation_failed", {
+                errors: errors,
+                user_id: user?.id,
+            });
         }
     };
 
     const handleConfirmPost = async () => {
+        trackUserAction("confirm_post_after_payment", {
+            user_id: user?.id,
+            subreddit: subreddit.trim(),
+            title_length: title.trim().length,
+            body_length: body.trim().length,
+        });
+
         setShowPricingModal(false);
 
         // Clear any existing warnings and alternatives
