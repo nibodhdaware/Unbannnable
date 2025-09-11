@@ -110,68 +110,6 @@ export default function CreatePostPage() {
 
     return (
         <div className="max-w-2xl mx-auto p-6">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Create New Post
-                </h1>
-
-                {/* Admin Badge */}
-                {isAdmin && (
-                    <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-md mb-4">
-                        <span className="font-semibold">Admin Access:</span> You
-                        have unlimited posting privileges
-                    </div>
-                )}
-
-                {/* Post Limits Display */}
-                {postLimits && (
-                    <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-md mb-4">
-                        {postLimits.isAdmin ? (
-                            <span>
-                                👑 Admin Access: Unlimited Posts (Used{" "}
-                                {postLimits.postsUsed || 0} this month)
-                                {postLimits.totalPurchasedPosts &&
-                                    postLimits.totalPurchasedPosts > 0 && (
-                                        <span className="block text-sm mt-1">
-                                            Purchased posts available:{" "}
-                                            {postLimits.totalPurchasedPosts}
-                                        </span>
-                                    )}
-                            </span>
-                        ) : postLimits.hasSubscription ? (
-                            <span>
-                                ✅ Subscription Active - Unlimited Posts
-                            </span>
-                        ) : (
-                            <span>
-                                📝 Posts Remaining: {postLimits.postsRemaining}{" "}
-                                total
-                                {postLimits.freePostsRemaining !==
-                                    undefined && (
-                                    <span className="block text-sm mt-1">
-                                        Free: {postLimits.freePostsRemaining} |
-                                        Purchased:{" "}
-                                        {postLimits.purchasedPostsRemaining ||
-                                            0}
-                                    </span>
-                                )}
-                                {postLimits.postsRemaining <= 0 && (
-                                    <span className="block text-red-600 mt-1">
-                                        Post limit reached.{" "}
-                                        <a
-                                            href="/pricing"
-                                            className="underline"
-                                        >
-                                            Buy more posts
-                                        </a>
-                                    </span>
-                                )}
-                            </span>
-                        )}
-                    </div>
-                )}
-            </div>
-
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {error}
