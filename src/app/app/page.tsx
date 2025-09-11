@@ -1308,66 +1308,12 @@ ${rules
                         >
                             Unbannnable
                         </a>
-                        {/* Product Hunt Badges */}
-                        <div className="hidden sm:flex items-center space-x-3">
-                            {/* Product Hunt Upvote Badge */}
-                            <a
-                                href="https://www.producthunt.com/products/unbannnable?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-unbannnable"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <img
-                                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1010314&theme=light&t=1756369550719"
-                                    alt="Unbannnable - Reddit rule compliance made simple | Product Hunt"
-                                    style={{ width: "250px", height: "54px" }}
-                                    width="250"
-                                    height="54"
-                                />
-                            </a>
-                            {/* Product #24 of the Day Badge */}
-                            <a
-                                href="https://www.producthunt.com/products/unbannnable?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_source=badge-unbannnable"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <img
-                                    src="https://api.producthunt.com/widgets/embed-image/v1/ranking.svg?post_id=1010314&theme=light&period=daily&ranking=24&t=1756369550719"
-                                    alt="Unbannnable - #24 Product of the Day on Product Hunt"
-                                    style={{ width: "250px", height: "54px" }}
-                                    width="250"
-                                    height="54"
-                                />
-                            </a>
-                        </div>
+                        ''{" "}
                     </div>
 
                     {/* Right side - Navigation and Authentication */}
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <SignedIn>
-                            {/* Create Post Button */}
-                            <button
-                                onClick={() => setCurrentScreen("create-post")}
-                                className="px-3 sm:px-4 py-2 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2 whitespace-nowrap"
-                            >
-                                <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                                    />
-                                </svg>
-                                <span className="hidden sm:inline">
-                                    Create New Post
-                                </span>
-                                <span className="sm:hidden">New Post</span>
-                            </button>
-
                             {/* Post limiting removed */}
 
                             <UserButton afterSignOutUrl="/" />
