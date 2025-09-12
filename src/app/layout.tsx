@@ -33,7 +33,6 @@ export default function RootLayout({
 }) {
     return (
         <ClerkWrapper>
-            <Analytics />
             <html
                 lang="en"
                 className={`${inter.variable} ${jetbrainsMono.variable}`}
@@ -47,6 +46,7 @@ export default function RootLayout({
                     />
                     <DynamicClientComponent />
                     {children}
+                    <Analytics />
                 </body>
             </html>
         </ClerkWrapper>
