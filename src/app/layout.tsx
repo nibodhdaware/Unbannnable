@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import DynamicClientComponent from "./DynamicClientComponent"; // client logic here
 import ClerkWrapper from "@/components/ClerkWrapper";
+import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({
     variable: "--font-inter",
@@ -32,6 +33,7 @@ export default function RootLayout({
 }) {
     return (
         <ClerkWrapper>
+            <Analytics />
             <html
                 lang="en"
                 className={`${inter.variable} ${jetbrainsMono.variable}`}
