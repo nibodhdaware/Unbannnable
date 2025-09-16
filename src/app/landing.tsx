@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { JSX, useEffect } from "react";
 
 interface Feature {
     icon: ({ className }: { className: string }) => JSX.Element;
