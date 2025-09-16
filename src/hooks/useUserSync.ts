@@ -18,6 +18,12 @@ export function useUserSync() {
 
     const syncUserToDatabase = async (user: any) => {
         try {
+            // Check if Convex is configured
+            if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
+                console.log("Convex not configured, skipping user sync");
+                return;
+            }
+
             const response = await fetch("/api/users/sync", {
                 method: "POST",
                 headers: {
@@ -27,6 +33,10 @@ export function useUserSync() {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                if (response.status === 503) {
+                    console.log("Database not configured, skipping user sync");
+                    return;
+                }
                 console.error(
                     "Failed to sync user to database:",
                     response.status,

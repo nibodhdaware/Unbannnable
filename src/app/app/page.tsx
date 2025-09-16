@@ -1314,8 +1314,6 @@ ${rules
                     {/* Right side - Navigation and Authentication */}
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <SignedIn>
-                            {/* Post limiting removed */}
-
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
                         <SignedOut>
@@ -1336,11 +1334,11 @@ ${rules
                 </div>
             )}
 
-            <div className="max-w-5xl mx-auto py-6 px-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[45%_10%_45%] gap-0">
                     {/* Left Column - Post Creation Form */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 h-[85vh] flex flex-col">
+                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-8 border border-neutral-200 dark:border-neutral-800 h-[85vh] flex flex-col">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
                                     Create a Post
@@ -1396,7 +1394,7 @@ ${rules
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4500] pr-10"
+                                            className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:border-[#FF4500] pr-10 transition-all duration-200"
                                             placeholder={
                                                 loadingSubreddits
                                                     ? "Loading..."
@@ -1439,7 +1437,7 @@ ${rules
 
                                     {/* Dropdown */}
                                     {isDropdownOpen && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        <div className="absolute z-10 w-full mt-3 bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
                                             {loadingSubreddits ||
                                             loadingSearch ? (
                                                 <div className="px-4 py-4 flex items-center justify-center">
@@ -1460,11 +1458,11 @@ ${rules
                                                         <button
                                                             key={sr.id}
                                                             type="button"
-                                                            className={`w-full text-left px-3 py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0 focus:outline-none transition-colors text-xs ${
+                                                            className={`w-full text-left px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 last:border-b-0 focus:outline-none transition-all duration-200 text-sm transform hover:scale-[1.02] ${
                                                                 index ===
                                                                 selectedIndex
                                                                     ? "bg-[#FF4500] text-white"
-                                                                    : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                                                    : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
                                                             }`}
                                                             onClick={() =>
                                                                 handleSubredditChange(
@@ -1531,7 +1529,7 @@ ${rules
                                     </label>
                                     <input
                                         type="text"
-                                        className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4500]"
+                                        className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:border-[#FF4500] transition-all duration-200"
                                         placeholder="Title your post"
                                         maxLength={300}
                                         value={title}
@@ -1562,7 +1560,7 @@ ${rules
                                     </label>
                                     <select
                                         key={subreddit || "no-sr"}
-                                        className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4500]"
+                                        className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:border-[#FF4500] transition-all duration-200"
                                         value={flair}
                                         onChange={(e) =>
                                             setFlair(e.target.value)
@@ -1590,7 +1588,7 @@ ${rules
                                         Body
                                     </label>
                                     <textarea
-                                        className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-2 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-[#FF4500] resize-vertical"
+                                        className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:border-[#FF4500] resize-vertical transition-all duration-200"
                                         placeholder="Write your post here..."
                                         value={body}
                                         onChange={(e) => {
@@ -1599,17 +1597,6 @@ ${rules
                                         }}
                                     />
                                 </div>
-
-                                {/* Submit Button */}
-                                <button
-                                    type="submit"
-                                    className="w-full py-3 rounded-lg font-semibold bg-[#FF4500] text-white text-sm shadow-lg hover:bg-[#e03d00] transition"
-                                    disabled={isGeneratingAI}
-                                >
-                                    {isGeneratingAI
-                                        ? "Generating AI Optimization..."
-                                        : "Generate Safe Post"}
-                                </button>
                             </form>
 
                             {/* Subreddit Rules Dropdown - Moved from left column */}
@@ -1763,22 +1750,23 @@ ${rules
                         </div>
                     </div>
 
-                    {/* Right Column - AI Optimization */}
+                    {/* Spacer Column */}
+                    <div className="hidden lg:block"></div>
+
+                    {/* Right Column - AI Tools */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-lg p-6 border border-neutral-200 dark:border-neutral-800 sticky top-6 h-[85vh] flex flex-col">
-                            <h2 className="text-xl font-semibold text-neutral-900 dark:text-white flex items-center mb-4">
-                                <svg
-                                    className="w-5 h-5 mr-2 text-[#FF4500]"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                >
-                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                AI Optimization
+                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-8 border border-neutral-200 dark:border-neutral-800 sticky top-6 h-[85vh] flex flex-col">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                    AI Tools
+                                </h2>
                                 {isGeneratingAI && (
-                                    <div className="ml-2 animate-spin rounded-full h-4 w-4 border-2 border-[#FF4500] border-t-transparent"></div>
+                                    <div className="flex items-center text-sm text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#FF4500] border-t-transparent mr-2"></div>
+                                        Generating...
+                                    </div>
                                 )}
-                            </h2>
+                            </div>
 
                             <div className="flex-1 overflow-y-auto min-h-0">
                                 {isGeneratingAI ? (
@@ -1793,24 +1781,608 @@ ${rules
                                             Generating AI optimization...
                                         </p>
                                     </div>
-                                ) : (showViabilityWarning &&
-                                      postViability &&
-                                      !postViability.analysis.canPost) ||
-                                  (aiOutput &&
-                                      aiOutput.includes(
-                                          "VIOLATION_DETECTED:",
-                                      ) &&
-                                      (() => {
-                                          const violationMatch = aiOutput.match(
-                                              /\*\*VIOLATION_DETECTED:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_REASON|\n\s*\*\*|$)/i,
-                                          );
-                                          return (
-                                              violationMatch &&
-                                              violationMatch[1]
-                                                  ?.trim()
-                                                  .toUpperCase() === "YES"
-                                          );
-                                      })()) ? (
+                                ) : user ? (
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {/* AI Post Analyzer - Main Tool */}
+                                        <button
+                                            onClick={generateAIOptimizedPost}
+                                            disabled={isGeneratingAI}
+                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                                                    <span className="text-xl">
+                                                        🤖
+                                                    </span>
+                                                </div>
+                                                <div className="text-left flex-1">
+                                                    <div className="font-semibold text-sm">
+                                                        AI Post Analyzer
+                                                    </div>
+                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
+                                                        Analyze your post and
+                                                        tell you what's wrong
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                {isGeneratingAI && (
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-current border-t-transparent"></div>
+                                                )}
+                                            </div>
+                                        </button>
+
+                                        {/* Rule Checker */}
+                                        <button
+                                            onClick={async () => {
+                                                if (
+                                                    !title.trim() ||
+                                                    !subreddit
+                                                ) {
+                                                    alert(
+                                                        "Please enter a title and select a subreddit first",
+                                                    );
+                                                    return;
+                                                }
+
+                                                try {
+                                                    const response =
+                                                        await fetch(
+                                                            "/api/check-rules",
+                                                            {
+                                                                method: "POST",
+                                                                headers: {
+                                                                    "Content-Type":
+                                                                        "application/json",
+                                                                },
+                                                                body: JSON.stringify(
+                                                                    {
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                        flair,
+                                                                    },
+                                                                ),
+                                                            },
+                                                        );
+
+                                                    const result =
+                                                        await response.json();
+
+                                                    if (
+                                                        result.violations &&
+                                                        result.violations
+                                                            .length > 0
+                                                    ) {
+                                                        alert(
+                                                            `Rule violations found:\n${result.violations.join("\n")}`,
+                                                        );
+                                                    } else {
+                                                        alert(
+                                                            "No rule violations detected! Your post looks good.",
+                                                        );
+                                                    }
+                                                } catch (error) {
+                                                    console.error(
+                                                        "Error checking rules:",
+                                                        error,
+                                                    );
+                                                    alert(
+                                                        "Error checking rules. Please try again.",
+                                                    );
+                                                }
+                                            }}
+                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                                                    <span className="text-xl">
+                                                        🔍
+                                                    </span>
+                                                </div>
+                                                <div className="text-left flex-1">
+                                                    <div className="font-semibold text-sm">
+                                                        Rule Checker
+                                                    </div>
+                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
+                                                        Verify your post follows
+                                                        subreddit rules
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Find Better Subreddits */}
+                                        <button
+                                            onClick={async () => {
+                                                if (
+                                                    !title.trim() ||
+                                                    !body.trim()
+                                                ) {
+                                                    alert(
+                                                        "Please enter a title and body first",
+                                                    );
+                                                    return;
+                                                }
+
+                                                try {
+                                                    const response =
+                                                        await fetch(
+                                                            "/api/find-subreddits",
+                                                            {
+                                                                method: "POST",
+                                                                headers: {
+                                                                    "Content-Type":
+                                                                        "application/json",
+                                                                },
+                                                                body: JSON.stringify(
+                                                                    {
+                                                                        title,
+                                                                        body,
+                                                                        currentSubreddit:
+                                                                            subreddit,
+                                                                    },
+                                                                ),
+                                                            },
+                                                        );
+
+                                                    const result =
+                                                        await response.json();
+
+                                                    if (
+                                                        result.alternatives &&
+                                                        result.alternatives
+                                                            .length > 0
+                                                    ) {
+                                                        const subredditList =
+                                                            result.alternatives
+                                                                .map(
+                                                                    (
+                                                                        sub: any,
+                                                                    ) =>
+                                                                        `r/${sub.name} (${sub.subscribers.toLocaleString()} members)`,
+                                                                )
+                                                                .join("\n");
+                                                        alert(
+                                                            `Better subreddits for your post:\n\n${subredditList}`,
+                                                        );
+                                                    } else {
+                                                        alert(
+                                                            "No better subreddits found. Your current choice might be optimal.",
+                                                        );
+                                                    }
+                                                } catch (error) {
+                                                    console.error(
+                                                        "Error finding subreddits:",
+                                                        error,
+                                                    );
+                                                    alert(
+                                                        "Error finding subreddits. Please try again.",
+                                                    );
+                                                }
+                                            }}
+                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                                                    <span className="text-xl">
+                                                        🧭
+                                                    </span>
+                                                </div>
+                                                <div className="text-left flex-1">
+                                                    <div className="font-semibold text-sm">
+                                                        Find Better Subreddits
+                                                    </div>
+                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
+                                                        Discover where your post
+                                                        would work better
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Anomaly Detection */}
+                                        <button
+                                            onClick={async () => {
+                                                if (
+                                                    !title.trim() ||
+                                                    !body.trim()
+                                                ) {
+                                                    alert(
+                                                        "Please enter a title and body first",
+                                                    );
+                                                    return;
+                                                }
+
+                                                try {
+                                                    const response =
+                                                        await fetch(
+                                                            "/api/detect-anomalies",
+                                                            {
+                                                                method: "POST",
+                                                                headers: {
+                                                                    "Content-Type":
+                                                                        "application/json",
+                                                                },
+                                                                body: JSON.stringify(
+                                                                    {
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                    },
+                                                                ),
+                                                            },
+                                                        );
+
+                                                    const result =
+                                                        await response.json();
+
+                                                    if (
+                                                        result.anomalies &&
+                                                        result.anomalies
+                                                            .length > 0
+                                                    ) {
+                                                        const anomalyList =
+                                                            result.anomalies
+                                                                .map(
+                                                                    (
+                                                                        anomaly: any,
+                                                                    ) =>
+                                                                        `• ${anomaly.type}: ${anomaly.description}`,
+                                                                )
+                                                                .join("\n");
+                                                        alert(
+                                                            `Potential issues detected:\n\n${anomalyList}\n\nConsider addressing these before posting.`,
+                                                        );
+                                                    } else {
+                                                        alert(
+                                                            "No anomalies detected! Your post looks clean and safe.",
+                                                        );
+                                                    }
+                                                } catch (error) {
+                                                    console.error(
+                                                        "Error detecting anomalies:",
+                                                        error,
+                                                    );
+                                                    alert(
+                                                        "Error detecting anomalies. Please try again.",
+                                                    );
+                                                }
+                                            }}
+                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                                                    <span className="text-xl">
+                                                        ⚠️
+                                                    </span>
+                                                </div>
+                                                <div className="text-left flex-1">
+                                                    <div className="font-semibold text-sm">
+                                                        Anomaly Detection
+                                                    </div>
+                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
+                                                        Detect potential issues
+                                                        that could cause bans
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Smart Flair Suggestions */}
+                                        <button
+                                            onClick={async () => {
+                                                if (
+                                                    !title.trim() ||
+                                                    !body.trim() ||
+                                                    !subreddit
+                                                ) {
+                                                    alert(
+                                                        "Please enter a title, body, and select a subreddit first",
+                                                    );
+                                                    return;
+                                                }
+
+                                                try {
+                                                    const response =
+                                                        await fetch(
+                                                            "/api/suggest-flairs",
+                                                            {
+                                                                method: "POST",
+                                                                headers: {
+                                                                    "Content-Type":
+                                                                        "application/json",
+                                                                },
+                                                                body: JSON.stringify(
+                                                                    {
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                    },
+                                                                ),
+                                                            },
+                                                        );
+
+                                                    const result =
+                                                        await response.json();
+
+                                                    if (
+                                                        result.suggestions &&
+                                                        result.suggestions
+                                                            .length > 0
+                                                    ) {
+                                                        const flairList =
+                                                            result.suggestions
+                                                                .map(
+                                                                    (
+                                                                        flair: any,
+                                                                        index: number,
+                                                                    ) =>
+                                                                        `${index + 1}. ${flair.text} (${flair.confidence}% match)`,
+                                                                )
+                                                                .join("\n");
+                                                        alert(
+                                                            `Recommended flairs for r/${subreddit}:\n\n${flairList}\n\nSelect the most appropriate one for your post.`,
+                                                        );
+                                                    } else {
+                                                        alert(
+                                                            "No specific flair recommendations. Your post might not need a flair for this subreddit.",
+                                                        );
+                                                    }
+                                                } catch (error) {
+                                                    console.error(
+                                                        "Error suggesting flairs:",
+                                                        error,
+                                                    );
+                                                    alert(
+                                                        "Error suggesting flairs. Please try again.",
+                                                    );
+                                                }
+                                            }}
+                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                                                    <span className="text-xl">
+                                                        🏷️
+                                                    </span>
+                                                </div>
+                                                <div className="text-left flex-1">
+                                                    <div className="font-semibold text-sm">
+                                                        Smart Flair Suggestions
+                                                    </div>
+                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
+                                                        Get AI-recommended flair
+                                                        for your post
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center">
+                                            <svg
+                                                className="w-8 h-8 text-neutral-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                />
+                                            </svg>
+                                        </div>
+                                        <p className="text-base text-neutral-600 dark:text-neutral-400 mb-6">
+                                            Sign in to use AI tools
+                                        </p>
+                                        <button
+                                            onClick={() =>
+                                                setShowLoginModal(true)
+                                            }
+                                            className="px-6 py-3 bg-[#FF4500] text-white rounded-xl hover:bg-[#e03d00] transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl"
+                                        >
+                                            Sign In
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Show AI Output when available */}
+                                {aiOutput &&
+                                    !(() => {
+                                        const violationMatch = aiOutput.match(
+                                            /\*\*VIOLATION_DETECTED:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_REASON|\n\s*\*\*|$)/i,
+                                        );
+                                        return (
+                                            violationMatch &&
+                                            violationMatch[1]
+                                                ?.trim()
+                                                .toUpperCase() === "YES"
+                                        );
+                                    })() && (
+                                        <div className="mt-6 space-y-4">
+                                            {/* Optimized Content Display */}
+                                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 space-y-4">
+                                                <div className="flex items-center mb-3">
+                                                    <svg
+                                                        className="w-5 h-5 text-green-600 dark:text-green-400 mr-2"
+                                                        fill="currentColor"
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                                                        Optimized Content
+                                                    </h3>
+                                                </div>
+
+                                                {optimizedTitle &&
+                                                    optimizedTitle !==
+                                                        "Cannot optimize - rule violations detected" && (
+                                                        <div>
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                                    Optimized
+                                                                    Title
+                                                                </label>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        copyToClipboard(
+                                                                            optimizedTitle,
+                                                                            "Title",
+                                                                        )
+                                                                    }
+                                                                    className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                                    title="Copy to clipboard"
+                                                                >
+                                                                    <svg
+                                                                        className="w-4 h-4"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={
+                                                                                2
+                                                                            }
+                                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                        />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={
+                                                                    optimizedTitle
+                                                                }
+                                                                readOnly
+                                                                className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                {optimizedBody &&
+                                                    optimizedBody !==
+                                                        "Cannot optimize - rule violations detected" && (
+                                                        <div>
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                                    Optimized
+                                                                    Body
+                                                                </label>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        copyToClipboard(
+                                                                            optimizedBody,
+                                                                            "Body",
+                                                                        )
+                                                                    }
+                                                                    className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                                    title="Copy to clipboard"
+                                                                >
+                                                                    <svg
+                                                                        className="w-4 h-4"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={
+                                                                                2
+                                                                            }
+                                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                        />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                            <textarea
+                                                                value={
+                                                                    optimizedBody
+                                                                }
+                                                                readOnly
+                                                                className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px] resize-vertical"
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                {optimizedFlair &&
+                                                    optimizedFlair !==
+                                                        "Cannot optimize - rule violations detected" && (
+                                                        <div>
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <label className="text-xs font-medium text-green-800 dark:text-green-200">
+                                                                    Recommended
+                                                                    Flair
+                                                                </label>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        copyToClipboard(
+                                                                            optimizedFlair,
+                                                                            "Flair",
+                                                                        )
+                                                                    }
+                                                                    className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 transition-colors"
+                                                                    title="Copy to clipboard"
+                                                                >
+                                                                    <svg
+                                                                        className="w-4 h-4"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={
+                                                                                2
+                                                                            }
+                                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                                        />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={
+                                                                    optimizedFlair
+                                                                }
+                                                                readOnly
+                                                                className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                            />
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                {/* Show violation warnings when available */}
+                                {(showViabilityWarning &&
+                                    postViability &&
+                                    !postViability.analysis.canPost) ||
+                                (aiOutput &&
+                                    aiOutput.includes("VIOLATION_DETECTED:") &&
+                                    (() => {
+                                        const violationMatch = aiOutput.match(
+                                            /\*\*VIOLATION_DETECTED:\*\*\s*\n+([\s\S]*?)(?=\n\s*\*\*VIOLATION_REASON|\n\s*\*\*|$)/i,
+                                        );
+                                        return (
+                                            violationMatch &&
+                                            violationMatch[1]
+                                                ?.trim()
+                                                .toUpperCase() === "YES"
+                                        );
+                                    })()) ? (
                                     <div className="space-y-4">
                                         {/* Strict Rules Warning Display */}
                                         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 space-y-4">
@@ -2549,28 +3121,7 @@ ${rules
                                             )}
                                     </div>
                                 ) : (
-                                    <div className="text-center text-neutral-500 dark:text-neutral-400 py-8">
-                                        <svg
-                                            className="w-12 h-12 mx-auto mb-3 text-neutral-300 dark:text-neutral-600"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                                            />
-                                        </svg>
-                                        <p className="text-sm">
-                                            Enter a title and select a subreddit
-                                        </p>
-                                        <p className="text-xs text-neutral-400 mt-1">
-                                            Then click &ldquo;Generate AI
-                                            Optimized Post&rdquo;
-                                        </p>
-                                    </div>
+                                    <></>
                                 )}
                             </div>
 
@@ -2580,7 +3131,7 @@ ${rules
                                     <button
                                         onClick={generateAIOptimizedPost}
                                         disabled={isGeneratingAI}
-                                        className="w-full py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-xs font-medium"
+                                        className="w-full py-3 px-4 bg-gradient-to-r from-[#FF4500] to-orange-600 hover:from-[#e03d00] hover:to-orange-700 text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
                                     >
                                         Regenerate Optimization
                                     </button>

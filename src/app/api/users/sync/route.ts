@@ -7,6 +7,14 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: NextRequest) {
     try {
+        // Check if Convex is configured
+        if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
+            return NextResponse.json(
+                { error: "Database not configured" },
+                { status: 503 },
+            );
+        }
+
         const user = await currentUser();
         if (!user) {
             return NextResponse.json(

@@ -113,9 +113,11 @@ export default function LandingPage() {
                                 transition={{ duration: 0.9, ease: "easeOut" }}
                                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
                             >
-                                Never Get{" "}
-                                <span className="text-[#FF4500]">Banned</span>{" "}
-                                on Reddit Again
+                                The All-in-One{" "}
+                                <span className="text-[#FF4500]">
+                                    Reddit Post
+                                </span>{" "}
+                                Fixer
                             </motion.h1>
 
                             <motion.p
@@ -128,10 +130,9 @@ export default function LandingPage() {
                                 }}
                                 className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed"
                             >
-                                AI-powered tool that analyzes subreddit rules,
-                                optimizes your content, and suggests
-                                improvements to ensure your posts follow
-                                community guidelines.
+                                AI analyzes your Reddit posts, tells you exactly
+                                what's wrong, why it might not work, and fixes
+                                it for you. Never get banned again.
                             </motion.p>
 
                             <motion.div
@@ -219,7 +220,8 @@ export default function LandingPage() {
                         Unbannnable
                     </div>
                     <p className="text-neutral-400 mb-6">
-                        AI-powered Reddit post optimization and safety assistant
+                        The all-in-one Reddit post fixer that tells you what's
+                        wrong and fixes it
                     </p>
                     <div className="text-neutral-500 text-sm">
                         © 2025 Unbannnable. All rights reserved.
@@ -245,11 +247,11 @@ function FeaturesSection() {
                     className="text-center mb-16"
                 >
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
-                        How Unbannnable Works
+                        How the Post Fixer Works
                     </h2>
                     <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-                        Smart AI analysis that keeps your Reddit posts safe and
-                        optimized
+                        AI analyzes your post, identifies problems, explains why
+                        they're issues, and fixes them automatically
                     </p>
                 </motion.div>
 
@@ -317,10 +319,11 @@ function HowItWorksSection() {
                     className="text-center mb-16"
                 >
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
-                        Simple 3-Step Process
+                        Fix Your Posts in 3 Steps
                     </h2>
                     <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
-                        From content analysis to rule compliance in minutes
+                        Upload your post, get instant analysis, and see exactly
+                        what's wrong and how to fix it
                     </p>
                 </motion.div>
 
@@ -391,11 +394,11 @@ function CTASection() {
                     viewport={{ once: true, margin: "-100px" }}
                 >
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-                        Ready to Post with Confidence?
+                        Ready to Fix Your Reddit Posts?
                     </h2>
                     <p className="text-lg sm:text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
-                        Start creating Reddit posts that follow the rules and
-                        engage your audience
+                        Stop getting banned. Let AI tell you what's wrong and
+                        fix it for you.
                     </p>
                     <SignedOut>
                         <SignInButton mode="modal">
@@ -557,9 +560,9 @@ const features: Feature[] = [
 // Steps data
 const steps: Step[] = [
     {
-        title: "Input Your Content",
+        title: "Upload Your Post",
         description:
-            "Enter your post title, content, and target subreddit. Our AI will analyze everything instantly.",
+            "Paste your Reddit post content and select the subreddit. Our AI will instantly analyze what's wrong.",
         details: [
             "Paste or type your post content",
             "Select your target subreddit",
@@ -567,24 +570,24 @@ const steps: Step[] = [
         ],
     },
     {
-        title: "Get Rule Analysis",
+        title: "Get Instant Analysis",
         description:
-            "Receive detailed feedback on rule compliance, content improvements, and alternative subreddit suggestions.",
+            "AI tells you exactly what's wrong, why it might not work, and how to fix it. No guessing required.",
         details: [
-            "See which rules your post might violate",
-            "Get specific improvement recommendations",
-            "Discover better subreddit alternatives",
-            "View optimized content suggestions",
+            "See exactly which rules you're violating",
+            "Understand why your post might get banned",
+            "Get specific fixes for each problem",
+            "Find better subreddits for your content",
         ],
     },
     {
-        title: "Post Successfully",
+        title: "Fix & Post Safely",
         description:
-            "Apply the suggested changes and post with confidence, knowing your content follows all community guidelines.",
+            "Apply the AI fixes and post with confidence. Your content is now optimized and ban-proof.",
         details: [
-            "Make recommended edits",
+            "Copy the AI-fixed content",
             "Choose the best subreddit option",
-            "Post directly or copy optimized content",
+            "Post knowing you won't get banned",
             "Track your post's success",
         ],
     },
