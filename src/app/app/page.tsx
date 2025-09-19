@@ -183,7 +183,8 @@ const AISubredditCard = ({
 
 function AppPageContent() {
     // Initialize user sync
-    const { user, isLoaded } = useUserSync();
+    const { user, isLoaded, showWelcomePopup, setShowWelcomePopup } =
+        useUserSync();
 
     // Initialize PostHog tracking
     usePostHogIdentify();
@@ -3203,6 +3204,84 @@ ${rules
                                         className="w-full py-3 px-4 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
                                     >
                                         Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Welcome Popup for New Users */}
+            <AnimatePresence>
+                {showWelcomePopup && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowWelcomePopup(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="bg-white dark:bg-neutral-900 rounded-2xl p-8 max-w-lg w-full border border-neutral-200 dark:border-neutral-700 shadow-xl"
+                            onClick={(e: React.MouseEvent) =>
+                                e.stopPropagation()
+                            }
+                        >
+                            <div className="text-center">
+                                <div className="mb-6">
+                                    <div className="w-16 h-16 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <svg
+                                            className="w-8 h-8 text-white"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth="2"
+                                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+                                        Welcome to Unbannnable! 🎉
+                                    </h3>
+                                    <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+                                        I'm an indie developer and one-person
+                                        team who built this product purely out
+                                        of frustration with Reddit post
+                                        removals.
+                                    </p>
+                                    <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+                                        Feel free to reach out on X if you have
+                                        any questions or just want to connect!
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <a
+                                        href="https://x.com/nibodhdaware"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full py-3 px-4 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors font-medium inline-block"
+                                    >
+                                        Follow me on X
+                                    </a>
+
+                                    <button
+                                        onClick={() =>
+                                            setShowWelcomePopup(false)
+                                        }
+                                        className="w-full py-3 px-4 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                                    >
+                                        Get Started
                                     </button>
                                 </div>
                             </div>

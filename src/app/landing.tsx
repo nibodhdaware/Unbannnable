@@ -113,11 +113,11 @@ export default function LandingPage() {
                                 transition={{ duration: 0.9, ease: "easeOut" }}
                                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
                             >
-                                The All-in-One{" "}
+                                Avoid{" "}
                                 <span className="text-[#FF4500]">
-                                    Reddit Post
+                                    Reddit Post Removals
                                 </span>{" "}
-                                Fixer
+                                w/ Our Post Rules Checker + Fixer
                             </motion.h1>
 
                             <motion.p

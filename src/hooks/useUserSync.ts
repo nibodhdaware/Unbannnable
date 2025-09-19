@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 export function useUserSync() {
     const [mounted, setMounted] = useState(false);
+    const [showWelcomePopup, setShowWelcomePopup] = useState(false);
     const { user, isLoaded } = useUser();
 
     useEffect(() => {
@@ -11,6 +12,14 @@ export function useUserSync() {
 
     useEffect(() => {
         if (mounted && isLoaded && user) {
+            // Check if this is a new user (created within last 5 minutes)
+            const userCreatedAt = new Date(user.createdAt);
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+            if (userCreatedAt > fiveMinutesAgo) {
+                setShowWelcomePopup(true);
+            }
+
             // Sync user data to our database
             syncUserToDatabase(user);
         }
@@ -51,5 +60,5 @@ export function useUserSync() {
         }
     };
 
-    return { user, isLoaded };
+    return { user, isLoaded, showWelcomePopup, setShowWelcomePopup };
 }
