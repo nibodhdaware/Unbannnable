@@ -37,7 +37,9 @@ export const metadata: Metadata = {
         address: false,
         telephone: false,
     },
-    metadataBase: new URL("https://unbannnable.com"),
+    metadataBase: new URL(
+        process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com",
+    ),
     alternates: {
         canonical: "/",
     },
@@ -96,6 +98,66 @@ export default function RootLayout({
                 lang="en"
                 className={`${inter.variable} ${jetbrainsMono.variable}`}
             >
+                <head>
+                    {/* Manual Open Graph tags for better crawler compatibility */}
+                    <meta
+                        property="og:title"
+                        content="Unbannnable - AI-Powered Reddit Post Optimization"
+                    />
+                    <meta
+                        property="og:description"
+                        content="Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content."
+                    />
+                    <meta
+                        property="og:image"
+                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/icon.png`}
+                    />
+                    <meta property="og:image:width" content="1200" />
+                    <meta property="og:image:height" content="630" />
+                    <meta
+                        property="og:image:alt"
+                        content="Unbannnable - AI-Powered Reddit Post Optimization Tool"
+                    />
+                    <meta
+                        property="og:url"
+                        content={
+                            process.env.NEXT_PUBLIC_APP_URL ||
+                            "https://unbannnable.com"
+                        }
+                    />
+                    <meta property="og:site_name" content="Unbannnable" />
+                    <meta property="og:type" content="website" />
+                    <meta property="og:locale" content="en_US" />
+
+                    {/* Twitter Card tags */}
+                    <meta name="twitter:card" content="summary_large_image" />
+                    <meta
+                        name="twitter:title"
+                        content="Unbannnable - AI-Powered Reddit Post Optimization"
+                    />
+                    <meta
+                        name="twitter:description"
+                        content="Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content."
+                    />
+                    <meta
+                        name="twitter:image"
+                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/icon.png`}
+                    />
+                    <meta name="twitter:creator" content="@unbannnable" />
+                    <meta name="twitter:site" content="@unbannnable" />
+
+                    {/* Additional SEO meta tags */}
+                    <meta
+                        name="description"
+                        content="Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content."
+                    />
+                    <meta
+                        name="keywords"
+                        content="Reddit, AI, post optimization, subreddit rules, Reddit safety, content analysis, social media"
+                    />
+                    <meta name="author" content="Unbannnable" />
+                    <meta name="robots" content="index, follow" />
+                </head>
                 <body>
                     <Script
                         async
