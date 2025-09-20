@@ -3,121 +3,310 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>OG Image Generator</title>
+        <title>Unbannnable - OG Image</title>
         <style>
-            body {
+            * {
                 margin: 0;
                 padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
                 font-family:
                     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                     sans-serif;
-                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-                color: white;
+                background: white;
+                color: #1a1a1a;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 min-height: 100vh;
             }
+
             .container {
                 width: 1200px;
                 height: 630px;
-                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-                border-radius: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 60px;
-                box-sizing: border-box;
+                background: white;
                 position: relative;
                 overflow: hidden;
-            }
-            .content {
-                flex: 1;
-                z-index: 2;
-            }
-            .title {
-                font-size: 64px;
-                font-weight: 800;
-                margin: 0 0 20px 0;
-                background: linear-gradient(45deg, #ff4500, #ff6b35);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                line-height: 1.1;
-            }
-            .subtitle {
-                font-size: 28px;
-                font-weight: 600;
-                margin: 0 0 30px 0;
-                color: #e0e0e0;
-            }
-            .description {
-                font-size: 20px;
-                line-height: 1.4;
-                color: #b0b0b0;
-                max-width: 600px;
-            }
-            .features {
-                margin-top: 30px;
                 display: flex;
-                gap: 20px;
-                flex-wrap: wrap;
+                align-items: center;
             }
-            .feature {
-                background: rgba(255, 69, 0, 0.1);
-                border: 1px solid rgba(255, 69, 0, 0.3);
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 14px;
-                color: #ff4500;
+
+            /* Header */
+            .header {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                padding: 24px 40px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #e5e5e5;
             }
+
             .logo {
-                font-size: 120px;
-                font-weight: 900;
+                font-size: 28px;
+                font-weight: 800;
                 color: #ff4500;
-                opacity: 0.1;
-                position: absolute;
-                right: 60px;
-                top: 50%;
-                transform: translateY(-50%);
             }
+
             .reddit-icon {
-                position: absolute;
-                top: 40px;
-                right: 40px;
-                width: 60px;
-                height: 60px;
+                width: 40px;
+                height: 40px;
                 background: #ff4500;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 30px;
+                font-size: 18px;
                 font-weight: bold;
                 color: white;
+            }
+
+            /* Main Content */
+            .content {
+                display: flex;
+                align-items: center;
+                width: 100%;
+                padding: 0 40px;
+                gap: 60px;
+            }
+
+            .left {
+                flex: 1;
+                max-width: 600px;
+            }
+
+            .title {
+                font-size: 48px;
+                font-weight: 800;
+                line-height: 1.1;
+                margin-bottom: 20px;
+                color: #1a1a1a;
+            }
+
+            .highlight {
+                color: #ff4500;
+            }
+
+            .subtitle {
+                font-size: 20px;
+                color: #666;
+                margin-bottom: 30px;
+                line-height: 1.4;
+            }
+
+            .cta-button {
+                display: inline-block;
+                background: #ff4500;
+                color: white;
+                padding: 16px 32px;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 18px;
+                text-decoration: none;
+                box-shadow: 0 4px 12px rgba(255, 69, 0, 0.3);
+            }
+
+            /* Right side - Mock interface */
+            .right {
+                flex: 1;
+                position: relative;
+            }
+
+            .mock-interface {
+                background: #f8f9fa;
+                border: 1px solid #e5e5e5;
+                border-radius: 16px;
+                padding: 24px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            }
+
+            .mock-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 20px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid #e5e5e5;
+            }
+
+            .mock-avatar {
+                width: 32px;
+                height: 32px;
+                background: #ff4500;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+            }
+
+            .mock-username {
+                font-weight: 600;
+                color: #1a1a1a;
+            }
+
+            .mock-subreddit {
+                color: #666;
+                font-size: 14px;
+            }
+
+            .mock-post {
+                background: white;
+                border: 1px solid #e5e5e5;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .mock-post-title {
+                font-weight: 600;
+                color: #1a1a1a;
+                margin-bottom: 8px;
+            }
+
+            .mock-post-content {
+                color: #666;
+                font-size: 14px;
+                line-height: 1.4;
+            }
+
+            .mock-analysis {
+                background: #f0f9ff;
+                border: 1px solid #0ea5e9;
+                border-radius: 8px;
+                padding: 16px;
+                margin-top: 16px;
+            }
+
+            .analysis-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .analysis-icon {
+                width: 20px;
+                height: 20px;
+                background: #0ea5e9;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 12px;
+            }
+
+            .analysis-title {
+                font-weight: 600;
+                color: #0ea5e9;
+                font-size: 14px;
+            }
+
+            .analysis-text {
+                color: #0369a1;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+
+            /* Features */
+            .features {
+                position: absolute;
+                bottom: 24px;
+                left: 40px;
+                right: 40px;
+                display: flex;
+                gap: 16px;
+                justify-content: center;
+            }
+
+            .feature {
+                background: rgba(255, 69, 0, 0.1);
+                border: 1px solid rgba(255, 69, 0, 0.3);
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                color: #ff4500;
+                font-weight: 500;
             }
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="reddit-icon">R</div>
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">Unbannnable</div>
+                <div class="reddit-icon">R</div>
+            </div>
+
+            <!-- Main Content -->
             <div class="content">
-                <h1 class="title">Unbannnable</h1>
-                <h2 class="subtitle">AI-Powered Reddit Post Optimization</h2>
-                <p class="description">
-                    Never get banned from Reddit again. AI-powered tool that
-                    analyzes your posts, checks subreddit rules, suggests
-                    improvements, and finds the best subreddits for your
-                    content.
-                </p>
-                <div class="features">
-                    <span class="feature">Rule Compliance</span>
-                    <span class="feature">AI Analysis</span>
-                    <span class="feature">Subreddit Finder</span>
-                    <span class="feature">Post Optimization</span>
+                <div class="left">
+                    <h1 class="title">
+                        Avoid
+                        <span class="highlight">Reddit Post Removals</span> w/
+                        Our Post Rules Checker + Fixer
+                    </h1>
+                    <p class="subtitle">
+                        AI analyzes your Reddit posts, tells you exactly what's
+                        wrong, why it might not work, and fixes it for you.
+                        Never get banned again.
+                    </p>
+                    <a href="#" class="cta-button">Try It Free</a>
+                </div>
+
+                <div class="right">
+                    <div class="mock-interface">
+                        <div class="mock-header">
+                            <div class="mock-avatar">U</div>
+                            <div>
+                                <div class="mock-username">u/yourusername</div>
+                                <div class="mock-subreddit">r/AskReddit</div>
+                            </div>
+                        </div>
+
+                        <div class="mock-post">
+                            <div class="mock-post-title">
+                                My amazing post title
+                            </div>
+                            <div class="mock-post-content">
+                                This is my post content that I want to share
+                                with the community...
+                            </div>
+                        </div>
+
+                        <div class="mock-analysis">
+                            <div class="analysis-header">
+                                <div class="analysis-icon">✓</div>
+                                <div class="analysis-title">
+                                    AI Analysis Complete
+                                </div>
+                            </div>
+                            <div class="analysis-text">
+                                ✅ Post follows all subreddit rules<br />
+                                ✅ Title is engaging and appropriate<br />
+                                ✅ Content matches subreddit theme<br />
+                                💡 Suggestion: Add a question to increase
+                                engagement
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="logo">U</div>
+
+            <!-- Features -->
+            <div class="features">
+                <span class="feature">Rule Compliance</span>
+                <span class="feature">AI Analysis</span>
+                <span class="feature">Auto Fix</span>
+                <span class="feature">Subreddit Finder</span>
+            </div>
         </div>
     </body>
 </html>

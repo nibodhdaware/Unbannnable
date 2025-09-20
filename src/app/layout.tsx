@@ -51,7 +51,7 @@ export const metadata: Metadata = {
         siteName: "Unbannnable",
         images: [
             {
-                url: "/icon.png",
+                url: "/og-image.png",
                 width: 1200,
                 height: 630,
                 alt: "Unbannnable - AI-Powered Reddit Post Optimization Tool",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
         title: "Unbannnable - AI-Powered Reddit Post Optimization",
         description:
             "Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content.",
-        images: ["/icon.png"],
+        images: ["/og-image.png"],
         creator: "@unbannnable",
         site: "@unbannnable",
     },
@@ -110,7 +110,7 @@ export default function RootLayout({
                     />
                     <meta
                         property="og:image"
-                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/icon.png`}
+                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/og-image.png`}
                     />
                     <meta property="og:image:width" content="1200" />
                     <meta property="og:image:height" content="630" />
@@ -141,7 +141,7 @@ export default function RootLayout({
                     />
                     <meta
                         name="twitter:image"
-                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/icon.png`}
+                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/og-image.png`}
                     />
                     <meta name="twitter:creator" content="@unbannnable" />
                     <meta name="twitter:site" content="@unbannnable" />
