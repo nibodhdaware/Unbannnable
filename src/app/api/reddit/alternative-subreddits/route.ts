@@ -1,62 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-interface RedditTokenResponse {
-    access_token: string;
-    expires_in: number;
-}
-
-interface SubredditRule {
-    kind: string;
-    short_name: string;
-    description: string;
-    description_html: string;
-    created_utc: number;
-    priority: number;
-    violation_reason: string;
-}
-
-interface AlternativeSubreddit {
-    display_name: string;
-    public_description: string;
-    subscribers: number;
-    url: string;
-    reason: string;
-}
-
-let accessToken: string | null = null;
-let tokenExpiry: number = 0;
-
-async function getAccessToken(): Promise<string> {
-    if (accessToken && Date.now() < tokenExpiry) {
-        return accessToken;
-    }
-
-    const clientId = process.env.REDDIT_CLIENT_ID;
-    const clientSecret = process.env.REDDIT_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-        throw new Error("Reddit API credentials not configured");
-    }
-
-    const response = await fetch("https://www.reddit.com/api/v1/access_token", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-        },
-        body: "grant_type=client_credentials",
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to get access token: ${response.statusText}`);
-    }
-
-    const data: RedditTokenResponse = await response.json();
-    accessToken = data.access_token;
-    tokenExpiry = Date.now() + data.expires_in * 1000 - 60000;
-
-    return accessToken;
-}
+import { redditAPIOptimized } from "@/lib/reddit-api-optimized";
 
 // Function to detect strict rules that might prevent posting
 function detectStrictRules(rules: SubredditRule[]): string[] {
@@ -371,60 +314,14 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const token = await getAccessToken();
-
-        // First, fetch the rules for the current subreddit
-        const rulesResponse = await fetch(
-            `https://oauth.reddit.com/r/${subreddit}/about/rules`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "User-Agent": "reddit-unbanr/1.0",
-                },
-            },
-        );
-
-        if (!rulesResponse.ok) {
-            return NextResponse.json(
-                { error: "Failed to fetch subreddit rules" },
-                { status: 500 },
-            );
-        }
-
-        const rulesData = await rulesResponse.json();
-        const rules: SubredditRule[] = rulesData.rules || [];
-
-        // Detect strict rules
-        const strictRules = detectStrictRules(rules);
-
-        // If no strict rules detected, return empty array
-        if (strictRules.length === 0) {
-            return NextResponse.json([]);
-        }
-
-        // Get alternative subreddits using AI
-        const alternatives = await getAlternativeSubredditsWithAI(
+        // Use optimized client to get alternative subreddits
+        const result = await redditAPIOptimized.fetchAlternativeSubreddits(
+            subreddit,
             title,
             body,
-            subreddit,
-            strictRules,
-            token,
         );
 
-        // If no alternatives found, still return the strict rules info
-        if (alternatives.length === 0) {
-            return NextResponse.json({
-                strictRules,
-                alternatives: [],
-                message: `r/${subreddit} has strict rules that may prevent your post. Consider reviewing the subreddit rules before posting.`,
-            });
-        }
-
-        return NextResponse.json({
-            strictRules,
-            alternatives,
-            message: `r/${subreddit} has strict rules that may prevent your post. Here are some AI-suggested alternative subreddits where you might be able to share your content.`,
-        });
+        return NextResponse.json(result);
     } catch (error) {
         console.error("Error fetching alternative subreddits:", error);
         return NextResponse.json(

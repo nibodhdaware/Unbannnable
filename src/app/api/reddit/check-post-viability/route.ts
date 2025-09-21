@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-interface RedditTokenResponse {
-    access_token: string;
-    expires_in: number;
-}
+import { redditAPIOptimized } from "@/lib/reddit-api-optimized";
 
 interface SubredditRule {
     kind: string;
@@ -20,41 +16,6 @@ interface PostViabilityResult {
     reason: string;
     conflictingRules: string[];
     suggestions: string[];
-}
-
-let accessToken: string | null = null;
-let tokenExpiry: number = 0;
-
-async function getAccessToken(): Promise<string> {
-    if (accessToken && Date.now() < tokenExpiry) {
-        return accessToken;
-    }
-
-    const clientId = process.env.REDDIT_CLIENT_ID;
-    const clientSecret = process.env.REDDIT_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-        throw new Error("Reddit API credentials not configured");
-    }
-
-    const response = await fetch("https://www.reddit.com/api/v1/access_token", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-        },
-        body: "grant_type=client_credentials",
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to get access token: ${response.statusText}`);
-    }
-
-    const data: RedditTokenResponse = await response.json();
-    accessToken = data.access_token;
-    tokenExpiry = Date.now() + data.expires_in * 1000 - 60000;
-
-    return accessToken;
 }
 
 // Function to analyze post content against subreddit rules
@@ -275,28 +236,8 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const token = await getAccessToken();
-
-        // Fetch the rules for the subreddit
-        const rulesResponse = await fetch(
-            `https://oauth.reddit.com/r/${subreddit}/about/rules`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "User-Agent": "reddit-unbanr/1.0",
-                },
-            },
-        );
-
-        if (!rulesResponse.ok) {
-            return NextResponse.json(
-                { error: "Failed to fetch subreddit rules" },
-                { status: 500 },
-            );
-        }
-
-        const rulesData = await rulesResponse.json();
-        const rules: SubredditRule[] = rulesData.rules || [];
+        // Fetch the rules for the subreddit using optimized client
+        const rules = await redditAPIOptimized.fetchSubredditRules(subreddit);
 
         // Analyze the post against the rules
         const analysis = analyzePostAgainstRules(title, body, rules);

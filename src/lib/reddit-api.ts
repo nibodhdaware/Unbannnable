@@ -251,6 +251,36 @@ class RedditAPI {
             throw error;
         }
     }
+
+    // New method to fetch multiple subreddit data in one call
+    async fetchSubredditDataBatch(subreddits: string[]): Promise<{
+        [subreddit: string]: {
+            info?: any;
+            rules?: SubredditRule[];
+            flairs?: Flair[];
+            requirements?: PostRequirement | null;
+        };
+    }> {
+        try {
+            const response = await fetch("/api/reddit/batch", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ subreddits }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error("Error fetching batch subreddit data:", error);
+            return {};
+        }
+    }
 }
 
 export const redditAPI = new RedditAPI();
