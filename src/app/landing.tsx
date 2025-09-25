@@ -103,104 +103,99 @@ export default function LandingPage() {
 
             {/* Hero Section */}
             <section className="relative px-4 sm:px-6 pt-12 pb-20">
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        {/* Left side - Content */}
-                        <div>
-                            <motion.h1
-                                initial={{ opacity: 0, y: 40 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.9, ease: "easeOut" }}
-                                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
-                            >
-                                Avoid{" "}
-                                <span className="text-[#FF4500]">
-                                    Reddit Post Removals
-                                </span>{" "}
-                                w/ Our Post Rules Checker + Fixer
-                            </motion.h1>
+                <div className="max-w-4xl mx-auto text-center">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.9, ease: "easeOut" }}
+                        className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
+                    >
+                        Avoid{" "}
+                        <span className="text-[#FF4500]">
+                            Reddit Post Removals
+                        </span>{" "}
+                        w/ Our Post Rules Checker + Fixer
+                    </motion.h1>
 
-                            <motion.p
-                                initial={{ opacity: 0, y: 40 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{
-                                    duration: 0.9,
-                                    delay: 0.2,
-                                    ease: "easeOut",
-                                }}
-                                className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed"
-                            >
-                                AI analyzes your Reddit posts, tells you exactly
-                                what's wrong, why it might not work, and fixes
-                                it for you. Never get banned again.
-                            </motion.p>
+                    <motion.p
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                            duration: 0.9,
+                            delay: 0.2,
+                            ease: "easeOut",
+                        }}
+                        className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed max-w-2xl mx-auto"
+                    >
+                        AI analyzes your Reddit posts, tells you exactly what's
+                        wrong, why it might not work, and fixes it for you.
+                        Never get banned again.
+                    </motion.p>
 
-                            <motion.div
-                                initial={{ opacity: 0, y: 40 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{
-                                    duration: 0.9,
-                                    delay: 0.4,
-                                    ease: "easeOut",
-                                }}
-                                className="flex flex-col sm:flex-row gap-4"
-                            >
-                                <SignedOut>
-                                    <SignInButton mode="modal">
-                                        <button className="px-8 py-4 bg-[#FF4500] text-white rounded-xl font-semibold text-lg hover:bg-[#e03d00] transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
-                                            Try It Free
-                                        </button>
-                                    </SignInButton>
-                                </SignedOut>
-                                <SignedIn>
-                                    <Link
-                                        href="/app"
-                                        className="px-8 py-4 bg-[#FF4500] text-white rounded-xl font-semibold text-lg hover:bg-[#e03d00] transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
-                                    >
-                                        Open App
-                                    </Link>
-                                </SignedIn>
-                                <button
-                                    onClick={() =>
-                                        document
-                                            .getElementById("features")
-                                            ?.scrollIntoView({
-                                                behavior: "smooth",
-                                            })
-                                    }
-                                    className="px-8 py-4 border-2 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl font-semibold text-lg hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
-                                >
-                                    See How It Works
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                            duration: 0.9,
+                            delay: 0.3,
+                            ease: "easeOut",
+                        }}
+                        className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
+                    >
+                        <SignedOut>
+                            <SignInButton mode="modal">
+                                <button className="px-8 py-4 bg-[#FF4500] text-white rounded-xl font-semibold text-lg hover:bg-[#e03d00] transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+                                    Try It Free
                                 </button>
-                            </motion.div>
-                        </div>
-
-                        {/* Right side - Demo Video */}
-                        <motion.div
-                            initial={{ opacity: 0, x: 50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                                duration: 0.9,
-                                delay: 0.3,
-                                ease: "easeOut",
-                            }}
-                            className="relative"
+                            </SignInButton>
+                        </SignedOut>
+                        <SignedIn>
+                            <Link
+                                href="/app"
+                                className="px-8 py-4 bg-[#FF4500] text-white rounded-xl font-semibold text-lg hover:bg-[#e03d00] transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            >
+                                Open App
+                            </Link>
+                        </SignedIn>
+                        <button
+                            onClick={() =>
+                                document
+                                    .getElementById("features")
+                                    ?.scrollIntoView({
+                                        behavior: "smooth",
+                                    })
+                            }
+                            className="px-8 py-4 border-2 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl font-semibold text-lg hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
                         >
-                            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-800">
-                                <video
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    className="w-full h-auto"
-                                >
-                                    <source src="/demo.mp4" type="video/mp4" />
-                                    Your browser does not support the video tag.
-                                </video>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
-                            </div>
-                        </motion.div>
-                    </div>
+                            See How It Works
+                        </button>
+                    </motion.div>
+
+                    {/* Demo Video */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                            duration: 0.9,
+                            delay: 0.4,
+                            ease: "easeOut",
+                        }}
+                        className="relative"
+                    >
+                        <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-800 max-w-3xl mx-auto">
+                            <video
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-auto"
+                            >
+                                <source src="/demo.mp4" type="video/mp4" />
+                                Your browser does not support the video tag.
+                            </video>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+                        </div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -214,16 +209,16 @@ export default function LandingPage() {
             <CTASection />
 
             {/* Footer */}
-            <footer className="py-12 px-4 sm:px-6 bg-neutral-900 dark:bg-black">
-                <div className="max-w-7xl mx-auto text-center">
-                    <div className="text-2xl font-bold text-[#FF4500] mb-4">
+            <footer className="py-8 px-4 sm:px-6 bg-neutral-900 dark:bg-black">
+                <div className="max-w-4xl mx-auto text-center">
+                    <div className="text-xl font-bold text-[#FF4500] mb-2">
                         Unbannnable
                     </div>
-                    <p className="text-neutral-400 mb-6">
+                    <p className="text-neutral-400 mb-4 text-sm">
                         The all-in-one Reddit post fixer that tells you what's
                         wrong and fixes it
                     </p>
-                    <div className="text-neutral-500 text-sm">
+                    <div className="text-neutral-500 text-xs">
                         © 2025 Unbannnable. All rights reserved.
                     </div>
                 </div>
@@ -239,24 +234,24 @@ function FeaturesSection() {
             id="features"
             className="py-20 px-4 sm:px-6 bg-neutral-50 dark:bg-neutral-900"
         >
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
                         How the Post Fixer Works
                     </h2>
-                    <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
+                    <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
                         AI analyzes your post, identifies problems, explains why
                         they're issues, and fixes them automatically
                     </p>
                 </motion.div>
 
                 <motion.div
-                    className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                    className="grid md:grid-cols-2 gap-8"
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
                     transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
@@ -310,7 +305,7 @@ function FeaturesSection() {
 function HowItWorksSection() {
     return (
         <section className="py-20 px-4 sm:px-6 bg-white dark:bg-neutral-950">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -318,16 +313,16 @@ function HowItWorksSection() {
                     viewport={{ once: true, margin: "-100px" }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
                         Fix Your Posts in 3 Steps
                     </h2>
-                    <p className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 max-w-3xl mx-auto">
+                    <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
                         Upload your post, get instant analysis, and see exactly
                         what's wrong and how to fix it
                     </p>
                 </motion.div>
 
-                <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+                <div className="grid md:grid-cols-3 gap-8">
                     {steps.map((step, index) => (
                         <motion.div
                             key={index}
@@ -341,39 +336,17 @@ function HowItWorksSection() {
                             viewport={{ once: true, margin: "-50px" }}
                             className="text-center"
                         >
-                            <div className="relative">
-                                <div className="w-16 h-16 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                                    <span className="text-white font-bold text-xl">
-                                        {index + 1}
-                                    </span>
-                                </div>
-                                {index < steps.length - 1 && (
-                                    <div className="hidden md:block absolute top-8 left-1/2 w-32 h-0.5 bg-neutral-300 dark:bg-neutral-600 transform translate-x-full"></div>
-                                )}
+                            <div className="w-12 h-12 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span className="text-white font-bold text-lg">
+                                    {index + 1}
+                                </span>
                             </div>
-                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">
+                            <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">
                                 {step.title}
                             </h3>
-                            <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+                            <p className="text-neutral-600 dark:text-neutral-400 text-sm">
                                 {step.description}
                             </p>
-                            {step.details && (
-                                <div className="bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700 text-left">
-                                    <ul className="text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
-                                        {step.details.map((detail, i) => (
-                                            <li
-                                                key={i}
-                                                className="flex items-start"
-                                            >
-                                                <span className="text-[#FF4500] mr-2">
-                                                    •
-                                                </span>
-                                                {detail}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
                         </motion.div>
                     ))}
                 </div>
@@ -385,18 +358,18 @@ function HowItWorksSection() {
 // CTA Section Component
 function CTASection() {
     return (
-        <section className="py-20 px-4 sm:px-6 bg-[#FF4500]">
-            <div className="max-w-4xl mx-auto text-center">
+        <section className="py-16 px-4 sm:px-6 bg-[#FF4500]">
+            <div className="max-w-3xl mx-auto text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     viewport={{ once: true, margin: "-100px" }}
                 >
-                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
                         Ready to Fix Your Reddit Posts?
                     </h2>
-                    <p className="text-lg sm:text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
+                    <p className="text-lg text-orange-100 mb-8 max-w-xl mx-auto">
                         Stop getting banned. Let AI tell you what's wrong and
                         fix it for you.
                     </p>
