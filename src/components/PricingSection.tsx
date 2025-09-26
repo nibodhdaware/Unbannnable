@@ -95,21 +95,24 @@ function PricingCard({
 }
 
 export default function PricingSection() {
-    const { isSignedIn } = useUser();
-    const [loading, setLoading] = useState(false);
-    const [showBillingForm, setShowBillingForm] = useState(false);
+    const { user } = useUser();
+    const [showBillingModal, setShowBillingModal] = useState(false);
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
-    const handlePurchaseClick = () => {
-        if (!isSignedIn) {
+    const handlePurchase = () => {
+        if (!user) {
+            // Will trigger sign-in modal
             return;
         }
-        setShowBillingForm(true);
+        setShowBillingModal(true);
     };
 
-    const handleBillingSubmit = async (billing: any, customer: any) => {
-        setLoading(true);
+    const handleBillingSubmit = async (
+        billing: any,
+        customer: { name: string; email: string },
+    ) => {
+        setPaymentLoading(true);
         try {
-            // Create payment with billing address
             const response = await fetch("/api/create-payment", {
                 method: "POST",
                 headers: {
@@ -121,39 +124,30 @@ export default function PricingSection() {
                 }),
             });
 
-            if (response.ok) {
-                const { paymentLink } = await response.json();
-                window.location.href = paymentLink;
-            } else {
-                const errorData = await response.json();
-                console.error("Failed to create payment:", errorData);
-                alert("Failed to create payment. Please try again.");
+            if (!response.ok) {
+                throw new Error("Payment creation failed");
             }
+
+            const { paymentLink } = await response.json();
+            window.location.href = paymentLink;
         } catch (error) {
             console.error("Payment error:", error);
-            alert("An error occurred. Please try again.");
         } finally {
-            setLoading(false);
+            setPaymentLoading(false);
         }
     };
 
-    const handleBillingCancel = () => {
-        setShowBillingForm(false);
-        setLoading(false);
-    };
-
     return (
-        <section className="py-20 px-4 sm:px-6 bg-neutral-50 dark:bg-neutral-900">
-            <div className="max-w-7xl mx-auto">
+        <section id="pricing" className="py-20 px-4 sm:px-6">
+            <div className="max-w-4xl mx-auto">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.6 }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-4xl sm:text-5xl font-bold text-neutral-900 dark:text-white mb-6">
-                        Simple,{" "}
+                    <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-6">
                         <span className="text-[#FF4500]">Affordable</span>{" "}
                         Pricing
                     </h2>
@@ -175,10 +169,8 @@ export default function PricingSection() {
                             price="$9"
                             credits="100 AI Credits"
                             isPopular={true}
-                            loading={loading}
-                            onPurchase={
-                                isSignedIn ? handlePurchaseClick : () => {}
-                            }
+                            loading={paymentLoading}
+                            onPurchase={user ? handlePurchase : () => {}}
                             features={[
                                 "100 AI Post Analysis credits",
                                 "Advanced anomaly detection",
@@ -192,7 +184,7 @@ export default function PricingSection() {
                     </motion.div>
                 </div>
 
-                {!isSignedIn && (
+                {!user && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -215,11 +207,11 @@ export default function PricingSection() {
             </div>
 
             {/* Billing Address Form Modal */}
-            {showBillingForm && (
+            {showBillingModal && (
                 <BillingAddressForm
                     onSubmit={handleBillingSubmit}
-                    onCancel={handleBillingCancel}
-                    loading={loading}
+                    onCancel={() => setShowBillingModal(false)}
+                    loading={paymentLoading}
                 />
             )}
         </section>

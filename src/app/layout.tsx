@@ -17,9 +17,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Unbannnable - AI-Powered Reddit Post Optimization",
+    title: "Unbannnable - AI-Powered Reddit Post Optimization Tool",
     description:
-        "Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content.",
+        "AI-powered Reddit post optimization tool that analyzes posts, checks subreddit rules, suggests improvements, and finds the best communities for your content. Never get banned again.",
     keywords: [
         "Reddit",
         "AI",
@@ -27,9 +27,12 @@ export const metadata: Metadata = {
         "subreddit rules",
         "Reddit safety",
         "content analysis",
-        "social media",
+        "social media optimization",
+        "Reddit tool",
+        "subreddit finder",
+        "content moderation",
     ],
-    authors: [{ name: "Unbannnable" }],
+    authors: [{ name: "Unbannnable Team" }],
     creator: "Unbannnable",
     publisher: "Unbannnable",
     formatDetection: {
@@ -44,9 +47,9 @@ export const metadata: Metadata = {
         canonical: "/",
     },
     openGraph: {
-        title: "Unbannnable - AI-Powered Reddit Post Optimization",
+        title: "Unbannnable - AI-Powered Reddit Post Optimization Tool",
         description:
-            "Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content.",
+            "AI-powered Reddit post optimization tool that analyzes posts, checks subreddit rules, suggests improvements, and finds the best communities for your content. Never get banned again.",
         url: "https://unbannnable.com",
         siteName: "Unbannnable",
         images: [
@@ -62,11 +65,11 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: "summary_large_image",
-        title: "Unbannnable - AI-Powered Reddit Post Optimization",
+        title: "Unbannnable - AI-Powered Reddit Post Optimization Tool",
         description:
-            "Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content.",
+            "AI-powered Reddit post optimization tool that analyzes posts, checks subreddit rules, suggests improvements, and finds the best communities for your content.",
         images: ["/og-image.png"],
-        creator: "@unbannnable",
+        creator: "@nibodhdaware",
         site: "@unbannnable",
     },
     robots: {
@@ -99,64 +102,31 @@ export default function RootLayout({
                 className={`${inter.variable} ${jetbrainsMono.variable}`}
             >
                 <head>
-                    {/* Manual Open Graph tags for better crawler compatibility */}
-                    <meta
-                        property="og:title"
-                        content="Unbannnable - AI-Powered Reddit Post Optimization"
+                    {/* Schema.org structured data for better SEO */}
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                "@context": "https://schema.org",
+                                "@type": "WebApplication",
+                                name: "Unbannnable",
+                                description:
+                                    "AI-powered Reddit post optimization tool that analyzes posts, checks subreddit rules, suggests improvements, and finds the best communities for your content.",
+                                url: "https://unbannnable.com",
+                                applicationCategory: "BusinessApplication",
+                                operatingSystem: "Web Browser",
+                                offers: {
+                                    "@type": "Offer",
+                                    price: "9.00",
+                                    priceCurrency: "USD",
+                                },
+                                creator: {
+                                    "@type": "Person",
+                                    name: "Nibodh Daware",
+                                },
+                            }),
+                        }}
                     />
-                    <meta
-                        property="og:description"
-                        content="Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content."
-                    />
-                    <meta
-                        property="og:image"
-                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/og-image.png`}
-                    />
-                    <meta property="og:image:width" content="1200" />
-                    <meta property="og:image:height" content="630" />
-                    <meta
-                        property="og:image:alt"
-                        content="Unbannnable - AI-Powered Reddit Post Optimization Tool"
-                    />
-                    <meta
-                        property="og:url"
-                        content={
-                            process.env.NEXT_PUBLIC_APP_URL ||
-                            "https://unbannnable.com"
-                        }
-                    />
-                    <meta property="og:site_name" content="Unbannnable" />
-                    <meta property="og:type" content="website" />
-                    <meta property="og:locale" content="en_US" />
-
-                    {/* Twitter Card tags */}
-                    <meta name="twitter:card" content="summary_large_image" />
-                    <meta
-                        name="twitter:title"
-                        content="Unbannnable - AI-Powered Reddit Post Optimization"
-                    />
-                    <meta
-                        name="twitter:description"
-                        content="Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content."
-                    />
-                    <meta
-                        name="twitter:image"
-                        content={`${process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com"}/og-image.png`}
-                    />
-                    <meta name="twitter:creator" content="@unbannnable" />
-                    <meta name="twitter:site" content="@unbannnable" />
-
-                    {/* Additional SEO meta tags */}
-                    <meta
-                        name="description"
-                        content="Never get banned from Reddit again. AI-powered tool that analyzes your posts, checks subreddit rules, suggests improvements, and finds the best subreddits for your content."
-                    />
-                    <meta
-                        name="keywords"
-                        content="Reddit, AI, post optimization, subreddit rules, Reddit safety, content analysis, social media"
-                    />
-                    <meta name="author" content="Unbannnable" />
-                    <meta name="robots" content="index, follow" />
                 </head>
                 <body>
                     <DynamicClientComponent />

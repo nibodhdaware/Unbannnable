@@ -213,17 +213,150 @@ export default function LandingPage() {
             <CTASection />
 
             {/* Footer */}
-            <footer className="py-8 px-4 sm:px-6 bg-neutral-900 dark:bg-black">
-                <div className="max-w-4xl mx-auto text-center">
-                    <div className="text-xl font-bold text-[#FF4500] mb-2">
-                        Unbannnable
+            <footer className="py-12 px-4 sm:px-6 bg-neutral-900 dark:bg-black">
+                <div className="max-w-6xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                        {/* Company Info */}
+                        <div className="md:col-span-2">
+                            <div className="text-2xl font-bold text-[#FF4500] mb-4">
+                                Unbannnable
+                            </div>
+                            <p className="text-neutral-400 mb-4 max-w-md">
+                                The all-in-one AI-powered Reddit post
+                                optimization tool that analyzes your content,
+                                checks subreddit rules, and helps you find the
+                                perfect communities.
+                            </p>
+                        </div>
+
+                        {/* Features */}
+                        <div>
+                            <h3 className="text-white font-semibold mb-4">
+                                Features
+                            </h3>
+                            <ul className="space-y-2 text-neutral-400 text-sm">
+                                <li>
+                                    <button
+                                        onClick={() =>
+                                            document
+                                                .getElementById("features")
+                                                ?.scrollIntoView({
+                                                    behavior: "smooth",
+                                                })
+                                        }
+                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
+                                    >
+                                        AI Post Analysis
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        onClick={() =>
+                                            document
+                                                .getElementById("features")
+                                                ?.scrollIntoView({
+                                                    behavior: "smooth",
+                                                })
+                                        }
+                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
+                                    >
+                                        Rule Checker
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        onClick={() =>
+                                            document
+                                                .getElementById("features")
+                                                ?.scrollIntoView({
+                                                    behavior: "smooth",
+                                                })
+                                        }
+                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
+                                    >
+                                        Subreddit Finder
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        onClick={() =>
+                                            document
+                                                .getElementById("pricing")
+                                                ?.scrollIntoView({
+                                                    behavior: "smooth",
+                                                })
+                                        }
+                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
+                                    >
+                                        Pricing
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Resources */}
+                        <div>
+                            <h3 className="text-white font-semibold mb-4">
+                                Get Started
+                            </h3>
+                            <ul className="space-y-2 text-neutral-400 text-sm">
+                                <li>
+                                    <SignedOut>
+                                        <SignInButton mode="modal">
+                                            <button className="hover:text-[#FF4500] transition-colors cursor-pointer">
+                                                Try Free Tool
+                                            </button>
+                                        </SignInButton>
+                                    </SignedOut>
+                                    <SignedIn>
+                                        <Link
+                                            href="/app"
+                                            className="hover:text-[#FF4500] transition-colors"
+                                        >
+                                            Dashboard
+                                        </Link>
+                                    </SignedIn>
+                                </li>
+                                <li>
+                                    <button
+                                        onClick={() =>
+                                            document
+                                                .getElementById("how-it-works")
+                                                ?.scrollIntoView({
+                                                    behavior: "smooth",
+                                                })
+                                        }
+                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
+                                    >
+                                        How It Works
+                                    </button>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://x.com/nibodhdaware"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:text-[#FF4500] transition-colors"
+                                    >
+                                        Contact Support
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                    <p className="text-neutral-400 mb-4 text-sm">
-                        The all-in-one Reddit post fixer that tells you what's
-                        wrong and fixes it
-                    </p>
-                    <div className="text-neutral-500 text-xs">
-                        © 2025 Unbannnable. All rights reserved.
+
+                    <div className="pt-8 border-t border-neutral-800 text-center">
+                        <div className="text-neutral-500 text-sm">
+                            © 2025 Unbannnable. All rights reserved. |
+                            <a
+                                href="https://x.com/nibodhdaware"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-[#FF4500] transition-colors ml-1"
+                            >
+                                Follow us on X
+                            </a>
+                        </div>
                     </div>
                 </div>
             </footer>
@@ -308,7 +441,10 @@ function FeaturesSection() {
 // How It Works Section Component
 function HowItWorksSection() {
     return (
-        <section className="py-20 px-4 sm:px-6 bg-white dark:bg-neutral-950">
+        <section
+            id="how-it-works"
+            className="py-20 px-4 sm:px-6 bg-white dark:bg-neutral-950"
+        >
             <div className="max-w-4xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
