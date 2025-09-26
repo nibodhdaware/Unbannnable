@@ -46,9 +46,6 @@ export default function SuccessPage() {
         user?.id ? { clerkId: user.id } : "skip",
     );
 
-    // Mutation to add credits
-    const addCredits = useMutation(api.users.addCredits);
-
     useEffect(() => {
         const handlePaymentResult = async () => {
             if (!user?.id) return;
@@ -66,6 +63,11 @@ export default function SuccessPage() {
                     urlParams.get("status") || urlParams.get("payment_status");
                 const amount = urlParams.get("amount") || "9.00";
 
+                if (!paymentId) {
+                    setError("No payment ID found in URL");
+                    return;
+                }
+
                 // Check if payment was cancelled
                 const cancelled =
                     urlParams.get("cancelled") === "true" ||
@@ -80,26 +82,60 @@ export default function SuccessPage() {
 
                 setCreditAllocationStatus({
                     status: "pending",
-                    message: "Processing your payment and adding credits...",
+                    message: "Verifying your payment and processing credits...",
                 });
 
-                // Add 100 credits to user account
-                const newCreditTotal = await addCredits({
-                    clerkId: user.id,
-                    credits: 100,
-                });
+                // Verify payment with our secure API
+                const verificationResponse = await fetch(
+                    "/api/verify-payment",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ paymentId }),
+                    },
+                );
 
-                // Update status
-                setCreditAllocationStatus({
-                    status: "success",
-                    message: "Successfully added 100 credits to your account!",
-                    creditsAdded: 100,
-                });
+                if (!verificationResponse.ok) {
+                    throw new Error("Payment verification failed");
+                }
+
+                const verificationData = await verificationResponse.json();
+
+                if (verificationData.alreadyProcessed) {
+                    // Payment has already been processed
+                    setCreditAllocationStatus({
+                        status: "success",
+                        message: verificationData.message,
+                        creditsAdded: 100,
+                    });
+                } else if (verificationData.pending) {
+                    // Payment is still being processed
+                    setCreditAllocationStatus({
+                        status: "pending",
+                        message: verificationData.message,
+                    });
+
+                    // Poll for payment completion every 3 seconds
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    // Something went wrong
+                    setCreditAllocationStatus({
+                        status: "error",
+                        message:
+                            "Payment could not be verified. Please contact support.",
+                    });
+                }
 
                 // Set basic payment details for display
                 setPaymentDetails({
-                    paymentId: paymentId || `payment_${Date.now()}`,
-                    status: "succeeded",
+                    paymentId: paymentId,
+                    status: verificationData.alreadyProcessed
+                        ? "succeeded"
+                        : "pending",
                     amount: 900, // $9.00 in cents
                     currency: "USD",
                     customer: {
@@ -119,9 +155,11 @@ export default function SuccessPage() {
                 setCreditAllocationStatus({
                     status: "error",
                     message:
-                        "Payment successful but there was an issue adding credits. Please contact support.",
+                        "Failed to process payment. Please contact support.",
                 });
-                setError("Failed to process payment success");
+                setError(
+                    "There was an error processing your payment. Please contact support if this persists.",
+                );
             } finally {
                 setLoading(false);
             }
@@ -133,7 +171,7 @@ export default function SuccessPage() {
             setError("Please sign in to view payment details");
             setLoading(false);
         }
-    }, [user, isLoaded, addCredits, router]);
+    }, [user, isLoaded, router]);
 
     const handleGoToApp = () => {
         router.push("/app");
