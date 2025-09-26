@@ -3,6 +3,10 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
+import { useCredits } from "@/hooks/useCredits";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import BillingAddressForm from "@/components/BillingAddressForm";
 import {
     redditAPI,
     type Subreddit,
@@ -186,6 +190,24 @@ function AppPageContent() {
     const { user, isLoaded, showWelcomePopup, setShowWelcomePopup } =
         useUserSync();
 
+    // Initialize credits system
+    const credits = useCredits();
+
+    // Convex mutations and queries for AI tools
+    const createPost = useMutation(api.posts.createPost);
+    const usePostAnalyzer = useMutation(api.posts.usePostAnalyzer);
+    const useRuleChecker = useMutation(api.posts.useRuleChecker);
+    const findBetterSubreddits = useMutation(api.posts.findBetterSubreddits);
+    const detectAnomalies = useMutation(api.posts.detectAnomalies);
+    const getFlairSuggestions = useMutation(api.posts.getFlairSuggestions);
+
+    // Query for user posts (for draft/postId management)
+    const userRecord = useQuery(
+        api.users.getUserByClerkId,
+        user ? { clerkId: user.id } : "skip",
+    );
+    const [postId, setPostId] = useState<string>("");
+
     // Initialize PostHog tracking
     usePostHogIdentify();
 
@@ -226,6 +248,8 @@ function AppPageContent() {
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [aiOutput, setAiOutput] = useState<string>("");
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+    const [aiToolResults, setAiToolResults] = useState<Record<string, any>>({});
+    const [showPricingPopup, setShowPricingPopup] = useState(false);
     const [optimizedTitle, setOptimizedTitle] = useState<string>("");
     const [optimizedBody, setOptimizedBody] = useState<string>("");
     const [optimizedFlair, setOptimizedFlair] = useState<string>("");
@@ -256,6 +280,10 @@ function AppPageContent() {
         subreddit: string;
         flair: string;
     } | null>(null);
+
+    // Billing states
+    const [showBillingModal, setShowBillingModal] = useState(false);
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
     // Fuzzy search configuration
     const fuse = useMemo(() => {
@@ -1291,6 +1319,88 @@ ${rules
         }, 1000); // Small delay to let user see the optimization results
     };
 
+    // Billing handler for payment flow
+    const handleBillingSubmit = async (
+        billing: {
+            street: string;
+            city: string;
+            state: string;
+            zipcode: string;
+            country: string;
+        },
+        customer: { name: string; email: string },
+    ) => {
+        if (!user || !userRecord) return;
+
+        setPaymentLoading(true);
+        try {
+            const response = await fetch("/api/create-payment", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    billing: {
+                        street: billing.street,
+                        city: billing.city,
+                        state: billing.state,
+                        zipcode: billing.zipcode,
+                        country: billing.country,
+                    },
+                    customer: {
+                        name: customer.name,
+                        email: customer.email,
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Payment creation failed");
+            }
+
+            const data = await response.json();
+
+            console.log("Payment API response:", data);
+
+            // Track successful payment initiation
+            trackUserAction("payment_initiated", {
+                user_id: user?.id,
+                amount: "9.00",
+                credits: "100",
+            });
+
+            // Redirect to payment link
+            if (data.paymentLink) {
+                console.log("Redirecting to payment link:", data.paymentLink);
+                window.location.href = data.paymentLink;
+            } else {
+                console.error("Payment link not found in response:", data);
+                throw new Error("No payment link received");
+            }
+        } catch (error) {
+            console.error("Billing error:", error);
+            trackError("payment_creation_failed", {
+                error: error.message,
+                user_id: user?.id,
+            });
+            // TODO: Show user-friendly error message
+            alert("Payment creation failed. Please try again.");
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    // Define AI tool buttons for reuse
+    const aiToolButtons = (
+        <button
+            onClick={() => setAiToolResults({})}
+            className="px-3 py-1.5 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-xs font-medium"
+        >
+            Run New Analysis
+        </button>
+    );
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
             {/* Navigation Header */}
@@ -1315,6 +1425,22 @@ ${rules
                     {/* Right side - Navigation and Authentication */}
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <SignedIn>
+                            {/* Credits Display and Buy Button */}
+                            <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-lg">
+                                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                        {credits.isLoading
+                                            ? "..."
+                                            : `${credits.credits} credits`}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => setShowPricingPopup(true)}
+                                    className="px-3 py-1.5 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium"
+                                >
+                                    Buy Credits
+                                </button>
+                            </div>
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
                         <SignedOut>
@@ -1761,12 +1887,25 @@ ${rules
                                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
                                     AI Tools
                                 </h2>
-                                {isGeneratingAI && (
-                                    <div className="flex items-center text-sm text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#FF4500] border-t-transparent mr-2"></div>
-                                        Generating...
-                                    </div>
-                                )}
+                                <div className="flex items-center space-x-2">
+                                    {Object.keys(aiToolResults).length > 0 &&
+                                        !isGeneratingAI && (
+                                            <button
+                                                onClick={() =>
+                                                    setAiToolResults({})
+                                                }
+                                                className="px-3 py-1.5 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-xs font-medium"
+                                            >
+                                                Run New Analysis
+                                            </button>
+                                        )}
+                                    {isGeneratingAI && (
+                                        <div className="flex items-center text-sm text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#FF4500] border-t-transparent mr-2"></div>
+                                            Generating...
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto min-h-0">
@@ -1783,383 +1922,659 @@ ${rules
                                         </p>
                                     </div>
                                 ) : user ? (
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {/* AI Post Analyzer - Main Tool */}
-                                        <button
-                                            onClick={generateAIOptimizedPost}
-                                            disabled={isGeneratingAI}
-                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
-                                        >
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                                                    <span className="text-xl">
-                                                        🤖
-                                                    </span>
-                                                </div>
-                                                <div className="text-left flex-1">
-                                                    <div className="font-semibold text-sm">
-                                                        AI Post Analyzer
-                                                    </div>
-                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
-                                                        Analyze your post and
-                                                        tell you what's wrong
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                {isGeneratingAI && (
-                                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-current border-t-transparent"></div>
-                                                )}
-                                            </div>
-                                        </button>
+                                    Object.keys(aiToolResults).length === 0 ? (
+                                        <div className="space-y-3">
+                                            {/* AI Post Analyzer - 10 Credits */}
+                                            <button
+                                                onClick={async () => {
+                                                    if (!title.trim()) {
+                                                        alert(
+                                                            "Please enter a title first",
+                                                        );
+                                                        return;
+                                                    }
 
-                                        {/* Rule Checker */}
-                                        <button
-                                            onClick={async () => {
-                                                if (
-                                                    !title.trim() ||
-                                                    !subreddit
-                                                ) {
-                                                    alert(
-                                                        "Please enter a title and select a subreddit first",
-                                                    );
-                                                    return;
-                                                }
+                                                    if (credits.credits < 10) {
+                                                        alert(
+                                                            "You need 10 credits to use the Post Analyzer. Please buy more credits.",
+                                                        );
+                                                        return;
+                                                    }
 
-                                                try {
-                                                    const response =
-                                                        await fetch(
-                                                            "/api/check-rules",
-                                                            {
-                                                                method: "POST",
-                                                                headers: {
-                                                                    "Content-Type":
-                                                                        "application/json",
-                                                                },
-                                                                body: JSON.stringify(
+                                                    try {
+                                                        setIsGeneratingAI(true);
+
+                                                        // Create a temporary post if none exists
+                                                        let currentPostId =
+                                                            postId;
+                                                        if (
+                                                            !currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const newPost =
+                                                                await createPost(
                                                                     {
+                                                                        userId: userRecord._id,
                                                                         title,
                                                                         body,
                                                                         subreddit,
-                                                                        flair,
+                                                                        status: "draft",
                                                                     },
-                                                                ),
-                                                            },
-                                                        );
+                                                                );
+                                                            currentPostId =
+                                                                newPost;
+                                                            setPostId(newPost);
+                                                        }
 
-                                                    const result =
-                                                        await response.json();
+                                                        if (
+                                                            currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const result =
+                                                                await usePostAnalyzer(
+                                                                    {
+                                                                        postId: currentPostId as any,
+                                                                        userId: userRecord._id,
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                    },
+                                                                );
 
-                                                    if (
-                                                        result.violations &&
-                                                        result.violations
-                                                            .length > 0
-                                                    ) {
+                                                            // Store result in state instead of alert
+                                                            setAiToolResults(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    postAnalyzer:
+                                                                        result.analysis,
+                                                                }),
+                                                            );
+                                                        }
+                                                    } catch (error: any) {
                                                         alert(
-                                                            `Rule violations found:\n${result.violations.join("\n")}`,
+                                                            error.message ||
+                                                                "Error analyzing post. Please try again.",
                                                         );
-                                                    } else {
-                                                        alert(
-                                                            "No rule violations detected! Your post looks good.",
+                                                    } finally {
+                                                        setIsGeneratingAI(
+                                                            false,
                                                         );
                                                     }
-                                                } catch (error) {
-                                                    console.error(
-                                                        "Error checking rules:",
-                                                        error,
-                                                    );
-                                                    alert(
-                                                        "Error checking rules. Please try again.",
-                                                    );
+                                                }}
+                                                disabled={
+                                                    isGeneratingAI ||
+                                                    credits.credits < 10
                                                 }
-                                            }}
-                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
-                                        >
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                                                    <span className="text-xl">
-                                                        🔍
-                                                    </span>
-                                                </div>
-                                                <div className="text-left flex-1">
-                                                    <div className="font-semibold text-sm">
-                                                        Rule Checker
+                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 10 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                            >
+                                                <div className="flex items-center space-x-4 flex-1">
+                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-xl">
+                                                            🤖
+                                                        </span>
                                                     </div>
-                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
-                                                        Verify your post follows
-                                                        subreddit rules
+                                                    <div className="text-left flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm truncate">
+                                                            AI Post Analyzer
+                                                        </div>
+                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                                                            Analyze your post
+                                                            and tell you what's
+                                                            wrong
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </button>
+                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
+                                                    <div className="text-xs bg-[#FF4500] text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
+                                                        10 Credits
+                                                    </div>
+                                                    {isGeneratingAI && (
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                                                    )}
+                                                </div>
+                                            </button>
 
-                                        {/* Find Better Subreddits */}
-                                        <button
-                                            onClick={async () => {
-                                                if (
-                                                    !title.trim() ||
-                                                    !body.trim()
-                                                ) {
-                                                    alert(
-                                                        "Please enter a title and body first",
-                                                    );
-                                                    return;
-                                                }
+                                            {/* Rule Checker - 5 Credits */}
+                                            <button
+                                                onClick={async () => {
+                                                    if (
+                                                        !title.trim() ||
+                                                        !subreddit
+                                                    ) {
+                                                        alert(
+                                                            "Please enter a title and select a subreddit first",
+                                                        );
+                                                        return;
+                                                    }
 
-                                                try {
-                                                    const response =
-                                                        await fetch(
-                                                            "/api/find-subreddits",
-                                                            {
-                                                                method: "POST",
-                                                                headers: {
-                                                                    "Content-Type":
-                                                                        "application/json",
-                                                                },
-                                                                body: JSON.stringify(
+                                                    if (credits.credits < 5) {
+                                                        alert(
+                                                            "You need 5 credits to use the Rule Checker. Please buy more credits.",
+                                                        );
+                                                        return;
+                                                    }
+
+                                                    try {
+                                                        setIsGeneratingAI(true);
+
+                                                        // Create a temporary post if none exists
+                                                        let currentPostId =
+                                                            postId;
+                                                        if (
+                                                            !currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const newPost =
+                                                                await createPost(
                                                                     {
+                                                                        userId: userRecord._id,
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                        status: "draft",
+                                                                    },
+                                                                );
+                                                            currentPostId =
+                                                                newPost;
+                                                            setPostId(newPost);
+                                                        }
+
+                                                        if (
+                                                            currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const result =
+                                                                await useRuleChecker(
+                                                                    {
+                                                                        postId: currentPostId as any,
+                                                                        userId: userRecord._id,
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                    },
+                                                                );
+
+                                                            // Store result in state instead of alert
+                                                            setAiToolResults(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    ruleChecker:
+                                                                        result.ruleCheck,
+                                                                }),
+                                                            );
+                                                        }
+                                                    } catch (error: any) {
+                                                        alert(
+                                                            error.message ||
+                                                                "Error checking rules. Please try again.",
+                                                        );
+                                                    } finally {
+                                                        setIsGeneratingAI(
+                                                            false,
+                                                        );
+                                                    }
+                                                }}
+                                                disabled={
+                                                    isGeneratingAI ||
+                                                    credits.credits < 5
+                                                }
+                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 5 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                            >
+                                                <div className="flex items-center space-x-4 flex-1">
+                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-xl">
+                                                            🔍
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-left flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm truncate">
+                                                            Rule Checker
+                                                        </div>
+                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                                                            Verify your post
+                                                            follows subreddit
+                                                            rules
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
+                                                    <div className="text-xs bg-blue-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
+                                                        5 Credits
+                                                    </div>
+                                                </div>
+                                            </button>
+
+                                            {/* Find Better Subreddits - 5 Credits */}
+                                            <button
+                                                onClick={async () => {
+                                                    if (!title.trim()) {
+                                                        alert(
+                                                            "Please enter a title first",
+                                                        );
+                                                        return;
+                                                    }
+
+                                                    if (credits.credits < 5) {
+                                                        alert(
+                                                            "You need 5 credits to find better subreddits. Please buy more credits.",
+                                                        );
+                                                        return;
+                                                    }
+
+                                                    try {
+                                                        setIsGeneratingAI(true);
+
+                                                        // Create a temporary post if none exists
+                                                        let currentPostId =
+                                                            postId;
+                                                        if (
+                                                            !currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const newPost =
+                                                                await createPost(
+                                                                    {
+                                                                        userId: userRecord._id,
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                        status: "draft",
+                                                                    },
+                                                                );
+                                                            currentPostId =
+                                                                newPost;
+                                                            setPostId(newPost);
+                                                        }
+
+                                                        if (
+                                                            currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const result =
+                                                                await findBetterSubreddits(
+                                                                    {
+                                                                        postId: currentPostId as any,
+                                                                        userId: userRecord._id,
                                                                         title,
                                                                         body,
                                                                         currentSubreddit:
                                                                             subreddit,
                                                                     },
-                                                                ),
-                                                            },
-                                                        );
+                                                                );
 
-                                                    const result =
-                                                        await response.json();
-
-                                                    if (
-                                                        result.alternatives &&
-                                                        result.alternatives
-                                                            .length > 0
-                                                    ) {
-                                                        const subredditList =
-                                                            result.alternatives
-                                                                .map(
-                                                                    (
-                                                                        sub: any,
-                                                                    ) =>
-                                                                        `r/${sub.name} (${sub.subscribers.toLocaleString()} members)`,
-                                                                )
-                                                                .join("\n");
+                                                            // Store result in state instead of alert
+                                                            setAiToolResults(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    betterSubreddits:
+                                                                        result.suggestions,
+                                                                }),
+                                                            );
+                                                        }
+                                                    } catch (error: any) {
                                                         alert(
-                                                            `Better subreddits for your post:\n\n${subredditList}`,
+                                                            error.message ||
+                                                                "Error finding better subreddits. Please try again.",
                                                         );
-                                                    } else {
-                                                        alert(
-                                                            "No better subreddits found. Your current choice might be optimal.",
+                                                    } finally {
+                                                        setIsGeneratingAI(
+                                                            false,
                                                         );
                                                     }
-                                                } catch (error) {
-                                                    console.error(
-                                                        "Error finding subreddits:",
-                                                        error,
-                                                    );
-                                                    alert(
-                                                        "Error finding subreddits. Please try again.",
-                                                    );
+                                                }}
+                                                disabled={
+                                                    isGeneratingAI ||
+                                                    credits.credits < 5
                                                 }
-                                            }}
-                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
-                                        >
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                                                    <span className="text-xl">
-                                                        🧭
-                                                    </span>
-                                                </div>
-                                                <div className="text-left flex-1">
-                                                    <div className="font-semibold text-sm">
-                                                        Find Better Subreddits
+                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 5 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                            >
+                                                <div className="flex items-center space-x-4 flex-1">
+                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-xl">
+                                                            🧭
+                                                        </span>
                                                     </div>
-                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
-                                                        Discover where your post
-                                                        would work better
+                                                    <div className="text-left flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm truncate">
+                                                            Find Better
+                                                            Subreddits
+                                                        </div>
+                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                                                            Discover where your
+                                                            post would work
+                                                            better
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </button>
+                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
+                                                    <div className="text-xs bg-blue-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
+                                                        5 Credits
+                                                    </div>
+                                                </div>
+                                            </button>
 
-                                        {/* Anomaly Detection */}
-                                        <button
-                                            onClick={async () => {
-                                                if (
-                                                    !title.trim() ||
-                                                    !body.trim()
-                                                ) {
-                                                    alert(
-                                                        "Please enter a title and body first",
-                                                    );
-                                                    return;
-                                                }
+                                            {/* Anomaly Detection - 3 Credits */}
+                                            <button
+                                                onClick={async () => {
+                                                    if (!title.trim()) {
+                                                        alert(
+                                                            "Please enter a title first",
+                                                        );
+                                                        return;
+                                                    }
 
-                                                try {
-                                                    const response =
-                                                        await fetch(
-                                                            "/api/detect-anomalies",
-                                                            {
-                                                                method: "POST",
-                                                                headers: {
-                                                                    "Content-Type":
-                                                                        "application/json",
-                                                                },
-                                                                body: JSON.stringify(
+                                                    if (credits.credits < 3) {
+                                                        alert(
+                                                            "You need 3 credits for anomaly detection. Please buy more credits.",
+                                                        );
+                                                        return;
+                                                    }
+
+                                                    try {
+                                                        setIsGeneratingAI(true);
+
+                                                        // Create a temporary post if none exists
+                                                        let currentPostId =
+                                                            postId;
+                                                        if (
+                                                            !currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const newPost =
+                                                                await createPost(
                                                                     {
+                                                                        userId: userRecord._id,
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                        status: "draft",
+                                                                    },
+                                                                );
+                                                            currentPostId =
+                                                                newPost;
+                                                            setPostId(newPost);
+                                                        }
+
+                                                        if (
+                                                            currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const result =
+                                                                await detectAnomalies(
+                                                                    {
+                                                                        postId: currentPostId as any,
+                                                                        userId: userRecord._id,
                                                                         title,
                                                                         body,
                                                                         subreddit,
                                                                     },
-                                                                ),
-                                                            },
-                                                        );
+                                                                );
 
-                                                    const result =
-                                                        await response.json();
-
-                                                    if (
-                                                        result.anomalies &&
-                                                        result.anomalies
-                                                            .length > 0
-                                                    ) {
-                                                        const anomalyList =
-                                                            result.anomalies
-                                                                .map(
-                                                                    (
-                                                                        anomaly: any,
-                                                                    ) =>
-                                                                        `• ${anomaly.type}: ${anomaly.description}`,
-                                                                )
-                                                                .join("\n");
+                                                            // Store result in state instead of alert
+                                                            setAiToolResults(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    anomalyDetection:
+                                                                        result.anomalies,
+                                                                }),
+                                                            );
+                                                        }
+                                                    } catch (error: any) {
                                                         alert(
-                                                            `Potential issues detected:\n\n${anomalyList}\n\nConsider addressing these before posting.`,
+                                                            error.message ||
+                                                                "Error detecting anomalies. Please try again.",
                                                         );
-                                                    } else {
-                                                        alert(
-                                                            "No anomalies detected! Your post looks clean and safe.",
+                                                    } finally {
+                                                        setIsGeneratingAI(
+                                                            false,
                                                         );
                                                     }
-                                                } catch (error) {
-                                                    console.error(
-                                                        "Error detecting anomalies:",
-                                                        error,
-                                                    );
-                                                    alert(
-                                                        "Error detecting anomalies. Please try again.",
-                                                    );
+                                                }}
+                                                disabled={
+                                                    isGeneratingAI ||
+                                                    credits.credits < 3
                                                 }
-                                            }}
-                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
-                                        >
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                                                    <span className="text-xl">
-                                                        ⚠️
-                                                    </span>
-                                                </div>
-                                                <div className="text-left flex-1">
-                                                    <div className="font-semibold text-sm">
-                                                        Anomaly Detection
+                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 3 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                            >
+                                                <div className="flex items-center space-x-4 flex-1">
+                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-xl">
+                                                            ⚠️
+                                                        </span>
                                                     </div>
-                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
-                                                        Detect potential issues
-                                                        that could cause bans
+                                                    <div className="text-left flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm truncate">
+                                                            Anomaly Detection
+                                                        </div>
+                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                                                            Detect potential
+                                                            issues that could
+                                                            cause bans
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </button>
+                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
+                                                    <div className="text-xs bg-yellow-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
+                                                        3 Credits
+                                                    </div>
+                                                </div>
+                                            </button>
 
-                                        {/* Smart Flair Suggestions */}
-                                        <button
-                                            onClick={async () => {
-                                                if (
-                                                    !title.trim() ||
-                                                    !body.trim() ||
-                                                    !subreddit
-                                                ) {
-                                                    alert(
-                                                        "Please enter a title, body, and select a subreddit first",
-                                                    );
-                                                    return;
-                                                }
+                                            {/* Smart Flair Suggestions - 2 Credits */}
+                                            <button
+                                                onClick={async () => {
+                                                    if (
+                                                        !title.trim() ||
+                                                        !subreddit
+                                                    ) {
+                                                        alert(
+                                                            "Please enter a title and select a subreddit first",
+                                                        );
+                                                        return;
+                                                    }
 
-                                                try {
-                                                    const response =
-                                                        await fetch(
-                                                            "/api/suggest-flairs",
-                                                            {
-                                                                method: "POST",
-                                                                headers: {
-                                                                    "Content-Type":
-                                                                        "application/json",
-                                                                },
-                                                                body: JSON.stringify(
+                                                    if (credits.credits < 2) {
+                                                        alert(
+                                                            "You need 2 credits for flair suggestions. Please buy more credits.",
+                                                        );
+                                                        return;
+                                                    }
+
+                                                    try {
+                                                        setIsGeneratingAI(true);
+
+                                                        // Create a temporary post if none exists
+                                                        let currentPostId =
+                                                            postId;
+                                                        if (
+                                                            !currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const newPost =
+                                                                await createPost(
                                                                     {
+                                                                        userId: userRecord._id,
+                                                                        title,
+                                                                        body,
+                                                                        subreddit,
+                                                                        status: "draft",
+                                                                    },
+                                                                );
+                                                            currentPostId =
+                                                                newPost;
+                                                            setPostId(newPost);
+                                                        }
+
+                                                        if (
+                                                            currentPostId &&
+                                                            userRecord
+                                                        ) {
+                                                            const result =
+                                                                await getFlairSuggestions(
+                                                                    {
+                                                                        postId: currentPostId as any,
+                                                                        userId: userRecord._id,
                                                                         title,
                                                                         body,
                                                                         subreddit,
                                                                     },
-                                                                ),
-                                                            },
-                                                        );
+                                                                );
 
-                                                    const result =
-                                                        await response.json();
+                                                            // Set the recommended flair automatically
+                                                            if (
+                                                                result.recommendedFlair
+                                                            ) {
+                                                                setFlair(
+                                                                    result.recommendedFlair,
+                                                                );
+                                                            }
 
-                                                    if (
-                                                        result.suggestions &&
-                                                        result.suggestions
-                                                            .length > 0
-                                                    ) {
-                                                        const flairList =
-                                                            result.suggestions
-                                                                .map(
-                                                                    (
-                                                                        flair: any,
-                                                                        index: number,
-                                                                    ) =>
-                                                                        `${index + 1}. ${flair.text} (${flair.confidence}% match)`,
-                                                                )
-                                                                .join("\n");
+                                                            // Store result in state with detailed info
+                                                            setAiToolResults(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    flairSuggestions:
+                                                                        result.flairSuggestions.join(
+                                                                            "\n",
+                                                                        ),
+                                                                    recommendedFlair:
+                                                                        result.recommendedFlair,
+                                                                }),
+                                                            );
+
+                                                            // No alert - results shown in AI Tools section
+                                                        }
+                                                    } catch (error: any) {
                                                         alert(
-                                                            `Recommended flairs for r/${subreddit}:\n\n${flairList}\n\nSelect the most appropriate one for your post.`,
+                                                            error.message ||
+                                                                "Error suggesting flairs. Please try again.",
                                                         );
-                                                    } else {
-                                                        alert(
-                                                            "No specific flair recommendations. Your post might not need a flair for this subreddit.",
+                                                    } finally {
+                                                        setIsGeneratingAI(
+                                                            false,
                                                         );
                                                     }
-                                                } catch (error) {
-                                                    console.error(
-                                                        "Error suggesting flairs:",
-                                                        error,
-                                                    );
-                                                    alert(
-                                                        "Error suggesting flairs. Please try again.",
-                                                    );
+                                                }}
+                                                disabled={
+                                                    isGeneratingAI ||
+                                                    credits.credits < 2
                                                 }
-                                            }}
-                                            className="flex items-center justify-between p-5 rounded-xl bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-200"
-                                        >
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                                                    <span className="text-xl">
-                                                        🏷️
-                                                    </span>
-                                                </div>
-                                                <div className="text-left flex-1">
-                                                    <div className="font-semibold text-sm">
-                                                        Smart Flair Suggestions
+                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 2 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                            >
+                                                <div className="flex items-center space-x-4 flex-1">
+                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-xl">
+                                                            🏷️
+                                                        </span>
                                                     </div>
-                                                    <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
-                                                        Get AI-recommended flair
-                                                        for your post
+                                                    <div className="text-left flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm truncate">
+                                                            Smart Flair
+                                                            Suggestions
+                                                        </div>
+                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                                                            AI analyzes your
+                                                            post & auto-selects
+                                                            the best flair
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
+                                                    <div className="text-xs bg-green-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
+                                                        2 Credits
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        // Show AI results and new analysis button
+                                        <div className="space-y-4">
+                                            {/* Post Analyzer Results */}
+                                            {aiToolResults.postAnalyzer && (
+                                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm flex items-center">
+                                                        🤖 Post Analysis Results
+                                                    </h4>
+                                                    <div className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap">
+                                                        {
+                                                            aiToolResults.postAnalyzer
+                                                        }
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Rule Checker Results */}
+                                            {aiToolResults.ruleChecker && (
+                                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 text-sm flex items-center">
+                                                        🔍 Rule Check Results
+                                                    </h4>
+                                                    <div className="text-xs text-green-800 dark:text-green-200 whitespace-pre-wrap">
+                                                        {
+                                                            aiToolResults.ruleChecker
+                                                        }
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Better Subreddits Results */}
+                                            {aiToolResults.betterSubreddits && (
+                                                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 text-sm flex items-center">
+                                                        🧭 Better Subreddit
+                                                        Suggestions
+                                                    </h4>
+                                                    <div className="text-xs text-purple-800 dark:text-purple-200 whitespace-pre-wrap">
+                                                        {
+                                                            aiToolResults.betterSubreddits
+                                                        }
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Anomaly Detection Results */}
+                                            {aiToolResults.anomalyDetection && (
+                                                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 text-sm flex items-center">
+                                                        ⚠️ Anomaly Detection
+                                                        Results
+                                                    </h4>
+                                                    <div className="text-xs text-yellow-800 dark:text-yellow-200 whitespace-pre-wrap">
+                                                        {
+                                                            aiToolResults.anomalyDetection
+                                                        }
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Flair Suggestions Results */}
+                                            {aiToolResults.flairSuggestions && (
+                                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 text-sm flex items-center">
+                                                        🏷️ Flair Suggestions
+                                                    </h4>
+                                                    <div className="text-xs text-green-800 dark:text-green-200 whitespace-pre-wrap">
+                                                        {
+                                                            aiToolResults.flairSuggestions
+                                                        }
+                                                    </div>
+                                                    {aiToolResults.recommendedFlair && (
+                                                        <div className="mt-2 text-xs text-green-700 dark:text-green-300 font-medium">
+                                                            Recommended:{" "}
+                                                            {
+                                                                aiToolResults.recommendedFlair
+                                                            }
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Run New Analysis Button */}
+                                            <div className="pt-2">
+                                                {aiToolButtons}
                                             </div>
-                                        </button>
-                                    </div>
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="text-center py-8">
                                         <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center">
@@ -3289,6 +3704,218 @@ ${rules
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Pricing Popup Modal */}
+            <AnimatePresence>
+                {showPricingPopup && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowPricingPopup(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="max-w-md w-full"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Single Credit Pack Card */}
+                            <div className="bg-[#FF4500] rounded-3xl p-8 relative">
+                                {/* Most Popular Badge */}
+                                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                    <span className="bg-white text-[#FF4500] px-4 py-2 rounded-full text-sm font-bold">
+                                        Most Popular
+                                    </span>
+                                </div>
+
+                                {/* Close Button */}
+                                <button
+                                    onClick={() => setShowPricingPopup(false)}
+                                    className="absolute top-4 right-4 text-white hover:text-orange-200 transition-colors"
+                                >
+                                    <svg
+                                        className="w-6 h-6"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+
+                                {/* Header */}
+                                <div className="text-center mb-8 mt-4">
+                                    <h2 className="text-white text-2xl font-bold mb-2">
+                                        Credit Pack
+                                    </h2>
+                                    <div className="text-white text-5xl font-bold mb-2">
+                                        $9
+                                    </div>
+                                    <div className="text-white text-xl font-semibold">
+                                        100 AI Credits
+                                    </div>
+                                </div>
+
+                                {/* Features List */}
+                                <div className="space-y-4 mb-8">
+                                    <div className="flex items-center text-white">
+                                        <svg
+                                            className="w-5 h-5 mr-3 flex-shrink-0"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="text-base">
+                                            100 AI Post Analysis credits
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center text-white">
+                                        <svg
+                                            className="w-5 h-5 mr-3 flex-shrink-0"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="text-base">
+                                            Advanced anomaly detection
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center text-white">
+                                        <svg
+                                            className="w-5 h-5 mr-3 flex-shrink-0"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="text-base">
+                                            Smart flair suggestions
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center text-white">
+                                        <svg
+                                            className="w-5 h-5 mr-3 flex-shrink-0"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="text-base">
+                                            Rule compliance checking
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center text-white">
+                                        <svg
+                                            className="w-5 h-5 mr-3 flex-shrink-0"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="text-base">
+                                            Alternative subreddit finder
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center text-white">
+                                        <svg
+                                            className="w-5 h-5 mr-3 flex-shrink-0"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <a
+                                            href="https://x.com/nibodhdaware"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-base text-white underline hover:text-orange-200 transition-colors"
+                                        >
+                                            Priority support (Chat with founder)
+                                        </a>
+                                    </div>
+                                    <div className="flex items-center text-white">
+                                        <svg
+                                            className="w-5 h-5 mr-3 flex-shrink-0"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="text-base">
+                                            Credits never expire
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Buy Credits Button */}
+                                <button
+                                    onClick={() => {
+                                        setShowPricingPopup(false);
+                                        setShowBillingModal(true);
+                                    }}
+                                    className="w-full py-4 px-6 bg-white text-[#FF4500] rounded-2xl font-bold text-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Buy Credits
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Billing Address Modal */}
+            {showBillingModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-6">
+                            Billing Information
+                        </h2>
+                        <BillingAddressForm
+                            onSubmit={handleBillingSubmit}
+                            loading={paymentLoading}
+                            onCancel={() => setShowBillingModal(false)}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

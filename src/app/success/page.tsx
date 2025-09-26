@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { CheckCircle, CreditCard, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 interface PaymentDetails {
     paymentId: string;
@@ -31,734 +34,357 @@ export default function SuccessPage() {
     );
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [allocationStatus, setAllocationStatus] = useState<{
+    const [creditAllocationStatus, setCreditAllocationStatus] = useState<{
         status: "pending" | "success" | "error";
         message?: string;
-        postsAllocated?: number;
-    } | null>(null);
+        creditsAdded?: number;
+    }>({ status: "pending" });
 
-    // Helper function to get currency symbol
-    const getCurrencySymbol = (currency: string) => {
-        switch (currency.toUpperCase()) {
-            case "USD":
-                return "$";
-            case "INR":
-                return "₹";
-            case "EUR":
-                return "€";
-            case "GBP":
-                return "£";
-            case "CAD":
-                return "C$";
-            case "AUD":
-                return "A$";
-            case "JPY":
-                return "¥";
-            case "CNY":
-                return "¥";
-            case "KRW":
-                return "₩";
-            case "RUB":
-                return "₽";
-            case "BRL":
-                return "R$";
-            case "MXN":
-                return "$";
-            case "SGD":
-                return "S$";
-            case "HKD":
-                return "HK$";
-            case "NZD":
-                return "NZ$";
-            case "CHF":
-                return "CHF";
-            case "SEK":
-                return "kr";
-            case "NOK":
-                return "kr";
-            case "DKK":
-                return "kr";
-            case "PLN":
-                return "zł";
-            case "CZK":
-                return "Kč";
-            case "HUF":
-                return "Ft";
-            case "RON":
-                return "lei";
-            case "BGN":
-                return "лв";
-            case "HRK":
-                return "kn";
-            case "RSD":
-                return "дин";
-            case "UAH":
-                return "₴";
-            case "TRY":
-                return "₺";
-            case "ILS":
-                return "₪";
-            case "AED":
-                return "د.إ";
-            case "SAR":
-                return "ر.س";
-            case "QAR":
-                return "ر.ق";
-            case "KWD":
-                return "د.ك";
-            case "BHD":
-                return ".د.ب";
-            case "OMR":
-                return "ر.ع.";
-            case "JOD":
-                return "د.أ";
-            case "LBP":
-                return "ل.ل";
-            case "EGP":
-                return "ج.م";
-            case "ZAR":
-                return "R";
-            case "NGN":
-                return "₦";
-            case "KES":
-                return "KSh";
-            case "GHS":
-                return "GH₵";
-            case "UGX":
-                return "USh";
-            case "TZS":
-                return "TSh";
-            case "MAD":
-                return "د.م.";
-            case "TND":
-                return "د.ت";
-            case "DZD":
-                return "د.ج";
-            case "LYD":
-                return "ل.د";
-            case "SDG":
-                return "ج.س.";
-            case "ETB":
-                return "Br";
-            case "SOS":
-                return "S";
-            case "DJF":
-                return "Fdj";
-            case "KMF":
-                return "CF";
-            case "MUR":
-                return "₨";
-            case "SCR":
-                return "₨";
-            case "CDF":
-                return "FC";
-            case "RWF":
-                return "FRw";
-            case "BIF":
-                return "FBu";
-            case "MWK":
-                return "MK";
-            case "ZMW":
-                return "ZK";
-            case "ZWL":
-                return "Z$";
-            case "BWP":
-                return "P";
-            case "NAD":
-                return "N$";
-            case "LSL":
-                return "L";
-            case "SZL":
-                return "E";
-            case "MOP":
-                return "MOP$";
-            case "THB":
-                return "฿";
-            case "VND":
-                return "₫";
-            case "IDR":
-                return "Rp";
-            case "MYR":
-                return "RM";
-            case "PHP":
-                return "₱";
-            case "BDT":
-                return "৳";
-            case "PKR":
-                return "₨";
-            case "LKR":
-                return "Rs";
-            case "NPR":
-                return "₨";
-            case "MMK":
-                return "K";
-            case "KHR":
-                return "៛";
-            case "LAK":
-                return "₭";
-            case "MNT":
-                return "₮";
-            case "KZT":
-                return "₸";
-            case "UZS":
-                return "so'm";
-            case "TJS":
-                return "ЅM";
-            case "TMT":
-                return "T";
-            case "AZN":
-                return "₼";
-            case "GEL":
-                return "₾";
-            case "AMD":
-                return "֏";
-            case "BYN":
-                return "Br";
-            case "MDL":
-                return "L";
-            case "ALL":
-                return "L";
-            case "MKD":
-                return "ден";
-            case "BAM":
-                return "KM";
-            case "XOF":
-                return "CFA";
-            case "XAF":
-                return "FCFA";
-            case "XPF":
-                return "CFP";
-            case "CLP":
-                return "$";
-            case "COP":
-                return "$";
-            case "PEN":
-                return "S/";
-            case "UYU":
-                return "$U";
-            case "PYG":
-                return "₲";
-            case "BOB":
-                return "Bs";
-            case "ARS":
-                return "$";
-            case "VES":
-                return "Bs";
-            case "GTQ":
-                return "Q";
-            case "HNL":
-                return "L";
-            case "NIO":
-                return "C$";
-            case "CRC":
-                return "₡";
-            case "PAB":
-                return "B/.";
-            case "DOP":
-                return "RD$";
-            case "JMD":
-                return "J$";
-            case "TTD":
-                return "TT$";
-            case "BBD":
-                return "$";
-            case "XCD":
-                return "$";
-            case "AWG":
-                return "ƒ";
-            case "ANG":
-                return "ƒ";
-            case "SRD":
-                return "$";
-            case "GYD":
-                return "$";
-            case "BZD":
-                return "BZ$";
-            case "BMD":
-                return "$";
-            case "KYD":
-                return "$";
-            case "FJD":
-                return "$";
-            case "WST":
-                return "T";
-            case "TOP":
-                return "T$";
-            case "SBD":
-                return "$";
-            case "VUV":
-                return "Vt";
-            case "PGK":
-                return "K";
-            case "KID":
-                return "$";
-            case "TVD":
-                return "$";
-            case "CKD":
-                return "$";
-            default:
-                return currency.toUpperCase();
-        }
-    };
+    // Get current user data from Convex
+    const userData = useQuery(
+        api.users.getUserByClerkId,
+        user?.id ? { clerkId: user.id } : "skip",
+    );
+
+    // Mutation to add credits
+    const addCredits = useMutation(api.users.addCredits);
 
     useEffect(() => {
-        const fetchPaymentDetails = async () => {
-            try {
-                // Get payment ID from URL params
-                const urlParams = new URLSearchParams(window.location.search);
+        const handlePaymentResult = async () => {
+            if (!user?.id) return;
 
+            try {
+                setLoading(true);
+
+                // Get payment details from URL
+                const urlParams = new URLSearchParams(window.location.search);
                 const paymentId =
                     urlParams.get("payment_id") ||
                     urlParams.get("id") ||
-                    urlParams.get("payment") ||
-                    urlParams.get("session_id");
+                    urlParams.get("payment");
+                const paymentStatus =
+                    urlParams.get("status") || urlParams.get("payment_status");
+                const amount = urlParams.get("amount") || "9.00";
 
-                if (!paymentId) {
-                    // Try to allocate posts based on amount from URL params
-                    const amount = urlParams.get("amount");
-                    if (amount) {
-                        setAllocationStatus({
-                            status: "pending",
-                            message: "Allocating posts to your account...",
-                        });
+                // Check if payment was cancelled
+                const cancelled =
+                    urlParams.get("cancelled") === "true" ||
+                    paymentStatus === "cancelled" ||
+                    urlParams.get("cancel") === "true";
 
-                        try {
-                            const manualResponse = await fetch(
-                                "/api/payments/manual-record",
-                                {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                        amount: parseInt(amount),
-                                    }),
-                                },
-                            );
-
-                            if (manualResponse.ok) {
-                                const manualResult =
-                                    await manualResponse.json();
-
-                                if (manualResult.allocation) {
-                                    setAllocationStatus({
-                                        status: "success",
-                                        message: `Successfully allocated ${manualResult.allocation.postsAdded} posts to your account!`,
-                                        postsAllocated:
-                                            manualResult.allocation.postsAdded,
-                                    });
-                                } else {
-                                    setAllocationStatus({
-                                        status: "success",
-                                        message:
-                                            "Payment completed successfully! Your posts have been added to your account.",
-                                    });
-                                }
-                            } else {
-                                setAllocationStatus({
-                                    status: "success",
-                                    message:
-                                        "Payment completed successfully! Your posts have been added to your account.",
-                                });
-                            }
-                        } catch (error) {
-                            setAllocationStatus({
-                                status: "success",
-                                message:
-                                    "Payment completed successfully! Your posts have been added to your account.",
-                            });
-                        }
-                    } else {
-                        setAllocationStatus({
-                            status: "success",
-                            message:
-                                "Payment completed successfully! Your posts have been added to your account.",
-                        });
-                    }
-                    setLoading(false);
+                if (cancelled) {
+                    // Redirect to cancel page if payment was cancelled
+                    router.push(`/cancel?payment_id=${paymentId || "unknown"}`);
                     return;
                 }
 
-                // Fetch payment details from our API (which will call Dodo API)
-                const response = await fetch(
-                    `/api/payments/details?payment_id=${paymentId}`,
-                );
+                setCreditAllocationStatus({
+                    status: "pending",
+                    message: "Processing your payment and adding credits...",
+                });
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
+                // Add 100 credits to user account
+                const newCreditTotal = await addCredits({
+                    clerkId: user.id,
+                    credits: 100,
+                });
 
-                    // Show more helpful error message for 403 errors
-                    if (response.status === 403) {
-                        const message = `Payment access denied. This payment may belong to a different user.`;
-                        throw new Error(message);
-                    }
+                // Update status
+                setCreditAllocationStatus({
+                    status: "success",
+                    message: "Successfully added 100 credits to your account!",
+                    creditsAdded: 100,
+                });
 
-                    throw new Error(
-                        `Failed to fetch payment details: ${response.status} - ${errorData.error || response.statusText}`,
-                    );
-                }
-
-                const details: PaymentDetails = await response.json();
-
-                // Debug: Log the payment details to see what we're getting
-                console.log("Payment details received:", details);
-
-                setPaymentDetails(details);
-
-                // Save payment to our database if user is available and payment was successful
-                if (user && details.status === "succeeded") {
-                    setAllocationStatus({
-                        status: "pending",
-                        message: "Allocating posts to your account...",
-                    });
-
-                    try {
-                        const result = await savePaymentToDatabase(details);
-
-                        if (result.error) {
-                            setAllocationStatus({
-                                status: "error",
-                                message:
-                                    "Payment recorded but post allocation failed. Please contact support.",
-                            });
-                        } else if (result.allocation) {
-                            setAllocationStatus({
-                                status: "success",
-                                message: `Successfully allocated ${result.allocation.postsAdded} posts to your account!`,
-                                postsAllocated: result.allocation.postsAdded,
-                            });
-                        } else {
-                            setAllocationStatus({
-                                status: "success",
-                                message: "Payment processed successfully!",
-                            });
-                        }
-                    } catch (error) {
-                        setAllocationStatus({
-                            status: "error",
-                            message:
-                                "Error processing payment. Please contact support.",
-                        });
-                    }
-                }
-            } catch (error) {
-                setError(
-                    error instanceof Error ? error.message : "Unknown error",
-                );
+                // Set basic payment details for display
+                setPaymentDetails({
+                    paymentId: paymentId || `payment_${Date.now()}`,
+                    status: "succeeded",
+                    amount: 900, // $9.00 in cents
+                    currency: "USD",
+                    customer: {
+                        customer_id: user.id,
+                        name: user.fullName || user.firstName || "User",
+                        email: user.emailAddresses[0]?.emailAddress || "",
+                    },
+                    created_at: new Date().toISOString(),
+                    metadata: {
+                        userId: user.id,
+                        credits: "100",
+                        amount: amount,
+                    },
+                });
+            } catch (err) {
+                console.error("Error processing payment success:", err);
+                setCreditAllocationStatus({
+                    status: "error",
+                    message:
+                        "Payment successful but there was an issue adding credits. Please contact support.",
+                });
+                setError("Failed to process payment success");
             } finally {
                 setLoading(false);
             }
         };
 
-        // Only fetch payment details if user is loaded and authenticated
-        if (user && isLoaded) {
-            fetchPaymentDetails();
+        if (isLoaded && user) {
+            handlePaymentResult();
         } else if (isLoaded && !user) {
             setError("Please sign in to view payment details");
             setLoading(false);
         }
-    }, [user, isLoaded]); // Add isLoaded to dependencies
+    }, [user, isLoaded, addCredits, router]);
 
-    const savePaymentToDatabase = async (details: PaymentDetails) => {
-        try {
-            // Calculate amount from product cart if not available at top level
-            let amount = details.amount;
-            if (
-                !amount &&
-                details.product_cart &&
-                details.product_cart.length > 0
-            ) {
-                amount = details.product_cart.reduce((total, item) => {
-                    return total + (item.amount || 0);
-                }, 0);
-            }
-
-            // Ensure amount is a valid number
-            const finalAmount =
-                typeof amount === "number"
-                    ? amount
-                    : typeof amount === "string"
-                      ? parseFloat(amount)
-                      : 0;
-
-            // Ensure metadata is properly structured
-            const metadata = details.metadata || {};
-
-            const response = await fetch("/api/payments/record", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    clerkId: user?.id,
-                    email: user?.emailAddresses[0]?.emailAddress,
-                    paymentId: details.paymentId,
-                    amount: finalAmount,
-                    currency: details.currency,
-                    status: details.status,
-                    paymentProvider: "dodo",
-                    customerData: details.customer,
-                    productCart: details.product_cart,
-                    metadata: metadata,
-                    createdAt: details.created_at,
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.text();
-                console.error(
-                    "Payment record error:",
-                    response.status,
-                    errorData,
-                );
-                return { error: errorData };
-            } else {
-                const result = await response.json();
-                return result;
-            }
-        } catch (error) {
-            console.error("Error saving payment:", error);
-            return { error: "Failed to save payment" };
-        }
+    const handleGoToApp = () => {
+        router.push("/app");
     };
 
-    const handleContinue = () => {
-        router.push("/");
+    const formatAmount = (amount: number) => {
+        return (amount / 100).toFixed(2);
     };
+
+    if (!isLoaded || loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-[#FF4500]" />
+                    <p className="text-neutral-600 dark:text-neutral-400">
+                        Processing your payment...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 flex items-center justify-center p-4">
+                <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-sm">
+                    <div className="flex flex-col space-y-1.5 p-6 text-center">
+                        <h3 className="text-2xl font-semibold leading-none tracking-tight text-red-600 dark:text-red-400">
+                            Error
+                        </h3>
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                            {error}
+                        </p>
+                    </div>
+                    <div className="p-6 pt-0">
+                        <button
+                            onClick={() => router.push("/app")}
+                            className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium bg-[#FF4500] text-white hover:bg-[#e03d00] h-10 px-4 py-2 transition-colors"
+                        >
+                            Go to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-                {/* Success Icon */}
-                <div className="w-16 h-16 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg
-                        className="w-8 h-8 text-green-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                        />
-                    </svg>
+        <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-sm">
+                <div className="flex flex-col space-y-1.5 p-6 text-center">
+                    <div className="mx-auto mb-4 w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                        <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h3 className="text-3xl font-bold text-neutral-900 dark:text-white">
+                        Payment Successful! 🎉
+                    </h3>
+                    <p className="text-lg text-neutral-600 dark:text-neutral-400">
+                        Thank you for your purchase. Your credits have been
+                        added to your account.
+                    </p>
                 </div>
 
-                {/* Success Message */}
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">
-                    Payment Successful! 🎉
-                </h1>
-
-                <p className="text-gray-600 mb-6">
-                    Thank you for your purchase! Your posts have been added to
-                    your account.
-                </p>
-
-                {/* Allocation Status */}
-                {allocationStatus && (
+                <div className="p-6 pt-0 space-y-6">
+                    {/* Credit Status */}
                     <div
-                        className={`mb-6 p-4 rounded-lg ${
-                            allocationStatus.status === "pending"
-                                ? "bg-blue-50 border border-blue-200 text-blue-800"
-                                : allocationStatus.status === "success"
-                                  ? "bg-green-50 border border-green-200 text-green-800"
-                                  : "bg-red-50 border border-red-200 text-red-800"
+                        className={`p-4 rounded-lg border ${
+                            creditAllocationStatus.status === "success"
+                                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                                : creditAllocationStatus.status === "error"
+                                  ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
+                                  : "bg-neutral-50 dark:bg-neutral-800/50 border-neutral-200 dark:border-neutral-700"
                         }`}
                     >
-                        <div className="flex items-center justify-center">
-                            {allocationStatus.status === "pending" && (
-                                <svg
-                                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <circle
-                                        className="opacity-25"
-                                        cx="12"
-                                        cy="12"
-                                        r="10"
-                                        stroke="currentColor"
-                                        strokeWidth="4"
-                                    ></circle>
-                                    <path
-                                        className="opacity-75"
-                                        fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    ></path>
-                                </svg>
+                        <div className="flex items-center gap-2 mb-2">
+                            {creditAllocationStatus.status === "pending" && (
+                                <Loader2 className="h-5 w-5 animate-spin text-[#FF4500]" />
                             )}
-                            {allocationStatus.status === "success" && (
-                                <svg
-                                    className="w-5 h-5 mr-2 text-green-600"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
+                            {creditAllocationStatus.status === "success" && (
+                                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                             )}
-                            {allocationStatus.status === "error" && (
-                                <svg
-                                    className="w-5 h-5 mr-2 text-red-600"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
+                            {creditAllocationStatus.status === "error" && (
+                                <div className="h-5 w-5 bg-red-600 dark:bg-red-500 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-xs">
+                                        !
+                                    </span>
+                                </div>
                             )}
-                            <span className="text-sm font-medium">
-                                {allocationStatus.message}
+                            <span
+                                className={`font-semibold ${
+                                    creditAllocationStatus.status === "success"
+                                        ? "text-green-700 dark:text-green-300"
+                                        : creditAllocationStatus.status ===
+                                            "error"
+                                          ? "text-red-700 dark:text-red-300"
+                                          : "text-neutral-700 dark:text-neutral-300"
+                                }`}
+                            >
+                                Credit Update
                             </span>
                         </div>
-                        {allocationStatus.postsAllocated && (
-                            <div className="mt-2 text-center">
-                                <span className="text-lg font-bold text-green-700">
-                                    +{allocationStatus.postsAllocated} posts
-                                    added
+                        <p
+                            className={`text-sm ${
+                                creditAllocationStatus.status === "success"
+                                    ? "text-green-600 dark:text-green-400"
+                                    : creditAllocationStatus.status === "error"
+                                      ? "text-red-600 dark:text-red-400"
+                                      : "text-neutral-600 dark:text-neutral-400"
+                            }`}
+                        >
+                            {creditAllocationStatus.message}
+                        </p>
+                    </div>
+
+                    {/* Payment Details */}
+                    {paymentDetails && (
+                        <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-lg space-y-3 border border-neutral-200 dark:border-neutral-700">
+                            <h3 className="font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
+                                <CreditCard className="h-5 w-5 text-[#FF4500]" />
+                                Payment Details
+                            </h3>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-neutral-600 dark:text-neutral-400">
+                                        Amount:
+                                    </span>
+                                    <span className="font-medium text-neutral-900 dark:text-white">
+                                        ${formatAmount(paymentDetails.amount)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-neutral-600 dark:text-neutral-400">
+                                        Credits Added:
+                                    </span>
+                                    <span className="font-medium text-[#FF4500]">
+                                        100 credits
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-neutral-600 dark:text-neutral-400">
+                                        Status:
+                                    </span>
+                                    <span className="font-medium text-green-600 dark:text-green-400 capitalize">
+                                        {paymentDetails.status}
+                                    </span>
+                                </div>
+                                {paymentDetails.paymentId && (
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-600 dark:text-neutral-400">
+                                            Payment ID:
+                                        </span>
+                                        <span className="font-mono text-xs bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 px-2 py-1 rounded text-neutral-700 dark:text-neutral-300">
+                                            {paymentDetails.paymentId}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Current Credits Display */}
+                    {userData && (
+                        <div className="bg-[#FF4500]/10 dark:bg-[#FF4500]/5 p-4 rounded-lg border border-[#FF4500]/20 dark:border-[#FF4500]/10">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-5 h-5 bg-[#FF4500] rounded-full flex items-center justify-center">
+                                    <span className="text-white text-xs font-bold">
+                                        💎
+                                    </span>
+                                </div>
+                                <h3 className="font-semibold text-[#FF4500] dark:text-[#FF4500]">
+                                    Your Credits
+                                </h3>
+                            </div>
+                            <p className="text-2xl font-bold text-[#FF4500] dark:text-[#FF4500] mb-1">
+                                {userData.totalPurchasedPosts || 0} credits
+                            </p>
+                            <p className="text-sm text-[#FF4500]/80 dark:text-[#FF4500]/70">
+                                Ready to use with AI-powered features
+                            </p>
+                        </div>
+                    )}
+
+                    {/* AI Tools Summary */}
+                    <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-5 h-5 bg-gradient-to-r from-[#FF4500] to-[#e03d00] rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs">🚀</span>
+                            </div>
+                            <h3 className="font-semibold text-neutral-900 dark:text-white">
+                                What you can do with your credits:
+                            </h3>
+                        </div>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between items-center text-neutral-700 dark:text-neutral-300 py-1">
+                                <span className="flex items-center gap-2">
+                                    <span>🎯</span>
+                                    <span>AI Post Analyzer</span>
+                                </span>
+                                <span className="font-medium text-[#FF4500] bg-[#FF4500]/10 px-2 py-1 rounded-full text-xs">
+                                    10 credits
                                 </span>
                             </div>
-                        )}
+                            <div className="flex justify-between items-center text-neutral-700 dark:text-neutral-300 py-1">
+                                <span className="flex items-center gap-2">
+                                    <span>🛡️</span>
+                                    <span>Rule Checker</span>
+                                </span>
+                                <span className="font-medium text-[#FF4500] bg-[#FF4500]/10 px-2 py-1 rounded-full text-xs">
+                                    5 credits
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-neutral-700 dark:text-neutral-300 py-1">
+                                <span className="flex items-center gap-2">
+                                    <span>🎯</span>
+                                    <span>Find Better Subreddits</span>
+                                </span>
+                                <span className="font-medium text-[#FF4500] bg-[#FF4500]/10 px-2 py-1 rounded-full text-xs">
+                                    5 credits
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-neutral-700 dark:text-neutral-300 py-1">
+                                <span className="flex items-center gap-2">
+                                    <span>🔍</span>
+                                    <span>Anomaly Detection</span>
+                                </span>
+                                <span className="font-medium text-[#FF4500] bg-[#FF4500]/10 px-2 py-1 rounded-full text-xs">
+                                    3 credits
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-neutral-700 dark:text-neutral-300 py-1">
+                                <span className="flex items-center gap-2">
+                                    <span>🏷️</span>
+                                    <span>Smart Flair Suggestions</span>
+                                </span>
+                                <span className="font-medium text-[#FF4500] bg-[#FF4500]/10 px-2 py-1 rounded-full text-xs">
+                                    2 credits
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                )}
 
-                {/* User Info */}
-                {user && (
-                    <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-gray-600">
-                            Welcome,{" "}
-                            <span className="font-medium">
-                                {user.fullName ||
-                                    user.firstName ||
-                                    "Premium User"}
-                            </span>
-                            !
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                            {user.emailAddresses[0]?.emailAddress}
-                        </p>
-                    </div>
-                )}
-
-                {/* Payment Details */}
-                {paymentDetails && (
-                    <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
-                        <h3 className="font-medium text-blue-900 mb-2">
-                            Payment Details
-                        </h3>
-                        {paymentDetails.paymentId && (
-                            <p className="text-sm text-blue-700">
-                                <span className="font-medium">Payment ID:</span>{" "}
-                                {paymentDetails.paymentId}
-                            </p>
-                        )}
-                        <p className="text-sm text-blue-700">
-                            <span className="font-medium">Status:</span>{" "}
-                            {paymentDetails.status}
-                        </p>
-                        <p className="text-sm text-blue-700">
-                            <span className="font-medium">Amount:</span>{" "}
-                            {getCurrencySymbol(paymentDetails.currency)}
-                            {(() => {
-                                let amount = paymentDetails.amount;
-                                if (
-                                    !amount &&
-                                    paymentDetails.product_cart &&
-                                    paymentDetails.product_cart.length > 0
-                                ) {
-                                    amount = paymentDetails.product_cart.reduce(
-                                        (total, item) => {
-                                            return total + (item.amount || 0);
-                                        },
-                                        0,
-                                    );
-                                }
-                                return typeof amount === "number" &&
-                                    !isNaN(amount)
-                                    ? (amount / 100).toFixed(2)
-                                    : "0.00";
-                            })()}{" "}
-                        </p>
-                        <p className="text-sm text-blue-700">
-                            <span className="font-medium">Date:</span>{" "}
-                            {new Date(
-                                paymentDetails.created_at,
-                            ).toLocaleDateString()}
-                        </p>
-                    </div>
-                )}
-
-                {/* Features List */}
-                <div className="bg-green-50 rounded-lg p-4 mb-6 text-left">
-                    <h3 className="font-medium text-green-900 mb-3">
-                        What You've Unlocked
-                    </h3>
-                    <ul className="space-y-2">
-                        <li className="flex items-center text-sm text-green-700">
-                            <svg
-                                className="w-4 h-4 mr-2 text-green-600"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                            Additional Reddit posts (never expire)
-                        </li>
-                        <li className="flex items-center text-sm text-green-700">
-                            <svg
-                                className="w-4 h-4 mr-2 text-green-600"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                            AI-optimized content suggestions
-                        </li>
-                        <li className="flex items-center text-sm text-green-700">
-                            <svg
-                                className="w-4 h-4 mr-2 text-green-600"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                            Reddit safety checks
-                        </li>
-                    </ul>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-3">
+                    {/* Action Button */}
                     <button
-                        onClick={handleContinue}
-                        className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                        onClick={handleGoToApp}
+                        className="w-full bg-[#FF4500] hover:bg-[#e03d00] text-white font-semibold py-3 px-8 text-lg rounded-md transition-colors"
                     >
-                        Continue to Dashboard
+                        Go to Dashboard & Start Using Credits 🚀
                     </button>
 
-                    <p className="text-xs text-gray-500">
-                        Questions? Contact us at nibodhdaware@gmail.com
+                    <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+                        Your credits never expire and can be used anytime!
                     </p>
                 </div>
             </div>

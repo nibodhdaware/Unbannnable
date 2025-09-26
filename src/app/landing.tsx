@@ -5,6 +5,7 @@ import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { JSX, useEffect } from "react";
+import PricingSection from "@/components/PricingSection";
 
 interface Feature {
     icon: ({ className }: { className: string }) => JSX.Element;
@@ -204,6 +205,9 @@ export default function LandingPage() {
 
             {/* How It Works */}
             <HowItWorksSection />
+
+            {/* Pricing Section */}
+            <PricingSection />
 
             {/* CTA Section */}
             <CTASection />

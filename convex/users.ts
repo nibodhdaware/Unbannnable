@@ -162,3 +162,80 @@ export const getUserPaymentSummary = query({
         };
     },
 });
+
+// Add credits to user
+export const addCredits = mutation({
+    args: {
+        clerkId: v.string(),
+        credits: v.number(),
+    },
+    handler: async (ctx, { clerkId, credits }) => {
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+            .first();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const currentCredits = user.totalPurchasedPosts || 0;
+        const newCredits = currentCredits + credits;
+
+        await ctx.db.patch(user._id, {
+            totalPurchasedPosts: newCredits,
+            updatedAt: Date.now(),
+        });
+
+        return newCredits;
+    },
+});
+
+// Deduct credits from user
+export const deductCredits = mutation({
+    args: {
+        clerkId: v.string(),
+        credits: v.number(),
+    },
+    handler: async (ctx, { clerkId, credits }) => {
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+            .first();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const currentCredits = user.totalPurchasedPosts || 0;
+        if (currentCredits < credits) {
+            throw new Error("Insufficient credits");
+        }
+
+        const newCredits = currentCredits - credits;
+
+        await ctx.db.patch(user._id, {
+            totalPurchasedPosts: newCredits,
+            updatedAt: Date.now(),
+        });
+
+        return newCredits;
+    },
+});
+
+// Get user credits
+export const getUserCredits = query({
+    args: { clerkId: v.string() },
+    handler: async (ctx, { clerkId }) => {
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+            .first();
+
+        if (!user) {
+            return 0;
+        }
+
+        return user.totalPurchasedPosts || 0;
+    },
+});

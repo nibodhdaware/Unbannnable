@@ -59,7 +59,6 @@ export const getPaymentByPaymentId = query({
             .first();
     },
 });
-
 // Allocate posts from a successful payment
 export const allocatePostsFromPayment = mutation({
     args: {

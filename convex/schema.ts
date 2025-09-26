@@ -54,6 +54,18 @@ export default defineSchema({
             ),
         ),
         paymentId: v.optional(v.string()),
+        // AI functionality tracking
+        aiFeaturesUsed: v.optional(v.array(v.string())), // Array of feature names used
+        totalCreditsSpent: v.optional(v.number()), // Total credits spent on this post
+        aiAnalysisResults: v.optional(
+            v.object({
+                postAnalyzer: v.optional(v.string()),
+                ruleChecker: v.optional(v.string()),
+                betterSubreddits: v.optional(v.array(v.string())),
+                anomalyDetection: v.optional(v.string()),
+                flairSuggestions: v.optional(v.array(v.string())),
+            }),
+        ),
     })
         .index("by_user_id", ["userId"])
         .index("by_user_and_date", ["userId", "createdAt"]),

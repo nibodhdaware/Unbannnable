@@ -159,12 +159,6 @@ export default function RootLayout({
                     <meta name="robots" content="index, follow" />
                 </head>
                 <body>
-                    <Script
-                        async
-                        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4994844479889320"
-                        crossOrigin="anonymous"
-                        strategy="afterInteractive"
-                    />
                     <DynamicClientComponent />
                     {children}
                     <Analytics />
