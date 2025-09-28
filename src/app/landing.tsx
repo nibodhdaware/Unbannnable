@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { JSX, useEffect } from "react";
 import PricingSection from "@/components/PricingSection";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface Feature {
     icon: ({ className }: { className: string }) => JSX.Element;
@@ -67,6 +68,9 @@ export default function LandingPage() {
                         transition={{ duration: 0.6, delay: 0.1 }}
                         className="flex items-center space-x-4"
                     >
+                        {/* Theme Toggle */}
+                        <ThemeToggle />
+
                         {/* Product Hunt Badge */}
                         <a
                             href="https://www.producthunt.com/products/unbannnable?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-unbannnable"

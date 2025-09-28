@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { SignInButton, useUser } from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import BillingAddressForm from "./BillingAddressForm";
 
 interface PricingCardProps {
@@ -10,8 +10,6 @@ interface PricingCardProps {
     price: string;
     credits: string;
     features: string[];
-    isPopular?: boolean;
-    onPurchase: () => void;
     loading?: boolean;
 }
 
@@ -20,38 +18,20 @@ function PricingCard({
     price,
     credits,
     features,
-    isPopular = false,
-    onPurchase,
     loading = false,
 }: PricingCardProps) {
     return (
         <motion.div
             whileHover={{ y: -8, scale: 1.02 }}
             transition={{ duration: 0.3 }}
-            className={`relative rounded-2xl p-8 ${
-                isPopular
-                    ? "bg-gradient-to-br from-[#FF4500] to-[#e03d00] text-white"
-                    : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800"
-            }`}
+            className="relative rounded-2xl p-8 bg-gradient-to-br from-[#FF4500] to-[#e03d00] text-white"
         >
-            {isPopular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-white text-[#FF4500] px-4 py-2 rounded-full text-sm font-bold">
-                        Most Popular
-                    </div>
-                </div>
-            )}
-
             <div className="text-center mb-8">
                 <h3 className="text-2xl font-bold mb-2">{title}</h3>
                 <div className="mb-4">
                     <span className="text-4xl font-bold">{price}</span>
                 </div>
-                <div
-                    className={`text-lg font-semibold ${
-                        isPopular ? "text-white" : "text-[#FF4500]"
-                    }`}
-                >
+                <div className="text-lg font-semibold text-white">
                     {credits}
                 </div>
             </div>
@@ -59,53 +39,57 @@ function PricingCard({
             <ul className="space-y-4 mb-8">
                 {features.map((feature, index) => (
                     <li key={index} className="flex items-center space-x-3">
-                        <span
-                            className={`text-lg ${
-                                isPopular ? "text-white" : "text-green-500"
-                            }`}
-                        >
-                            ✓
-                        </span>
-                        <span
-                            className={
-                                isPopular
-                                    ? "text-white"
-                                    : "text-neutral-700 dark:text-neutral-300"
-                            }
-                        >
-                            {feature}
+                        <span className="text-lg text-white">✓</span>
+                        <span className="text-white">
+                            {feature === "Priority support" ? (
+                                <a
+                                    href="https://x.com/nibodhdaware"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline text-white"
+                                >
+                                    Priority support (chat with founder)
+                                </a>
+                            ) : (
+                                feature
+                            )}
                         </span>
                     </li>
                 ))}
             </ul>
 
-            <button
-                onClick={onPurchase}
-                disabled={loading}
-                className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                    isPopular
-                        ? "bg-white text-[#FF4500] hover:bg-neutral-100"
-                        : "bg-[#FF4500] text-white hover:bg-[#e03d00]"
-                } ${loading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-            >
-                {loading ? "Processing..." : "Get Started"}
-            </button>
+            <div className="mb-6 p-3 bg-white/10 rounded-lg border border-white/20">
+                <p className="text-sm text-white text-center">
+                    💡 <strong>Refer a friend</strong> and get{" "}
+                    <strong>10 free credits</strong> when they sign up!
+                </p>
+            </div>
+
+            <SignedOut>
+                <SignInButton mode="modal">
+                    <button
+                        disabled={loading}
+                        className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 bg-white text-[#FF4500] hover:bg-neutral-100 ${loading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                    >
+                        {loading ? "Processing..." : "Get Started"}
+                    </button>
+                </SignInButton>
+            </SignedOut>
+            <SignedIn>
+                <button
+                    disabled={loading}
+                    className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 bg-white text-[#FF4500] hover:bg-neutral-100 ${loading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                >
+                    {loading ? "Processing..." : "Get Started"}
+                </button>
+            </SignedIn>
         </motion.div>
     );
 }
 
 export default function PricingSection() {
-    const { user } = useUser();
     const [showBillingModal, setShowBillingModal] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
-
-    const handlePurchase = () => {
-        if (!user) {
-            // Will trigger sign-in modal
-            return;
-        }
-        setShowBillingModal(true);
-    };
 
     const handleBillingSubmit = async (
         billing: any,
@@ -168,9 +152,7 @@ export default function PricingSection() {
                             title="Credit Pack"
                             price="$9"
                             credits="100 AI Credits"
-                            isPopular={true}
                             loading={paymentLoading}
-                            onPurchase={user ? handlePurchase : () => {}}
                             features={[
                                 "100 AI Post Analysis credits",
                                 "Advanced anomaly detection",
@@ -183,27 +165,6 @@ export default function PricingSection() {
                         />
                     </motion.div>
                 </div>
-
-                {!user && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: 0.4 }}
-                        className="text-center mt-12"
-                    >
-                        <p className="text-neutral-600 dark:text-neutral-400 mb-4">
-                            Sign in to purchase credits and start optimizing
-                            your Reddit posts
-                        </p>
-                        <SignInButton mode="modal">
-                            <button className="inline-flex items-center space-x-2 px-6 py-3 bg-[#FF4500] text-white rounded-lg font-medium hover:bg-[#e03d00] transition-colors">
-                                <span className="text-lg">⚡</span>
-                                <span>Sign In to Get Started</span>
-                            </button>
-                        </SignInButton>
-                    </motion.div>
-                )}
             </div>
 
             {/* Billing Address Form Modal */}

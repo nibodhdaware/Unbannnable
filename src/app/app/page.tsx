@@ -5,6 +5,7 @@ import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
 import { useCredits } from "@/hooks/useCredits";
 import { useMutation, useQuery } from "convex/react";
+import ReferralSection from "@/components/ReferralSection";
 import { api } from "../../../convex/_generated/api";
 import BillingAddressForm from "@/components/BillingAddressForm";
 import {
@@ -29,6 +30,22 @@ import {
     trackAIGeneration,
     trackError,
 } from "@/lib/posthog";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Users, ChevronDown, Copy, ExternalLink } from "lucide-react";
 
 // Component to fetch and display AI-generated subreddit alternatives
 const AISubredditCard = ({
@@ -283,9 +300,7 @@ function AppPageContent() {
 
     // Billing states
     const [showBillingModal, setShowBillingModal] = useState(false);
-    const [paymentLoading, setPaymentLoading] = useState(false);
-
-    // Fuzzy search configuration
+    const [paymentLoading, setPaymentLoading] = useState(false); // Fuzzy search configuration
     const fuse = useMemo(() => {
         const combinedSubreddits = [...allSubreddits, ...subreddits];
         const uniqueSubreddits = combinedSubreddits.filter(
@@ -1381,7 +1396,7 @@ ${rules
         } catch (error) {
             console.error("Billing error:", error);
             trackError("payment_creation_failed", {
-                error: error.message,
+                error: error instanceof Error ? error.message : String(error),
                 user_id: user?.id,
             });
             // TODO: Show user-friendly error message
@@ -1427,27 +1442,32 @@ ${rules
                         <SignedIn>
                             {/* Credits Display and Buy Button */}
                             <div className="flex items-center space-x-2">
-                                <div className="flex items-center space-x-2 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-lg">
-                                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                        {credits.isLoading
-                                            ? "..."
-                                            : `${credits.credits} credits`}
-                                    </span>
-                                </div>
-                                <button
+                                <Badge
+                                    variant="secondary"
+                                    className="px-3 py-1.5 text-sm"
+                                >
+                                    {credits.isLoading
+                                        ? "..."
+                                        : `${credits.credits} credits`}
+                                </Badge>
+                                <Button
                                     onClick={() => setShowPricingPopup(true)}
-                                    className="px-3 py-1.5 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium"
+                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white"
+                                    size="sm"
                                 >
                                     Buy Credits
-                                </button>
+                                </Button>
                             </div>
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
                         <SignedOut>
                             <SignInButton mode="modal">
-                                <button className="px-4 py-2 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-sm font-medium">
+                                <Button
+                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white"
+                                    size="sm"
+                                >
                                     Login
-                                </button>
+                                </Button>
                             </SignInButton>
                         </SignedOut>
                     </div>
@@ -1461,8 +1481,46 @@ ${rules
                 </div>
             )}
 
+            {/* Referral Accordion Section */}
+            <SignedIn>
+                <Card className="w-full rounded-none border-x-0 border-t-0 shadow-none">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6">
+                        <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem
+                                value="referral"
+                                className="border-b-0"
+                            >
+                                <AccordionTrigger className="hover:no-underline py-6">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-10 h-10 bg-[#FF4500] rounded-full flex items-center justify-center shadow-md">
+                                            <Users className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div className="text-left">
+                                            <CardTitle className="text-lg text-neutral-900 dark:text-white mb-1">
+                                                Refer Friends
+                                            </CardTitle>
+                                            <CardDescription className="text-neutral-600 dark:text-neutral-400">
+                                                Earn 10 credits for each friend
+                                                who signs up
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-6">
+                                    <Card className="border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+                                        <CardContent className="p-6">
+                                            <ReferralSection />
+                                        </CardContent>
+                                    </Card>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </div>
+                </Card>
+            </SignedIn>
+
             <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-[45%_10%_45%] gap-0">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_20px_1fr] xl:grid-cols-[1fr_20px_400px] gap-0">
                     {/* Left Column - Post Creation Form */}
                     <div className="lg:col-span-1">
                         <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-8 border border-neutral-200 dark:border-neutral-800 h-[85vh] flex flex-col">
@@ -3555,8 +3613,20 @@ ${rules
                             )}
                         </div>
                     </div>
+
+                    {/* Middle spacer */}
+                    <div className="hidden lg:block"></div>
+
+                    {/* Right Column - Empty for now */}
+                    <div className="hidden lg:block mt-8 lg:mt-0">
+                        <div className="sticky top-8 space-y-6">
+                            {/* Referral section moved to top accordion */}
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Mobile Referral Section moved to top accordion */}
 
             {/* Pricing functionality has been removed */}
 
@@ -3779,7 +3849,8 @@ ${rules
                                             />
                                         </svg>
                                         <span className="text-base">
-                                            100 AI Post Analysis credits
+                                            100 AI Post Analysis credits (10-50
+                                            posts depending on usage)
                                         </span>
                                     </div>
                                     <div className="flex items-center text-white">
@@ -3886,15 +3957,24 @@ ${rules
                                 </div>
 
                                 {/* Buy Credits Button */}
-                                <button
-                                    onClick={() => {
-                                        setShowPricingPopup(false);
-                                        setShowBillingModal(true);
-                                    }}
-                                    className="w-full py-4 px-6 bg-white text-[#FF4500] rounded-2xl font-bold text-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    Buy Credits
-                                </button>
+                                <SignedIn>
+                                    <button
+                                        onClick={() => {
+                                            setShowPricingPopup(false);
+                                            setShowBillingModal(true);
+                                        }}
+                                        className="w-full py-4 px-6 bg-white text-[#FF4500] rounded-2xl font-bold text-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        Buy Credits
+                                    </button>
+                                </SignedIn>
+                                <SignedOut>
+                                    <SignInButton mode="modal">
+                                        <button className="w-full py-4 px-6 bg-white text-[#FF4500] rounded-2xl font-bold text-lg hover:bg-gray-50 transition-colors">
+                                            Get Started
+                                        </button>
+                                    </SignInButton>
+                                </SignedOut>
                             </div>
                         </motion.div>
                     </motion.div>
