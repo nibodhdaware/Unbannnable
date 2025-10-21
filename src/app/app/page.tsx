@@ -7,7 +7,6 @@ import { useCredits } from "@/hooks/useCredits";
 import { useMutation, useQuery } from "convex/react";
 import ReferralSection from "@/components/ReferralSection";
 import { api } from "../../../convex/_generated/api";
-import BillingAddressForm from "@/components/BillingAddressForm";
 import {
     redditAPI,
     type Subreddit,
@@ -45,7 +44,18 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, ChevronDown, Copy, ExternalLink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Users,
+    ChevronDown,
+    Copy,
+    ExternalLink,
+    AlertCircle,
+    CheckCircle2,
+} from "lucide-react";
 
 // Component to fetch and display AI-generated subreddit alternatives
 const AISubredditCard = ({
@@ -299,7 +309,6 @@ function AppPageContent() {
     } | null>(null);
 
     // Billing states
-    const [showBillingModal, setShowBillingModal] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false); // Fuzzy search configuration
     const fuse = useMemo(() => {
         const combinedSubreddits = [...allSubreddits, ...subreddits];
@@ -574,7 +583,13 @@ function AppPageContent() {
                     await Promise.all([
                         redditAPI
                             .fetchSubredditFlairs(selectedSubreddit)
-                            .catch(() => []),
+                            .catch((err) => {
+                                console.error(
+                                    `Error fetching flairs in frontend:`,
+                                    err,
+                                );
+                                return [];
+                            }),
                         redditAPI
                             .fetchSubredditRules(selectedSubreddit)
                             .catch(() => []),
@@ -586,6 +601,10 @@ function AppPageContent() {
                 // Ignore if a newer subreddit change happened since this request started
                 if (fetchId !== latestFetchIdRef.current) return;
 
+                console.log(
+                    `📊 Flairs received for r/${selectedSubreddit}:`,
+                    flairData.length,
+                );
                 setFlairs(flairData);
                 setRules(rulesData);
                 setPostRequirements(requirementsData);
@@ -1334,17 +1353,8 @@ ${rules
         }, 1000); // Small delay to let user see the optimization results
     };
 
-    // Billing handler for payment flow
-    const handleBillingSubmit = async (
-        billing: {
-            street: string;
-            city: string;
-            state: string;
-            zipcode: string;
-            country: string;
-        },
-        customer: { name: string; email: string },
-    ) => {
+    // Direct payment handler with Indian address
+    const handleGetStarted = async () => {
         if (!user || !userRecord) return;
 
         setPaymentLoading(true);
@@ -1356,15 +1366,15 @@ ${rules
                 },
                 body: JSON.stringify({
                     billing: {
-                        street: billing.street,
-                        city: billing.city,
-                        state: billing.state,
-                        zipcode: billing.zipcode,
-                        country: billing.country,
+                        street: "Default Address",
+                        city: "Mumbai",
+                        state: "Maharashtra",
+                        zipcode: "400001",
+                        country: "IN",
                     },
                     customer: {
-                        name: customer.name,
-                        email: customer.email,
+                        name: user.fullName || user.firstName || "User",
+                        email: user.emailAddresses[0]?.emailAddress || "",
                     },
                 }),
             });
@@ -1434,7 +1444,6 @@ ${rules
                         >
                             Unbannnable
                         </a>
-                        ''{" "}
                     </div>
 
                     {/* Right side - Navigation and Authentication */}
@@ -1547,24 +1556,28 @@ ${rules
                             </div>
 
                             {error && (
-                                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
-                                    {error}
-                                </div>
+                                <Alert variant="destructive" className="mb-4">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Alert>
                             )}
 
                             {validationErrors.length > 0 && (
-                                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                                    <h4 className="font-semibold mb-2 text-sm">
-                                        Please fix the following errors:
-                                    </h4>
-                                    <ul className="list-disc list-inside space-y-1 text-xs">
-                                        {validationErrors.map(
-                                            (error, index) => (
-                                                <li key={index}>{error}</li>
-                                            ),
-                                        )}
-                                    </ul>
-                                </div>
+                                <Alert variant="destructive" className="mb-4">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        <h4 className="font-semibold mb-2 text-sm">
+                                            Please fix the following errors:
+                                        </h4>
+                                        <ul className="list-disc list-inside space-y-1 text-xs">
+                                            {validationErrors.map(
+                                                (error, index) => (
+                                                    <li key={index}>{error}</li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </AlertDescription>
+                                </Alert>
                             )}
 
                             <form
@@ -1573,13 +1586,13 @@ ${rules
                             >
                                 {/* Subreddit Selection */}
                                 <div className="relative">
-                                    <label className="block text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-200">
+                                    <Label className="block text-sm font-semibold mb-2">
                                         Subreddit
-                                    </label>
+                                    </Label>
                                     <div className="relative">
-                                        <input
+                                        <Input
                                             type="text"
-                                            className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:border-[#FF4500] pr-10 transition-all duration-200"
+                                            className="pr-10"
                                             placeholder={
                                                 loadingSubreddits
                                                     ? "Loading..."
@@ -1709,12 +1722,11 @@ ${rules
 
                                 {/* Title */}
                                 <div>
-                                    <label className="block text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-200">
+                                    <Label className="block text-sm font-semibold mb-2">
                                         Title
-                                    </label>
-                                    <input
+                                    </Label>
+                                    <Input
                                         type="text"
-                                        className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:border-[#FF4500] transition-all duration-200"
                                         placeholder="Title your post"
                                         maxLength={300}
                                         value={title}
@@ -1730,7 +1742,7 @@ ${rules
 
                                 {/* Flair */}
                                 <div>
-                                    <label className="block text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-200">
+                                    <Label className="block text-sm font-semibold mb-2">
                                         Flair{" "}
                                         {postRequirements?.is_flair_required && (
                                             <span className="text-red-500">
@@ -1742,10 +1754,10 @@ ${rules
                                                 <div className="animate-spin rounded-full h-3 w-3 border-2 border-[#FF4500] border-t-transparent"></div>
                                             </span>
                                         )}
-                                    </label>
+                                    </Label>
                                     <select
                                         key={subreddit || "no-sr"}
-                                        className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm focus:outline-none focus:ring-2 focus:border-[#FF4500] transition-all duration-200"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         value={flair}
                                         onChange={(e) =>
                                             setFlair(e.target.value)
@@ -1769,11 +1781,11 @@ ${rules
 
                                 {/* Body */}
                                 <div>
-                                    <label className="block text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-200">
+                                    <Label className="block text-sm font-semibold mb-2">
                                         Body
-                                    </label>
-                                    <textarea
-                                        className="w-full rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-4 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:border-[#FF4500] resize-vertical transition-all duration-200"
+                                    </Label>
+                                    <Textarea
+                                        className="min-h-[100px] resize-vertical"
                                         placeholder="Write your post here..."
                                         value={body}
                                         onChange={(e) => {
@@ -2733,13 +2745,13 @@ ${rules
                                                                     </svg>
                                                                 </button>
                                                             </div>
-                                                            <input
+                                                            <Input
                                                                 type="text"
                                                                 value={
                                                                     optimizedTitle
                                                                 }
                                                                 readOnly
-                                                                className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                                className="text-xs border-green-300 dark:border-green-600"
                                                             />
                                                         </div>
                                                     )}
@@ -2780,12 +2792,12 @@ ${rules
                                                                     </svg>
                                                                 </button>
                                                             </div>
-                                                            <textarea
+                                                            <Textarea
                                                                 value={
                                                                     optimizedBody
                                                                 }
                                                                 readOnly
-                                                                className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px] resize-vertical"
+                                                                className="text-xs border-green-300 dark:border-green-600 min-h-[120px]"
                                                             />
                                                         </div>
                                                     )}
@@ -2826,13 +2838,13 @@ ${rules
                                                                     </svg>
                                                                 </button>
                                                             </div>
-                                                            <input
+                                                            <Input
                                                                 type="text"
                                                                 value={
                                                                     optimizedFlair
                                                                 }
                                                                 readOnly
-                                                                className="w-full px-3 py-2 text-xs bg-white dark:bg-neutral-800 border border-green-300 dark:border-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                                className="text-xs border-green-300 dark:border-green-600"
                                                             />
                                                         </div>
                                                     )}
@@ -3961,11 +3973,14 @@ ${rules
                                     <button
                                         onClick={() => {
                                             setShowPricingPopup(false);
-                                            setShowBillingModal(true);
+                                            handleGetStarted();
                                         }}
-                                        className="w-full py-4 px-6 bg-white text-[#FF4500] rounded-2xl font-bold text-lg hover:bg-gray-50 transition-colors"
+                                        disabled={paymentLoading}
+                                        className="w-full py-4 px-6 bg-white text-[#FF4500] rounded-2xl font-bold text-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                                     >
-                                        Buy Credits
+                                        {paymentLoading
+                                            ? "Processing..."
+                                            : "Buy Credits"}
                                     </button>
                                 </SignedIn>
                                 <SignedOut>
@@ -3980,22 +3995,6 @@ ${rules
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Billing Address Modal */}
-            {showBillingModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-6">
-                            Billing Information
-                        </h2>
-                        <BillingAddressForm
-                            onSubmit={handleBillingSubmit}
-                            loading={paymentLoading}
-                            onCancel={() => setShowBillingModal(false)}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

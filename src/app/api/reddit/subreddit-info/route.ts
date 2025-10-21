@@ -19,6 +19,21 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(subredditInfo);
     } catch (error) {
         console.error("Error fetching subreddit info:", error);
+
+        // In development, return mock data if Reddit API fails
+        if (process.env.NODE_ENV === "development") {
+            const subreddit = request.nextUrl.searchParams.get("subreddit");
+            console.log(
+                `⚠️  Using mock subreddit info for r/${subreddit} (Reddit API unavailable)`,
+            );
+            return NextResponse.json({
+                display_name: subreddit,
+                public_description: `This is a mock description for r/${subreddit}. Reddit API is currently unavailable.`,
+                subscribers: 100000,
+                url: `https://reddit.com/r/${subreddit}`,
+            });
+        }
+
         return NextResponse.json(
             {
                 error:

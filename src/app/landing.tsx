@@ -7,6 +7,16 @@ import { useRouter } from "next/navigation";
 import { JSX, useEffect } from "react";
 import PricingSection from "@/components/PricingSection";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface Feature {
     icon: ({ className }: { className: string }) => JSX.Element;
@@ -89,18 +99,18 @@ export default function LandingPage() {
 
                         <SignedOut>
                             <SignInButton mode="modal">
-                                <button className="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
+                                <Button variant="ghost" size="sm">
                                     Sign In
-                                </button>
+                                </Button>
                             </SignInButton>
                         </SignedOut>
                         <SignedIn>
-                            <Link
-                                href="/app"
-                                className="px-6 py-2 bg-[#FF4500] text-white rounded-lg font-medium hover:bg-[#e03d00] transition-colors"
+                            <Button
+                                asChild
+                                className="bg-[#FF4500] hover:bg-[#e03d00]"
                             >
-                                Open App
-                            </Link>
+                                <Link href="/app">Open App</Link>
+                            </Button>
                         </SignedIn>
                     </motion.div>
                 </div>
@@ -115,11 +125,9 @@ export default function LandingPage() {
                         transition={{ duration: 0.9, ease: "easeOut" }}
                         className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
                     >
-                        Avoid{" "}
-                        <span className="text-[#FF4500]">
-                            Reddit Post Removals
-                        </span>{" "}
-                        w/ Our Post Rules Checker + Fixer
+                        Stop Getting{" "}
+                        <span className="text-[#FF4500]">Banned on Reddit</span>
+                        . AI Fixes Your Posts.
                     </motion.h1>
 
                     <motion.p
@@ -132,9 +140,9 @@ export default function LandingPage() {
                         }}
                         className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed max-w-2xl mx-auto"
                     >
-                        AI analyzes your Reddit posts, tells you exactly what's
-                        wrong, why it might not work, and fixes it for you.
-                        Never get banned again.
+                        Paste your post → AI checks ALL rules → Get an
+                        optimized, ban-proof version in seconds. No more
+                        removals. No more shadowbans.
                     </motion.p>
 
                     <motion.div
@@ -149,20 +157,26 @@ export default function LandingPage() {
                     >
                         <SignedOut>
                             <SignInButton mode="modal">
-                                <button className="px-8 py-4 bg-[#FF4500] text-white rounded-xl font-semibold text-lg hover:bg-[#e03d00] transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+                                <Button
+                                    size="lg"
+                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                                >
                                     Try It Free
-                                </button>
+                                </Button>
                             </SignInButton>
                         </SignedOut>
                         <SignedIn>
-                            <Link
-                                href="/app"
-                                className="px-8 py-4 bg-[#FF4500] text-white rounded-xl font-semibold text-lg hover:bg-[#e03d00] transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            <Button
+                                asChild
+                                size="lg"
+                                className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                             >
-                                Open App
-                            </Link>
+                                <Link href="/app">Open App</Link>
+                            </Button>
                         </SignedIn>
-                        <button
+                        <Button
+                            variant="outline"
+                            size="lg"
                             onClick={() =>
                                 document
                                     .getElementById("features")
@@ -170,10 +184,10 @@ export default function LandingPage() {
                                         behavior: "smooth",
                                     })
                             }
-                            className="px-8 py-4 border-2 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl font-semibold text-lg hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
+                            className="border-2 text-lg px-8 py-6 rounded-xl hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
                         >
                             See How It Works
-                        </button>
+                        </Button>
                     </motion.div>
 
                     {/* Demo Video */}
@@ -219,148 +233,72 @@ export default function LandingPage() {
             {/* Footer */}
             <footer className="py-12 px-4 sm:px-6 bg-neutral-900 dark:bg-black">
                 <div className="max-w-6xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
                         {/* Company Info */}
-                        <div className="md:col-span-2">
-                            <div className="text-2xl font-bold text-[#FF4500] mb-4">
+                        <div className="max-w-md">
+                            <div className="text-2xl font-bold text-[#FF4500] mb-3">
                                 Unbannnable
                             </div>
-                            <p className="text-neutral-400 mb-4 max-w-md">
-                                The all-in-one AI-powered Reddit post
-                                optimization tool that analyzes your content,
-                                checks subreddit rules, and helps you find the
-                                perfect communities.
+                            <p className="text-neutral-400 text-sm">
+                                AI-powered Reddit post checker. Never get banned
+                                again.
                             </p>
                         </div>
 
-                        {/* Features */}
-                        <div>
-                            <h3 className="text-white font-semibold mb-4">
-                                Features
-                            </h3>
-                            <ul className="space-y-2 text-neutral-400 text-sm">
-                                <li>
-                                    <button
-                                        onClick={() =>
-                                            document
-                                                .getElementById("features")
-                                                ?.scrollIntoView({
-                                                    behavior: "smooth",
-                                                })
-                                        }
-                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
+                        {/* Quick Links */}
+                        <div className="flex gap-6 text-sm">
+                            <Button
+                                variant="link"
+                                onClick={() =>
+                                    document
+                                        .getElementById("pricing")
+                                        ?.scrollIntoView({
+                                            behavior: "smooth",
+                                        })
+                                }
+                                className="hover:text-[#FF4500] transition-colors p-0 h-auto text-neutral-400"
+                            >
+                                Pricing
+                            </Button>
+                            <SignedOut>
+                                <SignInButton mode="modal">
+                                    <Button
+                                        variant="link"
+                                        className="hover:text-[#FF4500] transition-colors p-0 h-auto text-neutral-400"
                                     >
-                                        AI Post Analysis
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        onClick={() =>
-                                            document
-                                                .getElementById("features")
-                                                ?.scrollIntoView({
-                                                    behavior: "smooth",
-                                                })
-                                        }
-                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
-                                    >
-                                        Rule Checker
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        onClick={() =>
-                                            document
-                                                .getElementById("features")
-                                                ?.scrollIntoView({
-                                                    behavior: "smooth",
-                                                })
-                                        }
-                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
-                                    >
-                                        Subreddit Finder
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        onClick={() =>
-                                            document
-                                                .getElementById("pricing")
-                                                ?.scrollIntoView({
-                                                    behavior: "smooth",
-                                                })
-                                        }
-                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
-                                    >
-                                        Pricing
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-
-                        {/* Resources */}
-                        <div>
-                            <h3 className="text-white font-semibold mb-4">
-                                Get Started
-                            </h3>
-                            <ul className="space-y-2 text-neutral-400 text-sm">
-                                <li>
-                                    <SignedOut>
-                                        <SignInButton mode="modal">
-                                            <button className="hover:text-[#FF4500] transition-colors cursor-pointer">
-                                                Try Free Tool
-                                            </button>
-                                        </SignInButton>
-                                    </SignedOut>
-                                    <SignedIn>
-                                        <Link
-                                            href="/app"
-                                            className="hover:text-[#FF4500] transition-colors"
-                                        >
-                                            Dashboard
-                                        </Link>
-                                    </SignedIn>
-                                </li>
-                                <li>
-                                    <button
-                                        onClick={() =>
-                                            document
-                                                .getElementById("how-it-works")
-                                                ?.scrollIntoView({
-                                                    behavior: "smooth",
-                                                })
-                                        }
-                                        className="hover:text-[#FF4500] transition-colors cursor-pointer"
-                                    >
-                                        How It Works
-                                    </button>
-                                </li>
-                                <li>
-                                    <a
-                                        href="https://x.com/nibodhdaware"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="hover:text-[#FF4500] transition-colors"
-                                    >
-                                        Contact Support
-                                    </a>
-                                </li>
-                            </ul>
+                                        Sign In
+                                    </Button>
+                                </SignInButton>
+                            </SignedOut>
+                            <SignedIn>
+                                <Button
+                                    variant="link"
+                                    asChild
+                                    className="hover:text-[#FF4500] transition-colors p-0 h-auto text-neutral-400"
+                                >
+                                    <Link href="/app">Dashboard</Link>
+                                </Button>
+                            </SignedIn>
+                            <Button
+                                variant="link"
+                                asChild
+                                className="hover:text-[#FF4500] transition-colors p-0 h-auto text-neutral-400"
+                            >
+                                <a
+                                    href="https://x.com/nibodhdaware"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Support
+                                </a>
+                            </Button>
                         </div>
                     </div>
 
-                    <div className="pt-8 border-t border-neutral-800 text-center">
-                        <div className="text-neutral-500 text-sm">
-                            © 2025 Unbannnable. All rights reserved. |
-                            <a
-                                href="https://x.com/nibodhdaware"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-[#FF4500] transition-colors ml-1"
-                            >
-                                Follow us on X
-                            </a>
-                        </div>
+                    <Separator className="bg-neutral-800 mb-6" />
+
+                    <div className="text-center text-neutral-500 text-sm">
+                        © 2025 Unbannnable. Never get banned on Reddit again.
                     </div>
                 </div>
             </footer>
@@ -383,11 +321,11 @@ function FeaturesSection() {
                     className="text-center mb-16"
                 >
                     <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
-                        How the Post Fixer Works
+                        What You Get
                     </h2>
                     <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
-                        AI analyzes your post, identifies problems, explains why
-                        they're issues, and fixes them automatically
+                        Everything you need to post on Reddit without getting
+                        removed or banned
                     </p>
                 </motion.div>
 
@@ -409,31 +347,33 @@ function FeaturesSection() {
                                 ease: [0.25, 0.1, 0.25, 1],
                             }}
                             viewport={{ once: true, margin: "-50px" }}
-                            className="bg-white dark:bg-neutral-800 p-6 sm:p-8 rounded-xl border border-neutral-200 dark:border-neutral-700 group"
                             whileHover={{
                                 y: -5,
-                                boxShadow:
-                                    "0 25px 50px -12px rgba(255, 69, 0, 0.25)",
-                                borderColor: "rgba(255, 69, 0, 0.3)",
                                 transition: { duration: 0.2 },
                             }}
                         >
-                            <div className="w-12 h-12 bg-[#FF4500] rounded-xl flex items-center justify-center mb-6">
-                                <feature.icon className="w-6 h-6 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">
-                                {feature.title}
-                            </h3>
-                            <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed mb-4">
-                                {feature.description}
-                            </p>
-                            {feature.example && (
-                                <div className="bg-neutral-50 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                                    <p className="text-sm text-neutral-500 dark:text-neutral-400 italic">
-                                        Example: {feature.example}
-                                    </p>
-                                </div>
-                            )}
+                            <Card className="h-full group hover:shadow-2xl hover:shadow-[#FF4500]/20 hover:border-[#FF4500]/30 transition-all duration-200">
+                                <CardHeader>
+                                    <div className="w-12 h-12 bg-[#FF4500] rounded-xl flex items-center justify-center mb-4">
+                                        <feature.icon className="w-6 h-6 text-white" />
+                                    </div>
+                                    <CardTitle className="text-xl mb-2">
+                                        {feature.title}
+                                    </CardTitle>
+                                    <CardDescription className="text-base leading-relaxed">
+                                        {feature.description}
+                                    </CardDescription>
+                                </CardHeader>
+                                {feature.example && (
+                                    <CardContent>
+                                        <div className="bg-muted p-3 rounded-lg border">
+                                            <p className="text-sm text-muted-foreground italic">
+                                                Example: {feature.example}
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                )}
+                            </Card>
                         </motion.div>
                     ))}
                 </motion.div>
@@ -458,11 +398,10 @@ function HowItWorksSection() {
                     className="text-center mb-16"
                 >
                     <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
-                        Fix Your Posts in 3 Steps
+                        How It Works
                     </h2>
                     <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
-                        Upload your post, get instant analysis, and see exactly
-                        what's wrong and how to fix it
+                        Get a ban-proof post in under 30 seconds
                     </p>
                 </motion.div>
 
@@ -478,19 +417,20 @@ function HowItWorksSection() {
                                 ease: "easeOut",
                             }}
                             viewport={{ once: true, margin: "-50px" }}
-                            className="text-center"
                         >
-                            <div className="w-12 h-12 bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4">
-                                <span className="text-white font-bold text-lg">
-                                    {index + 1}
-                                </span>
-                            </div>
-                            <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">
-                                {step.title}
-                            </h3>
-                            <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                                {step.description}
-                            </p>
+                            <Card className="text-center h-full hover:shadow-lg transition-shadow duration-200">
+                                <CardHeader>
+                                    <Badge className="w-12 h-12 bg-[#FF4500] hover:bg-[#FF4500] rounded-full flex items-center justify-center mx-auto mb-4 text-lg">
+                                        {index + 1}
+                                    </Badge>
+                                    <CardTitle className="text-lg mb-2">
+                                        {step.title}
+                                    </CardTitle>
+                                    <CardDescription className="text-sm">
+                                        {step.description}
+                                    </CardDescription>
+                                </CardHeader>
+                            </Card>
                         </motion.div>
                     ))}
                 </div>
@@ -519,18 +459,22 @@ function CTASection() {
                     </p>
                     <SignedOut>
                         <SignInButton mode="modal">
-                            <button className="px-8 py-4 bg-white text-[#FF4500] rounded-xl font-semibold text-lg hover:bg-neutral-50 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                            <Button
+                                size="lg"
+                                className="bg-white text-[#FF4500] hover:bg-neutral-50 text-lg px-8 py-6 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                            >
                                 Try Unbannnable Free
-                            </button>
+                            </Button>
                         </SignInButton>
                     </SignedOut>
                     <SignedIn>
-                        <Link
-                            href="/app"
-                            className="inline-block px-8 py-4 bg-white text-[#FF4500] rounded-xl font-semibold text-lg hover:bg-neutral-50 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                        <Button
+                            asChild
+                            size="lg"
+                            className="bg-white text-[#FF4500] hover:bg-neutral-50 text-lg px-8 py-6 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
                         >
-                            Open App Now
-                        </Link>
+                            <Link href="/app">Open App Now</Link>
+                        </Button>
                     </SignedIn>
                 </motion.div>
             </div>
@@ -538,7 +482,7 @@ function CTASection() {
     );
 }
 
-// Feature data
+// Feature data - Top 4 most important features
 const features: Feature[] = [
     {
         icon: ({ className }: { className: string }) => (
@@ -556,55 +500,11 @@ const features: Feature[] = [
                 />
             </svg>
         ),
-        title: "Rule Compliance Check",
+        title: "Auto Rule Check",
         description:
-            "Automatically analyzes your post against all subreddit rules and identifies potential violations before you post.",
+            "AI instantly scans your post against ALL subreddit rules and tells you exactly what will get you banned.",
         example:
-            "Detects if your r/programming post needs a [Question] tag or if it violates the 'no self-promotion' rule",
-    },
-    {
-        icon: ({ className }: { className: string }) => (
-            <svg
-                className={className}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-            </svg>
-        ),
-        title: "Improvement Suggestions",
-        description:
-            "When your post doesn't follow the rules, get specific recommendations on what to fix and how to make it compliant.",
-        example:
-            "Suggests adding more detail to your r/AskReddit question or removing promotional links from r/startups posts",
-    },
-    {
-        icon: ({ className }: { className: string }) => (
-            <svg
-                className={className}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-            </svg>
-        ),
-        title: "Alternative Subreddits",
-        description:
-            "If your content isn't suitable for your chosen subreddit, discover better alternatives where your post will thrive.",
-        example:
-            "Redirects your gaming question from r/gaming to r/tipofmyjoystick or suggests r/webdev instead of r/programming for framework questions",
+            "Catches missing [Question] tags, self-promotion violations, and wrong flair before you post",
     },
     {
         icon: ({ className }: { className: string }) => (
@@ -622,11 +522,11 @@ const features: Feature[] = [
                 />
             </svg>
         ),
-        title: "AI Content Optimization",
+        title: "Auto Fix & Optimize",
         description:
-            "Enhance your post content to match subreddit expectations and increase engagement while staying compliant.",
+            "Don't just find problems—AI rewrites your post to be 100% compliant and more engaging.",
         example:
-            "Rephrases your r/explainlikeimfive question to be more approachable or adds context to your r/changemyview post",
+            "Removes promotional language, adds required context, and rephrases to match community style",
     },
     {
         icon: ({ className }: { className: string }) => (
@@ -640,15 +540,15 @@ const features: Feature[] = [
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
             </svg>
         ),
-        title: "Smart Subreddit Search",
+        title: "Find Better Subreddits",
         description:
-            "Discover the perfect communities for your content based on topic, audience, and posting requirements.",
+            "Post won't work? AI suggests alternative communities where your content will perform better.",
         example:
-            "Finds r/MachineLearning for technical AI papers or r/MachineLearning for beginner questions about AI concepts",
+            "Suggests r/webdev instead of r/programming, or finds niche communities perfect for your content",
     },
     {
         icon: ({ className }: { className: string }) => (
@@ -662,50 +562,33 @@ const features: Feature[] = [
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
                 />
             </svg>
         ),
-        title: "Post Viability Analysis",
+        title: "Smart Flair Selection",
         description:
-            "Get insights into how well your post will perform in a specific subreddit before you publish it.",
+            "AI picks the perfect flair for your post automatically. No more guessing or trial and error.",
         example:
-            "Warns that your meme might get removed from r/ProgrammerHumor on weekdays or suggests better timing for r/AskReddit posts",
+            "Chooses 'Discussion' vs 'Help' based on your content, preventing auto-removal",
     },
 ];
 
 // Steps data
 const steps: Step[] = [
     {
-        title: "Upload Your Post",
+        title: "1. Paste Your Post",
         description:
-            "Paste your Reddit post content and select the subreddit. Our AI will instantly analyze what's wrong.",
-        details: [
-            "Paste or type your post content",
-            "Select your target subreddit",
-            "Choose post flair if required",
-        ],
+            "Copy your Reddit post, select the subreddit, and click analyze.",
     },
     {
-        title: "Get Instant Analysis",
+        title: "2. AI Checks Everything",
         description:
-            "AI tells you exactly what's wrong, why it might not work, and how to fix it. No guessing required.",
-        details: [
-            "See exactly which rules you're violating",
-            "Understand why your post might get banned",
-            "Get specific fixes for each problem",
-            "Find better subreddits for your content",
-        ],
+            "Instantly scans ALL subreddit rules, flair requirements, and common ban triggers.",
     },
     {
-        title: "Fix & Post Safely",
+        title: "3. Get Fixed Version",
         description:
-            "Apply the AI fixes and post with confidence. Your content is now optimized and ban-proof.",
-        details: [
-            "Copy the AI-fixed content",
-            "Choose the best subreddit option",
-            "Post knowing you won't get banned",
-            "Track your post's success",
-        ],
+            "Copy your optimized, ban-proof post and publish with confidence. That's it.",
     },
 ];

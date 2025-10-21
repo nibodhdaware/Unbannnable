@@ -3,6 +3,18 @@
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useUser } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
 interface PostLimits {
     hasSubscription: boolean;
@@ -99,11 +111,15 @@ export default function CreatePostPage() {
     if (!isLoaded || adminLoading) {
         return (
             <div className="max-w-2xl mx-auto p-6">
-                <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </div>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="animate-pulse space-y-4">
+                            <div className="h-4 bg-muted rounded w-1/4"></div>
+                            <div className="h-4 bg-muted rounded w-3/4"></div>
+                            <div className="h-4 bg-muted rounded w-1/2"></div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
@@ -111,118 +127,116 @@ export default function CreatePostPage() {
     return (
         <div className="max-w-2xl mx-auto p-6">
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {error}
-                </div>
+                <Alert variant="destructive" className="mb-4">
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
             )}
 
             {success && (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    {success}
-                </div>
+                <Alert className="mb-4 bg-green-50 text-green-900 border-green-200">
+                    <AlertDescription>{success}</AlertDescription>
+                </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                    <label
-                        htmlFor="subreddit"
-                        className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                        Subreddit
-                    </label>
-                    <input
-                        type="text"
-                        id="subreddit"
-                        required
-                        placeholder="e.g., r/AskReddit"
-                        value={formData.subreddit}
-                        onChange={(e) =>
-                            setFormData({
-                                ...formData,
-                                subreddit: e.target.value,
-                            })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Create New Post</CardTitle>
+                    <CardDescription>
+                        Fill out the form below to create a new Reddit post
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="subreddit">Subreddit</Label>
+                            <Input
+                                type="text"
+                                id="subreddit"
+                                required
+                                placeholder="e.g., r/AskReddit"
+                                value={formData.subreddit}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        subreddit: e.target.value,
+                                    })
+                                }
+                            />
+                        </div>
 
-                <div>
-                    <label
-                        htmlFor="title"
-                        className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                        Post Title
-                    </label>
-                    <input
-                        type="text"
-                        id="title"
-                        required
-                        placeholder="Enter your post title"
-                        value={formData.title}
-                        onChange={(e) =>
-                            setFormData({ ...formData, title: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="title">Post Title</Label>
+                            <Input
+                                type="text"
+                                id="title"
+                                required
+                                placeholder="Enter your post title"
+                                value={formData.title}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        title: e.target.value,
+                                    })
+                                }
+                            />
+                        </div>
 
-                <div>
-                    <label
-                        htmlFor="content"
-                        className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                        Post Content
-                    </label>
-                    <textarea
-                        id="content"
-                        required
-                        rows={8}
-                        placeholder="Enter your post content"
-                        value={formData.content}
-                        onChange={(e) =>
-                            setFormData({
-                                ...formData,
-                                content: e.target.value,
-                            })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="content">Post Content</Label>
+                            <Textarea
+                                id="content"
+                                required
+                                rows={8}
+                                placeholder="Enter your post content"
+                                value={formData.content}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        content: e.target.value,
+                                    })
+                                }
+                            />
+                        </div>
 
-                <button
-                    type="submit"
-                    disabled={
-                        loading ||
-                        (!isAdmin &&
-                            postLimits &&
-                            !postLimits.hasSubscription &&
-                            postLimits.postsRemaining <= 0) ||
-                        false
-                    }
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                    {loading ? "Creating Post..." : "Create Post"}
-                </button>
-            </form>
+                        <Button
+                            type="submit"
+                            disabled={
+                                loading ||
+                                (!isAdmin &&
+                                    postLimits &&
+                                    !postLimits.hasSubscription &&
+                                    postLimits.postsRemaining <= 0)
+                            }
+                            className="w-full"
+                        >
+                            {loading ? "Creating Post..." : "Create Post"}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
 
             {!isAdmin &&
                 !postLimits?.hasSubscription &&
                 (postLimits?.postsRemaining || 0) <= 3 && (
-                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-                            Running Low on Posts?
-                        </h3>
-                        <p className="text-yellow-700 mb-3">
-                            You're running low on free posts. Subscribe now to
-                            get unlimited posting!
-                        </p>
-                        <a
-                            href="/pricing"
-                            className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 inline-block"
-                        >
-                            View Pricing Plans
-                        </a>
-                    </div>
+                    <Card className="mt-6 border-yellow-200 bg-yellow-50">
+                        <CardHeader>
+                            <CardTitle className="text-yellow-800">
+                                Running Low on Posts?
+                            </CardTitle>
+                            <CardDescription className="text-yellow-700">
+                                You're running low on free posts. Subscribe now
+                                to get unlimited posting!
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button
+                                asChild
+                                className="bg-yellow-600 hover:bg-yellow-700"
+                            >
+                                <a href="/pricing">View Pricing Plans</a>
+                            </Button>
+                        </CardContent>
+                    </Card>
                 )}
         </div>
     );

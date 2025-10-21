@@ -3,7 +3,17 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
-import BillingAddressForm from "./BillingAddressForm";
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 
 interface PricingCardProps {
     title: string;
@@ -11,6 +21,7 @@ interface PricingCardProps {
     credits: string;
     features: string[];
     loading?: boolean;
+    onGetStarted?: () => void;
 }
 
 function PricingCard({
@@ -19,82 +30,97 @@ function PricingCard({
     credits,
     features,
     loading = false,
+    onGetStarted,
 }: PricingCardProps) {
     return (
         <motion.div
             whileHover={{ y: -8, scale: 1.02 }}
             transition={{ duration: 0.3 }}
-            className="relative rounded-2xl p-8 bg-gradient-to-br from-[#FF4500] to-[#e03d00] text-white"
         >
-            <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">{title}</h3>
-                <div className="mb-4">
-                    <span className="text-4xl font-bold">{price}</span>
-                </div>
-                <div className="text-lg font-semibold text-white">
-                    {credits}
-                </div>
-            </div>
-
-            <ul className="space-y-4 mb-8">
-                {features.map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-3">
-                        <span className="text-lg text-white">✓</span>
-                        <span className="text-white">
-                            {feature === "Priority support" ? (
-                                <a
-                                    href="https://x.com/nibodhdaware"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="underline text-white"
-                                >
-                                    Priority support (chat with founder)
-                                </a>
-                            ) : (
-                                feature
-                            )}
+            <Card className="relative overflow-hidden border-2 border-[#FF4500]/20 bg-gradient-to-br from-[#FF4500] to-[#e03d00] text-white">
+                <CardHeader className="text-center pb-8">
+                    <CardTitle className="text-2xl text-white mb-2">
+                        {title}
+                    </CardTitle>
+                    <div className="mb-4">
+                        <span className="text-5xl font-bold text-white">
+                            {price}
                         </span>
-                    </li>
-                ))}
-            </ul>
+                    </div>
+                    <Badge className="mx-auto bg-white/20 hover:bg-white/30 text-white border-white/30">
+                        {credits}
+                    </Badge>
+                </CardHeader>
 
-            <div className="mb-6 p-3 bg-white/10 rounded-lg border border-white/20">
-                <p className="text-sm text-white text-center">
-                    💡 <strong>Refer a friend</strong> and get{" "}
-                    <strong>10 free credits</strong> when they sign up!
-                </p>
-            </div>
+                <CardContent className="space-y-6">
+                    <ul className="space-y-4">
+                        {features.map((feature, index) => (
+                            <li
+                                key={index}
+                                className="flex items-start space-x-3"
+                            >
+                                <Check className="h-5 w-5 text-white mt-0.5 flex-shrink-0" />
+                                <span className="text-white">
+                                    {feature === "Priority support" ? (
+                                        <a
+                                            href="https://x.com/nibodhdaware"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="underline text-white hover:text-white/90"
+                                        >
+                                            Priority support (chat with founder)
+                                        </a>
+                                    ) : (
+                                        feature
+                                    )}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
 
-            <SignedOut>
-                <SignInButton mode="modal">
-                    <button
-                        disabled={loading}
-                        className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 bg-white text-[#FF4500] hover:bg-neutral-100 ${loading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-                    >
-                        {loading ? "Processing..." : "Get Started"}
-                    </button>
-                </SignInButton>
-            </SignedOut>
-            <SignedIn>
-                <button
-                    disabled={loading}
-                    className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 bg-white text-[#FF4500] hover:bg-neutral-100 ${loading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-                >
-                    {loading ? "Processing..." : "Get Started"}
-                </button>
-            </SignedIn>
+                    <div className="p-4 bg-white/10 rounded-lg border border-white/20">
+                        <p className="text-sm text-white text-center">
+                            💡 <strong>Refer a friend</strong> and get{" "}
+                            <strong>10 free credits</strong> when they sign up!
+                        </p>
+                    </div>
+
+                    <SignedOut>
+                        <SignInButton mode="modal">
+                            <Button
+                                disabled={loading}
+                                size="lg"
+                                className="w-full bg-white text-[#FF4500] hover:bg-neutral-100 font-semibold"
+                            >
+                                {loading ? "Processing..." : "Get Started"}
+                            </Button>
+                        </SignInButton>
+                    </SignedOut>
+                    <SignedIn>
+                        <Button
+                            onClick={onGetStarted}
+                            disabled={loading}
+                            size="lg"
+                            className="w-full bg-white text-[#FF4500] hover:bg-neutral-100 font-semibold"
+                        >
+                            {loading ? "Processing..." : "Get Started"}
+                        </Button>
+                    </SignedIn>
+                </CardContent>
+            </Card>
         </motion.div>
     );
 }
 
 export default function PricingSection() {
-    const [showBillingModal, setShowBillingModal] = useState(false);
+    const { user } = useUser();
     const [paymentLoading, setPaymentLoading] = useState(false);
 
-    const handleBillingSubmit = async (
-        billing: any,
-        customer: { name: string; email: string },
-    ) => {
+    const handleGetStarted = async () => {
+        if (!user) {
+            return;
+        }
+
         setPaymentLoading(true);
         try {
             const response = await fetch("/api/create-payment", {
@@ -103,8 +129,17 @@ export default function PricingSection() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    billing,
-                    customer,
+                    billing: {
+                        street: "Default Address",
+                        city: "Mumbai",
+                        state: "Maharashtra",
+                        zipcode: "400001",
+                        country: "IN",
+                    },
+                    customer: {
+                        name: user.fullName || user.firstName || "User",
+                        email: user.emailAddresses[0]?.emailAddress || "",
+                    },
                 }),
             });
 
@@ -116,6 +151,7 @@ export default function PricingSection() {
             window.location.href = paymentLink;
         } catch (error) {
             console.error("Payment error:", error);
+            alert("Failed to create payment. Please try again.");
         } finally {
             setPaymentLoading(false);
         }
@@ -153,6 +189,7 @@ export default function PricingSection() {
                             price="$9"
                             credits="100 AI Credits"
                             loading={paymentLoading}
+                            onGetStarted={handleGetStarted}
                             features={[
                                 "100 AI Post Analysis credits",
                                 "Advanced anomaly detection",
@@ -166,15 +203,6 @@ export default function PricingSection() {
                     </motion.div>
                 </div>
             </div>
-
-            {/* Billing Address Form Modal */}
-            {showBillingModal && (
-                <BillingAddressForm
-                    onSubmit={handleBillingSubmit}
-                    onCancel={() => setShowBillingModal(false)}
-                    loading={paymentLoading}
-                />
-            )}
         </section>
     );
 }

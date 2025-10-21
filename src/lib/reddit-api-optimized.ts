@@ -310,14 +310,15 @@ class RedditAPIOptimized {
     ): Promise<Subreddit[]> {
         const cacheKey = `subreddits_${limit}_${query || "popular"}`;
 
-        return this.makeRequest<Subreddit[]>(
+        return this.makeRequest<any>(
             query
                 ? `https://oauth.reddit.com/subreddits/search?q=${encodeURIComponent(query)}&limit=${limit}&sort=relevance`
                 : `https://oauth.reddit.com/subreddits/popular?limit=${limit}`,
             cacheKey,
             this.CACHE_TTL.SUBREDDITS_LIST,
-        ).then((data) => {
-            if (!data.data || !data.data.children) {
+        ).then((data: any) => {
+            if (!data || !data.data || !data.data.children) {
+                console.error("Invalid response format:", data);
                 throw new Error("Invalid response format from Reddit API");
             }
 

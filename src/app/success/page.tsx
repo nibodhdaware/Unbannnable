@@ -6,6 +6,17 @@ import { useRouter } from "next/navigation";
 import { CheckCircle, CreditCard, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface PaymentDetails {
     paymentId: string;
@@ -197,45 +208,43 @@ export default function SuccessPage() {
     if (error) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-sm">
-                    <div className="flex flex-col space-y-1.5 p-6 text-center">
-                        <h3 className="text-2xl font-semibold leading-none tracking-tight text-red-600 dark:text-red-400">
+                <Card className="w-full max-w-md">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl text-red-600 dark:text-red-400">
                             Error
-                        </h3>
-                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                            {error}
-                        </p>
-                    </div>
-                    <div className="p-6 pt-0">
-                        <button
+                        </CardTitle>
+                        <CardDescription>{error}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
                             onClick={() => router.push("/app")}
-                            className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium bg-[#FF4500] text-white hover:bg-[#e03d00] h-10 px-4 py-2 transition-colors"
+                            className="w-full bg-[#FF4500] hover:bg-[#e03d00]"
                         >
                             Go to Dashboard
-                        </button>
-                    </div>
-                </div>
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900 flex items-center justify-center p-4">
-            <div className="w-full max-w-lg bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-sm">
-                <div className="flex flex-col space-y-1.5 p-6 text-center">
+            <Card className="w-full max-w-lg">
+                <CardHeader className="text-center">
                     <div className="mx-auto mb-4 w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
                         <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
                     </div>
-                    <h3 className="text-3xl font-bold text-neutral-900 dark:text-white">
+                    <CardTitle className="text-3xl">
                         Payment Successful! 🎉
-                    </h3>
-                    <p className="text-lg text-neutral-600 dark:text-neutral-400">
+                    </CardTitle>
+                    <CardDescription className="text-lg">
                         Thank you for your purchase. Your credits have been
                         added to your account.
-                    </p>
-                </div>
+                    </CardDescription>
+                </CardHeader>
 
-                <div className="p-6 pt-0 space-y-6">
+                <CardContent className="space-y-6">
                     {/* Credit Status */}
                     <div
                         className={`p-4 rounded-lg border ${
@@ -414,18 +423,19 @@ export default function SuccessPage() {
                     </div>
 
                     {/* Action Button */}
-                    <button
+                    <Button
                         onClick={handleGoToApp}
-                        className="w-full bg-[#FF4500] hover:bg-[#e03d00] text-white font-semibold py-3 px-8 text-lg rounded-md transition-colors"
+                        className="w-full bg-[#FF4500] hover:bg-[#e03d00] text-white font-semibold text-lg py-6"
+                        size="lg"
                     >
                         Go to Dashboard & Start Using Credits 🚀
-                    </button>
+                    </Button>
 
-                    <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="text-center text-sm text-muted-foreground">
                         Your credits never expire and can be used anytime!
                     </p>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
