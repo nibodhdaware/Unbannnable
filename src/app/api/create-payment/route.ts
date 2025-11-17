@@ -13,13 +13,22 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { billing, customer } = body;
+        const { billing, customer, planType, productId, credits, amount } =
+            body;
 
         if (!billing || !customer) {
             return NextResponse.json(
                 {
                     error: "Billing address and customer information are required",
                 },
+                { status: 400 },
+            );
+        }
+
+        // Validate plan information
+        if (!planType || !productId || !credits || !amount) {
+            return NextResponse.json(
+                { error: "Plan information is required" },
                 { status: 400 },
             );
         }
@@ -49,18 +58,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get the product ID from environment variable
-        const productId = process.env.DODO_PRODUCT_ID;
-
+        // Validate product ID is provided
         if (!productId) {
-            console.error("DODO_PRODUCT_ID not configured");
+            console.error("Product ID not provided in request");
             return NextResponse.json(
-                { error: "Payment configuration error" },
-                { status: 500 },
+                { error: "Product ID is required" },
+                { status: 400 },
             );
         }
 
         console.log("Using product ID:", productId);
+        console.log("Plan type:", planType);
+        console.log("Credits:", credits);
+        console.log("Amount:", amount);
 
         // Create one-time payment using Dodo Payments API
         const response = await fetch(
@@ -93,8 +103,9 @@ export async function POST(request: NextRequest) {
                     return_url: `${process.env.NEXT_PUBLIC_RETURN_URL || "http://localhost:3002/success"}`,
                     metadata: {
                         userId: userId,
-                        credits: "100",
-                        amount: "9.00",
+                        planType: planType,
+                        credits: credits.toString(),
+                        amount: amount.toString(),
                     },
                 }),
             },
@@ -136,8 +147,9 @@ export async function POST(request: NextRequest) {
                     return_url: `${process.env.NEXT_PUBLIC_RETURN_URL || "http://localhost:3002/success"}`,
                     metadata: {
                         userId: userId,
-                        credits: "100",
-                        amount: "9.00",
+                        planType: planType,
+                        credits: credits.toString(),
+                        amount: amount.toString(),
                     },
                 },
                 null,

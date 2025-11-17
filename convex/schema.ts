@@ -14,6 +14,12 @@ export default defineSchema({
         freePostsUsed: v.optional(v.number()),
         totalPurchasedPosts: v.optional(v.number()),
         unlimitedMonthlyExpiry: v.optional(v.number()),
+        // LTD tracking fields
+        ltdPlan: v.optional(v.string()), // "starter", "standard", "pro"
+        ltdPurchaseDate: v.optional(v.number()), // When they bought LTD
+        ltdMonthlyCredits: v.optional(v.number()), // Monthly credit allocation (20, 100, 500)
+        ltdLastAllocationDate: v.optional(v.number()), // Last time monthly credits were added
+        ltdRolloverCredits: v.optional(v.number()), // Unused credits that roll over
     }).index("by_clerk_id", ["clerkId"]),
 
     payments: defineTable({
@@ -32,7 +38,10 @@ export default defineSchema({
         updatedAt: v.number(),
         // Post allocation tracking
         postsAllocated: v.optional(v.number()),
-        planType: v.optional(v.string()),
+        planType: v.optional(v.string()), // "starter", "standard", "pro" for LTD plans
+        // LTD-specific fields
+        isLTD: v.optional(v.boolean()), // Is this an LTD purchase?
+        ltdMonthlyCredits: v.optional(v.number()), // Monthly credits for this LTD plan
     })
         .index("by_payment_id", ["paymentId"])
         .index("by_user_id", ["userId"])

@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
-import { JSX, useEffect } from "react";
+import { JSX, useEffect, useState } from "react";
 import PricingSection from "@/components/PricingSection";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -31,9 +32,21 @@ interface Step {
     details?: string[];
 }
 
-export default function LandingPage() {
+export default function Landing() {
     const { isSignedIn, isLoaded } = useUser();
     const router = useRouter();
+
+    const [userStats, setUserStats] = useState<{
+        count: number;
+        avatars: string[];
+    }>({ count: 0, avatars: [] });
+
+    useEffect(() => {
+        fetch("/api/public-stats")
+            .then((res) => res.json())
+            .then((data) => setUserStats(data))
+            .catch((err) => console.error("Failed to fetch user stats:", err));
+    }, []);
 
     // Auto-redirect signed-in users to app
     useEffect(() => {
@@ -81,22 +94,6 @@ export default function LandingPage() {
                         {/* Theme Toggle */}
                         <ThemeToggle />
 
-                        {/* Product Hunt Badge */}
-                        <a
-                            href="https://www.producthunt.com/products/unbannnable?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-unbannnable"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hidden sm:block"
-                        >
-                            <img
-                                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1010314&theme=light&t=1756369550719"
-                                alt="Unbannnable - Reddit rule compliance made simple | Product Hunt"
-                                style={{ width: "200px", height: "43px" }}
-                                width="200"
-                                height="43"
-                            />
-                        </a>
-
                         <SignedOut>
                             <SignInButton mode="modal">
                                 <Button variant="ghost" size="sm">
@@ -118,103 +115,216 @@ export default function LandingPage() {
 
             {/* Hero Section */}
             <section className="relative px-4 sm:px-6 pt-12 pb-20">
-                <div className="max-w-4xl mx-auto text-center">
-                    <motion.h1
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.9, ease: "easeOut" }}
-                        className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
-                    >
-                        Stop Getting{" "}
-                        <span className="text-[#FF4500]">Banned on Reddit</span>
-                        . AI Fixes Your Posts.
-                    </motion.h1>
-
-                    <motion.p
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                            duration: 0.9,
-                            delay: 0.2,
-                            ease: "easeOut",
-                        }}
-                        className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed max-w-2xl mx-auto"
-                    >
-                        Paste your post → AI checks ALL rules → Get an
-                        optimized, ban-proof version in seconds. No more
-                        removals. No more shadowbans.
-                    </motion.p>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                            duration: 0.9,
-                            delay: 0.3,
-                            ease: "easeOut",
-                        }}
-                        className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
-                    >
-                        <SignedOut>
-                            <SignInButton mode="modal">
-                                <Button
-                                    size="lg"
-                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                <div className="max-w-7xl mx-auto">
+                    {/* Row Layout: Heading + Video */}
+                    <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+                        {/* Left: Heading and CTA */}
+                        <div className="flex-1 text-center lg:text-left">
+                            {/* Product Hunt Badge - Left Aligned */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.1 }}
+                                className="flex justify-center lg:justify-start mb-6"
+                            >
+                                <a
+                                    href="https://www.producthunt.com/products/unbannnable?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-unbannnable"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                 >
-                                    Try It Free
-                                </Button>
-                            </SignInButton>
-                        </SignedOut>
-                        <SignedIn>
-                            <Button
-                                asChild
-                                size="lg"
-                                className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                                    <img
+                                        src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1010314&theme=light&t=1756369550719"
+                                        alt="Unbannnable - Reddit rule compliance made simple | Product Hunt"
+                                        style={{
+                                            width: "200px",
+                                            height: "43px",
+                                        }}
+                                        width="200"
+                                        height="43"
+                                    />
+                                </a>
+                            </motion.div>
+                            <motion.h1
+                                initial={{ opacity: 0, y: 40 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.9, ease: "easeOut" }}
+                                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
                             >
-                                <Link href="/app">Open App</Link>
-                            </Button>
-                        </SignedIn>
-                        <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={() =>
-                                document
-                                    .getElementById("features")
-                                    ?.scrollIntoView({
-                                        behavior: "smooth",
-                                    })
-                            }
-                            className="border-2 text-lg px-8 py-6 rounded-xl hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
-                        >
-                            See How It Works
-                        </Button>
-                    </motion.div>
+                                Stop Getting{" "}
+                                <span className="text-[#FF4500] relative inline-block">
+                                    <span className="relative">
+                                        Banned on Reddit
+                                        <span className="absolute inset-x-0 top-1/2 h-0.5 bg-[#FF4500] transform -rotate-2"></span>
+                                    </span>
+                                </span>
+                                . AI Fixes Your Posts.
+                            </motion.h1>
 
-                    {/* Demo Video */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                            duration: 0.9,
-                            delay: 0.4,
-                            ease: "easeOut",
-                        }}
-                        className="relative"
-                    >
-                        <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-800 max-w-3xl mx-auto">
-                            <video
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                                className="w-full h-auto"
+                            <motion.p
+                                initial={{ opacity: 0, y: 40 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                    duration: 0.9,
+                                    delay: 0.2,
+                                    ease: "easeOut",
+                                }}
+                                className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed"
                             >
-                                <source src="/demo.mp4" type="video/mp4" />
-                                Your browser does not support the video tag.
-                            </video>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+                                Paste your post → AI checks ALL rules → Get an
+                                optimized, ban-proof version in seconds. No more
+                                removals. No more shadowbans.
+                            </motion.p>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 40 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                    duration: 0.9,
+                                    delay: 0.3,
+                                    ease: "easeOut",
+                                }}
+                                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+                            >
+                                <SignedOut>
+                                    <SignInButton mode="modal">
+                                        <Button
+                                            size="lg"
+                                            className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                                        >
+                                            Try It Free
+                                        </Button>
+                                    </SignInButton>
+                                </SignedOut>
+                                <SignedIn>
+                                    <Button
+                                        asChild
+                                        size="lg"
+                                        className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                                    >
+                                        <Link href="/app">Open App</Link>
+                                    </Button>
+                                </SignedIn>
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    onClick={() =>
+                                        document
+                                            .getElementById("features")
+                                            ?.scrollIntoView({
+                                                behavior: "smooth",
+                                            })
+                                    }
+                                    className="border-2 text-lg px-8 py-6 rounded-xl hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
+                                >
+                                    See How It Works
+                                </Button>
+                            </motion.div>
+
+                            {/* Social Proof with Avatars */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.9, delay: 0.5 }}
+                                className="flex items-center justify-center lg:justify-start gap-4 mt-8"
+                            >
+                                <div className="flex -space-x-3">
+                                    {userStats.avatars.length > 0
+                                        ? userStats.avatars.map(
+                                              (avatar, idx) => (
+                                                  <Avatar
+                                                      key={idx}
+                                                      className="border-2 border-white dark:border-neutral-950 w-10 h-10"
+                                                  >
+                                                      <AvatarImage
+                                                          src={avatar}
+                                                          alt={`User ${idx + 1}`}
+                                                      />
+                                                      <AvatarFallback>
+                                                          U{idx + 1}
+                                                      </AvatarFallback>
+                                                  </Avatar>
+                                              ),
+                                          )
+                                        : // Fallback to placeholder avatars while loading
+                                          Array.from({ length: 5 }).map(
+                                              (_, idx) => (
+                                                  <Avatar
+                                                      key={idx}
+                                                      className="border-2 border-white dark:border-neutral-950 w-10 h-10"
+                                                  >
+                                                      <AvatarImage
+                                                          src={`https://avatar.vercel.sh/user${idx + 1}`}
+                                                          alt={`User ${idx + 1}`}
+                                                      />
+                                                      <AvatarFallback>
+                                                          U{idx + 1}
+                                                      </AvatarFallback>
+                                                  </Avatar>
+                                              ),
+                                          )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex">
+                                        <span className="text-yellow-500 text-lg">
+                                            ⭐
+                                        </span>
+                                        <span className="text-yellow-500 text-lg">
+                                            ⭐
+                                        </span>
+                                        <span className="text-yellow-500 text-lg">
+                                            ⭐
+                                        </span>
+                                        <span className="text-yellow-500 text-lg">
+                                            ⭐
+                                        </span>
+                                        <span className="text-yellow-500 text-lg">
+                                            ⭐
+                                        </span>
+                                    </div>
+                                    <span className="text-neutral-600 dark:text-neutral-400 font-medium">
+                                        {userStats.count > 0 ? (
+                                            <>
+                                                <span className="font-bold text-neutral-900 dark:text-white">
+                                                    {userStats.count}+
+                                                </span>{" "}
+                                                Redditors trust us
+                                            </>
+                                        ) : (
+                                            <span className="font-bold text-neutral-900 dark:text-white">
+                                                Join early adopters
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                            </motion.div>
                         </div>
-                    </motion.div>
+
+                        {/* Right: Demo Video */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                                duration: 0.9,
+                                delay: 0.4,
+                                ease: "easeOut",
+                            }}
+                            className="flex-1 relative w-full"
+                        >
+                            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-800">
+                                <video
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    className="w-full h-auto"
+                                >
+                                    <source src="/demo.mp4" type="video/mp4" />
+                                    Your browser does not support the video tag.
+                                </video>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+                            </div>
+                        </motion.div>
+                    </div>
                 </div>
             </section>
 
