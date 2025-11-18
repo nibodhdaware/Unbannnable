@@ -91,9 +91,6 @@ export default function Landing() {
                         transition={{ duration: 0.6, delay: 0.1 }}
                         className="flex items-center space-x-4"
                     >
-                        {/* Theme Toggle */}
-                        <ThemeToggle />
-
                         <SignedOut>
                             <SignInButton mode="modal">
                                 <Button variant="ghost" size="sm">
@@ -148,7 +145,7 @@ export default function Landing() {
                                 initial={{ opacity: 0, y: 40 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.9, ease: "easeOut" }}
-                                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-6 leading-tight"
+                                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-4 sm:mb-6 leading-tight"
                             >
                                 Stop Getting{" "}
                                 <span className="text-[#FF4500] relative inline-block">
@@ -168,7 +165,7 @@ export default function Landing() {
                                     delay: 0.2,
                                     ease: "easeOut",
                                 }}
-                                className="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed"
+                                className="text-base sm:text-lg md:text-xl text-neutral-600 dark:text-neutral-400 mb-6 sm:mb-8 leading-relaxed"
                             >
                                 Paste your post → AI checks ALL rules → Get an
                                 optimized, ban-proof version in seconds. No more
@@ -189,7 +186,7 @@ export default function Landing() {
                                     <SignInButton mode="modal">
                                         <Button
                                             size="lg"
-                                            className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                                            className="w-full sm:w-auto bg-[#FF4500] hover:bg-[#e03d00] text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                                         >
                                             Try It Free
                                         </Button>
@@ -199,7 +196,7 @@ export default function Landing() {
                                     <Button
                                         asChild
                                         size="lg"
-                                        className="bg-[#FF4500] hover:bg-[#e03d00] text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                                        className="w-full sm:w-auto bg-[#FF4500] hover:bg-[#e03d00] text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                                     >
                                         <Link href="/app">Open App</Link>
                                     </Button>
@@ -214,7 +211,7 @@ export default function Landing() {
                                                 behavior: "smooth",
                                             })
                                     }
-                                    className="border-2 text-lg px-8 py-6 rounded-xl hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
+                                    className="w-full sm:w-auto border-2 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
                                 >
                                     See How It Works
                                 </Button>
@@ -225,7 +222,7 @@ export default function Landing() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.9, delay: 0.5 }}
-                                className="flex items-center justify-center lg:justify-start gap-4 mt-8"
+                                className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 mt-6 sm:mt-8"
                             >
                                 <div className="flex -space-x-3">
                                     {userStats.avatars.length > 0
@@ -265,23 +262,23 @@ export default function Landing() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex">
-                                        <span className="text-yellow-500 text-lg">
+                                        <span className="text-yellow-500 text-base sm:text-lg">
                                             ⭐
                                         </span>
-                                        <span className="text-yellow-500 text-lg">
+                                        <span className="text-yellow-500 text-base sm:text-lg">
                                             ⭐
                                         </span>
-                                        <span className="text-yellow-500 text-lg">
+                                        <span className="text-yellow-500 text-base sm:text-lg">
                                             ⭐
                                         </span>
-                                        <span className="text-yellow-500 text-lg">
+                                        <span className="text-yellow-500 text-base sm:text-lg">
                                             ⭐
                                         </span>
-                                        <span className="text-yellow-500 text-lg">
+                                        <span className="text-yellow-500 text-base sm:text-lg">
                                             ⭐
                                         </span>
                                     </div>
-                                    <span className="text-neutral-600 dark:text-neutral-400 font-medium">
+                                    <span className="text-neutral-600 dark:text-neutral-400 font-medium text-sm sm:text-base">
                                         {userStats.count > 0 ? (
                                             <>
                                                 <span className="font-bold text-neutral-900 dark:text-white">
@@ -341,22 +338,22 @@ export default function Landing() {
             <CTASection />
 
             {/* Footer */}
-            <footer className="py-12 px-4 sm:px-6 bg-neutral-900 dark:bg-black">
+            <footer className="py-8 sm:py-12 px-4 sm:px-6 bg-neutral-900 dark:bg-black">
                 <div className="max-w-6xl mx-auto">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 sm:gap-8 mb-6 sm:mb-8">
                         {/* Company Info */}
                         <div className="max-w-md">
-                            <div className="text-2xl font-bold text-[#FF4500] mb-3">
+                            <div className="text-xl sm:text-2xl font-bold text-[#FF4500] mb-2 sm:mb-3">
                                 Unbannnable
                             </div>
-                            <p className="text-neutral-400 text-sm">
+                            <p className="text-neutral-400 text-xs sm:text-sm">
                                 AI-powered Reddit post checker. Never get banned
                                 again.
                             </p>
                         </div>
 
                         {/* Quick Links */}
-                        <div className="flex gap-6 text-sm">
+                        <div className="flex flex-wrap gap-4 sm:gap-6 text-xs sm:text-sm">
                             <Button
                                 variant="link"
                                 onClick={() =>
@@ -405,10 +402,19 @@ export default function Landing() {
                         </div>
                     </div>
 
-                    <Separator className="bg-neutral-800 mb-6" />
+                    <Separator className="bg-neutral-800 mb-4 sm:mb-6" />
 
-                    <div className="text-center text-neutral-500 text-sm">
-                        © 2025 Unbannnable. Never get banned on Reddit again.
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+                        <div className="text-center text-neutral-500 text-xs sm:text-sm">
+                            © 2025 Unbannnable. Never get banned on Reddit
+                            again.
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-neutral-500 text-xs">
+                                Theme:
+                            </span>
+                            <ThemeToggle />
+                        </div>
                     </div>
                 </div>
             </footer>
@@ -423,7 +429,7 @@ function FeaturesSection() {
             id="features"
             className="py-20 px-4 sm:px-6 bg-neutral-50 dark:bg-neutral-900"
         >
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-6xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

@@ -1388,12 +1388,12 @@ ${rules
                 }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Payment creation failed");
-            }
-
             const data = await response.json();
+
+            if (!response.ok) {
+                console.error("Payment API Error Response:", data);
+                throw new Error(data.error || "Payment creation failed");
+            }
 
             console.log("Payment API response:", data);
 
@@ -1419,8 +1419,15 @@ ${rules
                 error: error instanceof Error ? error.message : String(error),
                 user_id: user?.id,
             });
-            // TODO: Show user-friendly error message
-            alert("Payment creation failed. Please try again.");
+
+            // Show detailed error message
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "Payment creation failed";
+            alert(
+                `Payment Error: ${errorMessage}\n\nPlease ensure:\n1. Product IDs are configured in .env.local\n2. DODO_PAYMENTS_API_KEY is set\n3. You have an active internet connection`,
+            );
         } finally {
             setPaymentLoading(false);
         }
@@ -3797,7 +3804,7 @@ ${rules
                 )}
             </AnimatePresence>
 
-            {/* Pricing Popup Modal - 3 LTD Tiers */}
+            {/* Pricing Popup Modal - LTD Tiers */}
             <AnimatePresence>
                 {showPricingPopup && (
                     <motion.div
@@ -3852,8 +3859,8 @@ ${rules
                                 </p>
                             </div>
 
-                            {/* 3-Tier Pricing Grid */}
-                            <div className="grid md:grid-cols-3 gap-6">
+                            {/* 2-Tier Pricing Grid */}
+                            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                                 {/* Starter Plan */}
                                 <div className="bg-gradient-to-br from-[#FF4500] to-[#e03d00] rounded-2xl p-6 relative">
                                     <div className="text-center mb-6">
@@ -3965,7 +3972,7 @@ ${rules
                                 </div>
 
                                 {/* Standard Plan - Best Seller */}
-                                <div className="bg-gradient-to-br from-[#FF4500] to-[#e03d00] rounded-2xl p-6 relative border-4 border-white shadow-2xl transform scale-105">
+                                <div className="bg-gradient-to-br from-[#FF4500] to-[#e03d00] rounded-2xl p-6 relative">
                                     <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                                         <Badge className="bg-white text-[#FF4500] hover:bg-white font-bold border-2 border-[#FF4500]">
                                             ⭐ Best Seller
@@ -4080,128 +4087,6 @@ ${rules
                                             {paymentLoading
                                                 ? "Processing..."
                                                 : "Buy Now"}
-                                        </button>
-                                    </SignedIn>
-                                    <SignedOut>
-                                        <SignInButton mode="modal">
-                                            <button className="w-full py-3 px-6 bg-white text-[#FF4500] rounded-xl font-bold hover:bg-gray-50 transition-colors">
-                                                Get Started
-                                            </button>
-                                        </SignInButton>
-                                    </SignedOut>
-                                </div>
-
-                                {/* Pro Plan */}
-                                <div className="bg-gradient-to-br from-[#FF4500] to-[#e03d00] rounded-2xl p-6 relative">
-                                    <div className="text-center mb-6">
-                                        <h3 className="text-white text-xl font-bold mb-2">
-                                            Pro Lifetime
-                                        </h3>
-                                        <div className="text-white text-4xl font-bold mb-1">
-                                            $59
-                                        </div>
-                                        <p className="text-white/80 text-sm mb-3">
-                                            One-time payment
-                                        </p>
-                                        <Badge className="bg-white/20 text-white border-white/30">
-                                            500 credits/month
-                                        </Badge>
-                                    </div>
-                                    <ul className="space-y-3 mb-6">
-                                        <li className="flex items-start text-white text-sm">
-                                            <svg
-                                                className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                            <span>
-                                                500 AI credits every month
-                                            </span>
-                                        </li>
-                                        <li className="flex items-start text-white text-sm">
-                                            <svg
-                                                className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                            <span>
-                                                For 50-250 posts monthly
-                                            </span>
-                                        </li>
-                                        <li className="flex items-start text-white text-sm">
-                                            <svg
-                                                className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                            <span>All Standard features</span>
-                                        </li>
-                                        <li className="flex items-start text-white text-sm">
-                                            <svg
-                                                className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                            <span>Premium support</span>
-                                        </li>
-                                        <li className="flex items-start text-white text-sm">
-                                            <svg
-                                                className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    fillRule="evenodd"
-                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                    clipRule="evenodd"
-                                                />
-                                            </svg>
-                                            <span>Lifetime access</span>
-                                        </li>
-                                    </ul>
-                                    <SignedIn>
-                                        <button
-                                            onClick={() => {
-                                                setShowPricingPopup(false);
-                                                handleGetStarted(
-                                                    "pro",
-                                                    process.env
-                                                        .NEXT_PUBLIC_DODO_PRO_PRODUCT_ID ||
-                                                        "YOUR_PRO_PRODUCT_ID",
-                                                    500,
-                                                    59,
-                                                );
-                                            }}
-                                            disabled={paymentLoading}
-                                            className="w-full py-3 px-6 bg-white text-[#FF4500] rounded-xl font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                        >
-                                            {paymentLoading
-                                                ? "Processing..."
-                                                : "Get Started"}
                                         </button>
                                     </SignedIn>
                                     <SignedOut>

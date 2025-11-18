@@ -54,36 +54,44 @@ function PricingCard({
             <Card
                 className={`relative overflow-hidden border-2 ${popular ? "border-[#FF4500] shadow-2xl shadow-[#FF4500]/50" : "border-[#FF4500]/20"} bg-gradient-to-br from-[#FF4500] to-[#e03d00] text-white mt-4`}
             >
-                <CardHeader className="text-center pb-8 pt-8">
-                    <CardTitle className="text-2xl text-white mb-2">
+                <CardHeader className="text-center pb-6 sm:pb-8 pt-6 sm:pt-8 px-4 sm:px-6">
+                    <CardTitle className="text-xl sm:text-2xl text-white mb-2">
                         {title}
                     </CardTitle>
                     <div className="mb-2">
-                        <span className="text-5xl font-bold text-white">
+                        <span className="text-4xl sm:text-5xl font-bold text-white">
                             {price}
                         </span>
                     </div>
-                    <p className="text-white/90 text-sm mb-3">{period}</p>
-                    <Badge className="mx-auto bg-white/20 hover:bg-white/30 text-white border-white/30 text-base py-1">
+                    <p className="text-white/90 text-xs sm:text-sm mb-3">
+                        {period}
+                    </p>
+                    <Badge className="mx-auto bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm sm:text-base py-1">
                         {credits}
                     </Badge>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
-                    <ul className="space-y-4">
+                <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-6 sm:pb-8">
+                    <ul className="space-y-2 sm:space-y-3">
                         {features.map((feature, index) => (
-                            <li
+                            <motion.li
                                 key={index}
-                                className="flex items-start space-x-3"
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                viewport={{ once: true }}
+                                className="flex items-center space-x-2 sm:space-x-3 group"
                             >
-                                <Check className="h-5 w-5 text-white mt-0.5 flex-shrink-0" />
-                                <span className="text-white">
+                                <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors flex-shrink-0">
+                                    <Check className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                                </div>
+                                <span className="text-white/90 text-xs sm:text-sm group-hover:text-white transition-colors">
                                     {feature === "Priority support" ? (
                                         <a
                                             href="https://x.com/nibodhdaware"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="underline text-white hover:text-white/90"
+                                            className="underline hover:text-white"
                                         >
                                             Priority support (chat with founder)
                                         </a>
@@ -91,16 +99,19 @@ function PricingCard({
                                         feature
                                     )}
                                 </span>
-                            </li>
+                            </motion.li>
                         ))}
                     </ul>
 
-                    <div className="p-4 bg-white/10 rounded-lg border border-white/20">
-                        <p className="text-sm text-white text-center">
-                            💡 <strong>Refer a friend</strong> and get{" "}
-                            <strong>10 free credits</strong> when they sign up!
+                    <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="p-2 sm:p-3 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm"
+                    >
+                        <p className="text-[10px] sm:text-xs text-white/90 text-center">
+                            💡 <strong>Refer a friend</strong> →{" "}
+                            <strong>10 free credits</strong>
                         </p>
-                    </div>
+                    </motion.div>
 
                     <SignedOut>
                         <SignInButton mode="modal">
