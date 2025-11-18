@@ -200,12 +200,32 @@ export default function BanChecker() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || data.details || "Analysis failed");
+        // Show helpful error message
+        let errorMsg = data.error || "Analysis failed";
+        if (data.details) {
+          errorMsg += `: ${data.details}`;
+        }
+        if (data.hint) {
+          errorMsg += ` (${data.hint})`;
+        }
+        throw new Error(errorMsg);
       }
 
       setResult(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to analyze post. Please try again.";
+      let errorMessage = "Failed to analyze post. Please try again.";
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        // Add helpful context for common errors
+        if (errorMessage.includes("API key not configured")) {
+          errorMessage += " ⚠️ This is a server configuration issue. The site admin needs to add the GOOGLE_GEMINI_API_KEY in Vercel settings.";
+        } else if (errorMessage.includes("fetch")) {
+          errorMessage = "Network error. Please check your internet connection and try again.";
+        }
+      }
+      
       setError(errorMessage);
       console.error("Analysis error:", err);
     } finally {
