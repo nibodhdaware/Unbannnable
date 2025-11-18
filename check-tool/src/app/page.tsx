@@ -235,6 +235,14 @@ export default function BanChecker() {
             }
 
             setResult(data);
+            
+            // Smooth scroll to results after a brief delay
+            setTimeout(() => {
+                resultCardRef.current?.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }, 300);
         } catch (err) {
             let errorMessage = "Failed to analyze post. Please try again.";
 
@@ -294,15 +302,25 @@ export default function BanChecker() {
         setSharingImage(true);
         
         try {
-            // Capture screenshot of the result card
+            // Add padding for better screenshot
+            const originalPadding = resultCardRef.current.style.padding;
+            resultCardRef.current.style.padding = '2rem';
+            
+            // Capture screenshot of the result card with higher quality
             const canvas = await html2canvas(resultCardRef.current, {
                 backgroundColor: '#ffffff',
-                scale: 2,
+                scale: 3, // Higher quality
                 logging: false,
                 useCORS: true,
+                allowTaint: true,
+                imageTimeout: 0,
+                removeContainer: true,
             });
             
-            // Convert to blob
+            // Restore original padding
+            resultCardRef.current.style.padding = originalPadding;
+            
+            // Convert to blob with higher quality
             canvas.toBlob(async (blob) => {
                 if (!blob) {
                     // Fallback to text-only tweet
@@ -316,46 +334,79 @@ export default function BanChecker() {
                     return;
                 }
                 
-                // Check if Web Share API is available and supports files
-                if (navigator.share && navigator.canShare) {
-                    const file = new File([blob], "reddit-ban-risk.png", { type: "image/png" });
-                    const shareData = {
-                        title: "Reddit Ban Risk Check",
-                        text: `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at ${window.location.href}`,
-                        files: [file],
-                    };
-                    
-                    if (navigator.canShare(shareData)) {
-                        try {
-                            await navigator.share(shareData);
+                // Create file for sharing
+                const file = new File([blob], "reddit-ban-risk.png", { type: "image/png" });
+                const shareData: ShareData = {
+                    title: "Reddit Ban Risk Check",
+                    text: `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at ${window.location.href}`,
+                    files: [file],
+                };
+                
+                // Try Web Share API first (works on mobile)
+                if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                    try {
+                        await navigator.share(shareData);
+                        setSharingImage(false);
+                        return;
+                    } catch (err) {
+                        if ((err as Error).name !== 'AbortError') {
+                            console.log('Share failed, trying alternative method:', err);
+                        } else {
+                            // User cancelled
                             setSharingImage(false);
                             return;
-                        } catch (err) {
-                            console.log('Share cancelled or failed:', err);
                         }
                     }
                 }
                 
-                // Fallback: Download image and open Twitter
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'reddit-ban-risk.png';
-                link.click();
-                URL.revokeObjectURL(url);
-                
-                // Open Twitter with text
-                setTimeout(() => {
-                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱 (screenshot saved) Check yours at`;
+                // Desktop: Copy image to clipboard and open Twitter
+                try {
+                    // Try to copy image to clipboard
+                    await navigator.clipboard.write([
+                        new ClipboardItem({
+                            'image/png': blob
+                        })
+                    ]);
+                    
+                    // Open Twitter compose with text
+                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\n📸 Screenshot copied to clipboard - paste it in your tweet!\n\nCheck yours at`;
                     const tweetUrl = window.location.href;
                     window.open(
                         `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tweetUrl)}`,
                         "_blank",
                     );
-                }, 100);
+                    
+                    // Show notification
+                    alert('📸 Screenshot copied to clipboard! Paste it (Ctrl/Cmd+V) in the Twitter compose window.');
+                    
+                } catch (clipboardErr) {
+                    console.log('Clipboard failed, downloading image:', clipboardErr);
+                    
+                    // Fallback: Download image
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `reddit-ban-risk-${result.banRisk}percent.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    // Open Twitter with text
+                    setTimeout(() => {
+                        const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\n📥 Screenshot downloaded - attach it to your tweet!\n\nCheck yours at`;
+                        const tweetUrl = window.location.href;
+                        window.open(
+                            `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tweetUrl)}`,
+                            "_blank",
+                        );
+                    }, 100);
+                    
+                    alert('📥 Screenshot downloaded! Attach the image to your tweet.');
+                }
                 
                 setSharingImage(false);
-            }, 'image/png');
+            }, 'image/png', 1.0); // Maximum quality
         } catch (error) {
             console.error('Error capturing screenshot:', error);
             // Fallback to text-only tweet
