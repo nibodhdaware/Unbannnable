@@ -12,7 +12,7 @@ import {
     ChevronDown,
 } from "lucide-react";
 import Fuse from "fuse.js";
-import html2canvas from "html2canvas";
+import { generateResultImage } from "@/lib/imageGenerator";
 
 interface AnalysisResult {
     banRisk: number;
@@ -45,8 +45,8 @@ export default function BanChecker() {
     const [loadingSubreddits, setLoadingSubreddits] = useState(false);
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [sharingImage, setSharingImage] = useState(false);
+    const [showPasteInstructions, setShowPasteInstructions] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const resultCardRef = useRef<HTMLDivElement>(null);
 
     // Fuzzy search configuration
     const fuse = useMemo(() => {
@@ -235,14 +235,6 @@ export default function BanChecker() {
             }
 
             setResult(data);
-            
-            // Smooth scroll to results after a brief delay
-            setTimeout(() => {
-                resultCardRef.current?.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-            }, 300);
         } catch (err) {
             let errorMessage = "Failed to analyze post. Please try again.";
 
@@ -297,123 +289,95 @@ export default function BanChecker() {
     };
 
     const shareOnTwitter = async () => {
-        if (!resultCardRef.current || !result) return;
-        
+        if (!result) return;
+
         setSharingImage(true);
-        
+
         try {
-            // Add padding for better screenshot
-            const originalPadding = resultCardRef.current.style.padding;
-            resultCardRef.current.style.padding = '2rem';
-            
-            // Capture screenshot of the result card with higher quality
-            const canvas = await html2canvas(resultCardRef.current, {
-                backgroundColor: '#ffffff',
-                scale: 3, // Higher quality
-                logging: false,
-                useCORS: true,
-                allowTaint: true,
-                imageTimeout: 0,
-                removeContainer: true,
-            });
-            
-            // Restore original padding
-            resultCardRef.current.style.padding = originalPadding;
-            
-            // Convert to blob with higher quality
-            canvas.toBlob(async (blob) => {
-                if (!blob) {
-                    // Fallback to text-only tweet
-                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at`;
-                    const url = window.location.href;
-                    window.open(
-                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-                        "_blank",
-                    );
+            // Generate image programmatically
+            const blob = await generateResultImage(result);
+
+            // Create file for sharing
+            const file = new File(
+                [blob],
+                `reddit-ban-risk-${result.banRisk}percent.png`,
+                {
+                    type: "image/png",
+                },
+            );
+
+            const shareData: ShareData = {
+                title: "Reddit Ban Risk Check",
+                text: `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at ${window.location.href}`,
+                files: [file],
+            };
+
+            // Try Web Share API first (mobile)
+            if (
+                navigator.share &&
+                navigator.canShare &&
+                navigator.canShare(shareData)
+            ) {
+                try {
+                    await navigator.share(shareData);
                     setSharingImage(false);
                     return;
-                }
-                
-                // Create file for sharing
-                const file = new File([blob], "reddit-ban-risk.png", { type: "image/png" });
-                const shareData: ShareData = {
-                    title: "Reddit Ban Risk Check",
-                    text: `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at ${window.location.href}`,
-                    files: [file],
-                };
-                
-                // Try Web Share API first (works on mobile)
-                if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-                    try {
-                        await navigator.share(shareData);
+                } catch (err) {
+                    if ((err as Error).name !== "AbortError") {
+                        console.log("Share failed, trying alternative:", err);
+                    } else {
                         setSharingImage(false);
                         return;
-                    } catch (err) {
-                        if ((err as Error).name !== 'AbortError') {
-                            console.log('Share failed, trying alternative method:', err);
-                        } else {
-                            // User cancelled
-                            setSharingImage(false);
-                            return;
-                        }
                     }
                 }
+            }
+
+            // Desktop: Copy to clipboard
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ "image/png": blob }),
+                ]);
+
+                const text = `My Reddit post has a ${result.banRisk}% ban risk 🚨\n\nCheck yours at`;
+                const tweetUrl = window.location.href;
                 
-                // Desktop: Copy image to clipboard and open Twitter
-                try {
-                    // Try to copy image to clipboard
-                    await navigator.clipboard.write([
-                        new ClipboardItem({
-                            'image/png': blob
-                        })
-                    ]);
-                    
-                    // Open Twitter compose with text
-                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\n📸 Screenshot copied to clipboard - paste it in your tweet!\n\nCheck yours at`;
-                    const tweetUrl = window.location.href;
+                // Show instructions and open Twitter
+                setShowPasteInstructions(true);
+                setTimeout(() => {
                     window.open(
                         `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tweetUrl)}`,
                         "_blank",
                     );
-                    
-                    // Show notification
-                    alert('📸 Screenshot copied to clipboard! Paste it (Ctrl/Cmd+V) in the Twitter compose window.');
-                    
-                } catch (clipboardErr) {
-                    console.log('Clipboard failed, downloading image:', clipboardErr);
-                    
-                    // Fallback: Download image
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `reddit-ban-risk-${result.banRisk}percent.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    // Open Twitter with text
-                    setTimeout(() => {
-                        const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\n📥 Screenshot downloaded - attach it to your tweet!\n\nCheck yours at`;
-                        const tweetUrl = window.location.href;
-                        window.open(
-                            `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tweetUrl)}`,
-                            "_blank",
-                        );
-                    }, 100);
-                    
-                    alert('📥 Screenshot downloaded! Attach the image to your tweet.');
-                }
-                
-                setSharingImage(false);
-            }, 'image/png', 1.0); // Maximum quality
+                }, 1500);
+            } catch (clipboardErr) {
+                // Fallback: Download
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `reddit-ban-risk-${result.banRisk}percent.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                setTimeout(() => {
+                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\nCheck yours at`;
+                    window.open(
+                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`,
+                        "_blank",
+                    );
+                }, 100);
+
+                alert("📥 Image downloaded! Attach it to your tweet.");
+            }
+
+            setSharingImage(false);
         } catch (error) {
-            console.error('Error capturing screenshot:', error);
-            // Fallback to text-only tweet
+            console.error("Error generating image:", error);
+            // Fallback to text-only
             const text = `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at`;
-            const url = window.location.href;
             window.open(
-                `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+                `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`,
                 "_blank",
             );
             setSharingImage(false);
@@ -640,10 +604,7 @@ export default function BanChecker() {
                             className="space-y-6"
                         >
                             {/* Risk Score Card - Screenshot Target */}
-                            <div
-                                ref={resultCardRef}
-                                className="bg-white rounded-2xl shadow-xl p-8"
-                            >
+                            <div className="bg-white rounded-2xl shadow-xl p-8">
                                 {/* Top Section: Risk Score */}
                                 <div className="text-center mb-6">
                                     <div className="flex justify-center mb-4">
@@ -782,6 +743,82 @@ export default function BanChecker() {
                     </p>
                 </div>
             </footer>
+
+            {/* Paste Instructions Modal */}
+            <AnimatePresence>
+                {showPasteInstructions && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowPasteInstructions(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="text-center space-y-6">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                                    <CheckCircle className="w-10 h-10 text-green-600" />
+                                </div>
+                                
+                                <div>
+                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                                        Image Copied! 🎉
+                                    </h3>
+                                    <p className="text-gray-600">
+                                        Twitter is opening...
+                                    </p>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 text-left space-y-3">
+                                    <p className="font-semibold text-gray-900 text-center mb-4">
+                                        📋 Quick Steps:
+                                    </p>
+                                    <div className="space-y-3">
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 bg-reddit text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                1
+                                            </span>
+                                            <p className="text-gray-700 pt-0.5">
+                                                Click in the tweet box
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 bg-reddit text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                2
+                                            </span>
+                                            <p className="text-gray-700 pt-0.5">
+                                                Press <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">Ctrl+V</kbd> or <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">⌘+V</kbd>
+                                            </p>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 bg-reddit text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                3
+                                            </span>
+                                            <p className="text-gray-700 pt-0.5">
+                                                Hit <strong>Post</strong>! 🚀
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowPasteInstructions(false)}
+                                    className="w-full px-6 py-3 bg-reddit text-white font-semibold rounded-lg hover:bg-reddit-dark transition-colors"
+                                >
+                                    Got it!
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
