@@ -17,7 +17,12 @@ export async function generateResultImage(result: {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Add subtle gradient background
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    const gradient = ctx.createLinearGradient(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+    );
     gradient.addColorStop(0, "#fff7ed");
     gradient.addColorStop(1, "#fef2f2");
     ctx.fillStyle = gradient;
@@ -50,7 +55,11 @@ export async function generateResultImage(result: {
     ctx.fillStyle = color.text;
     ctx.font = 'bold 20px system-ui, -apple-system, "Segoe UI", sans-serif';
     ctx.textAlign = "center";
-    ctx.fillText(result.risk_level.toUpperCase() + " RISK", canvas.width / 2, 112);
+    ctx.fillText(
+        result.risk_level.toUpperCase() + " RISK",
+        canvas.width / 2,
+        112,
+    );
 
     // Draw percentage
     ctx.fillStyle = "#111827";

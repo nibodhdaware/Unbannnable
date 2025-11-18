@@ -340,7 +340,7 @@ export default function BanChecker() {
 
                 const text = `My Reddit post has a ${result.banRisk}% ban risk 🚨\n\nCheck yours at`;
                 const tweetUrl = window.location.href;
-                
+
                 // Show instructions and open Twitter
                 setShowPasteInstructions(true);
                 setTimeout(() => {
@@ -633,15 +633,19 @@ export default function BanChecker() {
                                                 Issues Found
                                             </h3>
                                             <ul className="space-y-3">
-                                                {result.issues.map((issue, index) => (
-                                                    <li
-                                                        key={index}
-                                                        className="flex items-start space-x-3 text-gray-700 text-sm"
-                                                    >
-                                                        <span className="text-red-500 font-bold">•</span>
-                                                        <span>{issue}</span>
-                                                    </li>
-                                                ))}
+                                                {result.issues.map(
+                                                    (issue, index) => (
+                                                        <li
+                                                            key={index}
+                                                            className="flex items-start space-x-3 text-gray-700 text-sm"
+                                                        >
+                                                            <span className="text-red-500 font-bold">
+                                                                •
+                                                            </span>
+                                                            <span>{issue}</span>
+                                                        </li>
+                                                    ),
+                                                )}
                                             </ul>
                                         </div>
                                     )}
@@ -660,8 +664,12 @@ export default function BanChecker() {
                                                             key={index}
                                                             className="flex items-start space-x-3 text-gray-700 text-sm"
                                                         >
-                                                            <span className="text-green-500 font-bold">✓</span>
-                                                            <span>{suggestion}</span>
+                                                            <span className="text-green-500 font-bold">
+                                                                ✓
+                                                            </span>
+                                                            <span>
+                                                                {suggestion}
+                                                            </span>
                                                         </li>
                                                     ),
                                                 )}
@@ -678,7 +686,11 @@ export default function BanChecker() {
                                         className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Share2 className="w-5 h-5" />
-                                        <span>{sharingImage ? "Preparing..." : "Share on Twitter"}</span>
+                                        <span>
+                                            {sharingImage
+                                                ? "Preparing..."
+                                                : "Share on Twitter"}
+                                        </span>
                                     </button>
                                 </div>
                             </div>
@@ -766,7 +778,7 @@ export default function BanChecker() {
                                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                                     <CheckCircle className="w-10 h-10 text-green-600" />
                                 </div>
-                                
+
                                 <div>
                                     <h3 className="text-2xl font-bold text-gray-900 mb-2">
                                         Image Copied! 🎉
@@ -794,7 +806,14 @@ export default function BanChecker() {
                                                 2
                                             </span>
                                             <p className="text-gray-700 pt-0.5">
-                                                Press <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">Ctrl+V</kbd> or <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">⌘+V</kbd>
+                                                Press{" "}
+                                                <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">
+                                                    Ctrl+V
+                                                </kbd>{" "}
+                                                or{" "}
+                                                <kbd className="px-2 py-1 bg-gray-200 rounded text-xs font-mono">
+                                                    ⌘+V
+                                                </kbd>
                                             </p>
                                         </div>
                                         <div className="flex items-start gap-3">
@@ -809,7 +828,9 @@ export default function BanChecker() {
                                 </div>
 
                                 <button
-                                    onClick={() => setShowPasteInstructions(false)}
+                                    onClick={() =>
+                                        setShowPasteInstructions(false)
+                                    }
                                     className="w-full px-6 py-3 bg-reddit text-white font-semibold rounded-lg hover:bg-reddit-dark transition-colors"
                                 >
                                     Got it!
