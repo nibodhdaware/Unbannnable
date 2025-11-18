@@ -428,7 +428,7 @@ export const usePostAnalyzer = mutation({
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
             });
 
             // Create comprehensive analysis prompt
@@ -549,7 +549,7 @@ export const useRuleChecker = mutation({
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
             });
 
             // Get subreddit rules from Reddit API
@@ -718,7 +718,7 @@ export const findBetterSubreddits = mutation({
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
             });
 
             // Create comprehensive subreddit recommendation prompt
@@ -876,7 +876,7 @@ export const detectAnomalies = mutation({
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
             });
 
             // Create comprehensive anomaly detection prompt
@@ -1047,7 +1047,7 @@ export const getFlairSuggestions = mutation({
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
             });
 
             // Use fallback flairs since we can't fetch from external API in mutations

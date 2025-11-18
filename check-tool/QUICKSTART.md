@@ -10,6 +10,7 @@
 ## 📋 Deploy Now (5 Steps)
 
 ### 1. Environment
+
 ```bash
 cd check-tool
 cp .env.local.example .env.local
@@ -17,12 +18,14 @@ cp .env.local.example .env.local
 ```
 
 ### 2. Test Locally
+
 ```bash
 npm install
 npm run dev  # http://localhost:3001
 ```
 
 ### 3. Deploy to Vercel
+
 ```bash
 vercel --prod
 # OR use Vercel Dashboard
@@ -30,21 +33,26 @@ vercel --prod
 ```
 
 ### 4. Add Env Vars in Vercel
+
 - `GOOGLE_GEMINI_API_KEY` = (your key)
 - `NEXT_PUBLIC_MAIN_APP_URL` = `https://unbannnable.com`
 
 ### 5. Configure Subdomain
+
 **DNS (your domain provider):**
+
 - Type: CNAME
 - Name: `check`
 - Value: `cname.vercel-dns.com`
 
 **Vercel Dashboard:**
+
 - Settings → Domains → Add `check.unbannnable.com`
 
 ## ✅ Verification Checklist
 
 After deployment, test:
+
 - [ ] Site loads: https://check.unbannnable.com
 - [ ] Favicon appears
 - [ ] Subreddit dropdown shows options
@@ -56,16 +64,17 @@ After deployment, test:
 
 ## 🐛 Quick Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| API 500 | Check env var in Vercel |
-| Empty dropdown | Wait 30s, refresh page |
-| Subdomain 404 | Wait for DNS (up to 48h) |
-| Favicon 404 | Redeploy with `--force` |
+| Issue          | Fix                      |
+| -------------- | ------------------------ |
+| API 500        | Check env var in Vercel  |
+| Empty dropdown | Wait 30s, refresh page   |
+| Subdomain 404  | Wait for DNS (up to 48h) |
+| Favicon 404    | Redeploy with `--force`  |
 
 ## 📞 Need Help?
 
 Check these files:
+
 - `DEPLOYMENT.md` - Detailed guide
 - `FIXES.md` - What was changed
 - Vercel logs - For runtime errors

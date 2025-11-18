@@ -3,6 +3,7 @@
 ## Current Problem
 
 Your check-tool is deployed but the analysis fails with:
+
 ```
 POST https://check.unbannnable.com/api/analyze [HTTP/2 500]
 Analysis error: Error: Failed to analyze post
@@ -15,36 +16,41 @@ Analysis error: Error: Failed to analyze post
 ## How to Verify
 
 Visit this URL to check:
+
 ```
 https://check.unbannnable.com/api/health
 ```
 
 **Expected if working:**
+
 ```json
 {
-  "status": "ok",
-  "apiKeyConfigured": true,
-  "message": "✅ API key is configured correctly"
+    "status": "ok",
+    "apiKeyConfigured": true,
+    "message": "✅ API key is configured correctly"
 }
 ```
 
 **Current (broken):**
+
 ```json
 {
-  "status": "ok",
-  "apiKeyConfigured": false,
-  "message": "❌ GOOGLE_GEMINI_API_KEY environment variable is missing..."
+    "status": "ok",
+    "apiKeyConfigured": false,
+    "message": "❌ GOOGLE_GEMINI_API_KEY environment variable is missing..."
 }
 ```
 
 ## Fix Steps (5 minutes)
 
 ### Step 1: Get Your API Key
+
 1. Go to: https://aistudio.google.com/app/apikey
 2. Click "Create API Key" or copy existing key
 3. Copy the key (starts with `AIza...`)
 
 ### Step 2: Add to Vercel
+
 1. Go to: https://vercel.com/dashboard
 2. Find your project (probably named "check-tool" or "check-unbannnable")
 3. Click on the project
@@ -53,16 +59,19 @@ https://check.unbannnable.com/api/health
 6. Click **"Add Variable"** button
 
 ### Step 3: Configure Variable
+
 Fill in the form:
+
 - **Key**: `GOOGLE_GEMINI_API_KEY`
 - **Value**: Paste your API key (e.g., `AIzaSyC...`)
 - **Environments**: Check ALL three boxes:
-  - ✅ Production
-  - ✅ Preview  
-  - ✅ Development
+    - ✅ Production
+    - ✅ Preview
+    - ✅ Development
 - Click **"Save"**
 
 ### Step 4: Redeploy
+
 1. Click **"Deployments"** (top menu)
 2. Find the latest deployment (top of list)
 3. Click the **"..."** button (three dots)
@@ -71,6 +80,7 @@ Fill in the form:
 6. Look for green checkmark ✅
 
 ### Step 5: Test
+
 1. Visit: https://check.unbannnable.com/api/health
 2. Verify: `"apiKeyConfigured": true`
 3. Visit: https://check.unbannnable.com
@@ -91,6 +101,7 @@ I just pushed these fixes:
 ## After Setting the Environment Variable
 
 Everything will work:
+
 - ✅ No more 500 errors
 - ✅ Analysis returns results
 - ✅ No console warnings (except favicon cache might take time)
@@ -123,7 +134,7 @@ Vercel Dashboard
 
 1. Check the health endpoint: `/api/health`
 2. Check Vercel Function Logs:
-   - Deployments → Click deployment → View Function Logs
+    - Deployments → Click deployment → View Function Logs
 3. Verify the env var name is spelled correctly
 4. Try removing and re-adding the variable
 5. Make sure you redeployed after adding it

@@ -69,6 +69,7 @@ vercel
 #### Environment Variables on Vercel
 
 Add these in Vercel Dashboard → Settings → Environment Variables:
+
 - `GOOGLE_GEMINI_API_KEY`
 - `NEXT_PUBLIC_MAIN_APP_URL`
 
@@ -99,6 +100,7 @@ colors: {
 ### Main App URL
 
 Update in `.env.local`:
+
 ```
 NEXT_PUBLIC_MAIN_APP_URL=https://your-domain.com
 ```
@@ -125,6 +127,7 @@ NEXT_PUBLIC_MAIN_APP_URL=https://your-domain.com
 ## 📈 Conversion Optimization
 
 Current conversion funnel:
+
 1. User checks post (free)
 2. Sees high ban risk
 3. Clicks "Try Unbannnable Free"
@@ -141,11 +144,13 @@ Current conversion funnel:
 ## 🔗 Integration with Main App
 
 The tool links to main app at:
+
 - Header logo
 - Footer
 - Upsell card (2 CTAs)
 
 Track conversions by adding UTM parameters:
+
 ```
 ?utm_source=ban-checker&utm_medium=free-tool&utm_campaign=upsell
 ```
@@ -155,6 +160,7 @@ Track conversions by adding UTM parameters:
 ### API Key Issues
 
 If you see "API key not configured":
+
 1. Check `.env.local` exists
 2. Verify `GOOGLE_GEMINI_API_KEY` is set
 3. Restart dev server
@@ -162,6 +168,7 @@ If you see "API key not configured":
 ### Port Conflicts
 
 Tool runs on port 3001 by default. To change:
+
 ```bash
 npm run dev -- -p 3002
 ```
@@ -173,6 +180,7 @@ Part of the Unbannnable monorepo. Same license as main app.
 ## 🤝 Contributing
 
 This is a standalone free tool. Keep it:
+
 - Simple (one page)
 - Fast (<3s analysis)
 - No authentication
