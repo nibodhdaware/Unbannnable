@@ -12,6 +12,7 @@ import {
     ChevronDown,
 } from "lucide-react";
 import Fuse from "fuse.js";
+import html2canvas from "html2canvas";
 
 interface AnalysisResult {
     banRisk: number;
@@ -43,7 +44,9 @@ export default function BanChecker() {
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [loadingSubreddits, setLoadingSubreddits] = useState(false);
     const [loadingSearch, setLoadingSearch] = useState(false);
+    const [sharingImage, setSharingImage] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const resultCardRef = useRef<HTMLDivElement>(null);
 
     // Fuzzy search configuration
     const fuse = useMemo(() => {
@@ -285,13 +288,85 @@ export default function BanChecker() {
         }
     };
 
-    const shareOnTwitter = () => {
-        const text = `My Reddit post has a ${result?.banRisk}% ban risk 😱 Check yours at`;
-        const url = window.location.href;
-        window.open(
-            `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-            "_blank",
-        );
+    const shareOnTwitter = async () => {
+        if (!resultCardRef.current || !result) return;
+        
+        setSharingImage(true);
+        
+        try {
+            // Capture screenshot of the result card
+            const canvas = await html2canvas(resultCardRef.current, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false,
+                useCORS: true,
+            });
+            
+            // Convert to blob
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    // Fallback to text-only tweet
+                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at`;
+                    const url = window.location.href;
+                    window.open(
+                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+                        "_blank",
+                    );
+                    setSharingImage(false);
+                    return;
+                }
+                
+                // Check if Web Share API is available and supports files
+                if (navigator.share && navigator.canShare) {
+                    const file = new File([blob], "reddit-ban-risk.png", { type: "image/png" });
+                    const shareData = {
+                        title: "Reddit Ban Risk Check",
+                        text: `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at ${window.location.href}`,
+                        files: [file],
+                    };
+                    
+                    if (navigator.canShare(shareData)) {
+                        try {
+                            await navigator.share(shareData);
+                            setSharingImage(false);
+                            return;
+                        } catch (err) {
+                            console.log('Share cancelled or failed:', err);
+                        }
+                    }
+                }
+                
+                // Fallback: Download image and open Twitter
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'reddit-ban-risk.png';
+                link.click();
+                URL.revokeObjectURL(url);
+                
+                // Open Twitter with text
+                setTimeout(() => {
+                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱 (screenshot saved) Check yours at`;
+                    const tweetUrl = window.location.href;
+                    window.open(
+                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tweetUrl)}`,
+                        "_blank",
+                    );
+                }, 100);
+                
+                setSharingImage(false);
+            }, 'image/png');
+        } catch (error) {
+            console.error('Error capturing screenshot:', error);
+            // Fallback to text-only tweet
+            const text = `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at`;
+            const url = window.location.href;
+            window.open(
+                `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+                "_blank",
+            );
+            setSharingImage(false);
+        }
     };
 
     return (
@@ -513,74 +588,88 @@ export default function BanChecker() {
                             transition={{ duration: 0.6 }}
                             className="space-y-6"
                         >
-                            {/* Risk Score Card */}
-                            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-                                <div className="flex justify-center mb-4">
-                                    {getRiskIcon(result.risk_level)}
+                            {/* Risk Score Card - Screenshot Target */}
+                            <div
+                                ref={resultCardRef}
+                                className="bg-white rounded-2xl shadow-xl p-8"
+                            >
+                                {/* Top Section: Risk Score */}
+                                <div className="text-center mb-6">
+                                    <div className="flex justify-center mb-4">
+                                        {getRiskIcon(result.risk_level)}
+                                    </div>
+                                    <div
+                                        className={`inline-block px-6 py-2 rounded-full text-sm font-bold mb-4 ${getRiskColor(result.risk_level)}`}
+                                    >
+                                        {result.risk_level.toUpperCase()} RISK
+                                    </div>
+                                    <div className="text-6xl font-bold text-gray-900 mb-2">
+                                        {result.banRisk}%
+                                    </div>
+                                    <p className="text-xl text-gray-600">
+                                        Chance of Getting Banned
+                                    </p>
                                 </div>
-                                <div
-                                    className={`inline-block px-6 py-2 rounded-full text-sm font-bold mb-4 ${getRiskColor(result.risk_level)}`}
-                                >
-                                    {result.risk_level.toUpperCase()} RISK
+
+                                {/* Side by Side: Issues and Suggestions */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                    {/* Issues Found */}
+                                    {result.issues.length > 0 && (
+                                        <div className="bg-red-50 rounded-xl p-6 border border-red-100">
+                                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                                <XCircle className="w-5 h-5 text-red-500" />
+                                                Issues Found
+                                            </h3>
+                                            <ul className="space-y-3">
+                                                {result.issues.map((issue, index) => (
+                                                    <li
+                                                        key={index}
+                                                        className="flex items-start space-x-3 text-gray-700 text-sm"
+                                                    >
+                                                        <span className="text-red-500 font-bold">•</span>
+                                                        <span>{issue}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {/* Suggestions */}
+                                    {result.suggestions.length > 0 && (
+                                        <div className="bg-green-50 rounded-xl p-6 border border-green-100">
+                                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                                <CheckCircle className="w-5 h-5 text-green-500" />
+                                                How to Fix It
+                                            </h3>
+                                            <ul className="space-y-3">
+                                                {result.suggestions.map(
+                                                    (suggestion, index) => (
+                                                        <li
+                                                            key={index}
+                                                            className="flex items-start space-x-3 text-gray-700 text-sm"
+                                                        >
+                                                            <span className="text-green-500 font-bold">✓</span>
+                                                            <span>{suggestion}</span>
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="text-6xl font-bold text-gray-900 mb-2">
-                                    {result.banRisk}%
-                                </div>
-                                <p className="text-xl text-gray-600 mb-6">
-                                    Chance of Getting Banned
-                                </p>
 
                                 {/* Share Button */}
-                                <button
-                                    onClick={shareOnTwitter}
-                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                                >
-                                    <Share2 className="w-5 h-5" />
-                                    <span>Share on Twitter</span>
-                                </button>
+                                <div className="text-center">
+                                    <button
+                                        onClick={shareOnTwitter}
+                                        disabled={sharingImage}
+                                        className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Share2 className="w-5 h-5" />
+                                        <span>{sharingImage ? "Preparing..." : "Share on Twitter"}</span>
+                                    </button>
+                                </div>
                             </div>
-
-                            {/* Issues Found */}
-                            {result.issues.length > 0 && (
-                                <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                                        Issues Found
-                                    </h3>
-                                    <ul className="space-y-3">
-                                        {result.issues.map((issue, index) => (
-                                            <li
-                                                key={index}
-                                                className="flex items-start space-x-3 text-gray-700"
-                                            >
-                                                <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                                                <span>{issue}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {/* Suggestions */}
-                            {result.suggestions.length > 0 && (
-                                <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                                        How to Fix It
-                                    </h3>
-                                    <ul className="space-y-3">
-                                        {result.suggestions.map(
-                                            (suggestion, index) => (
-                                                <li
-                                                    key={index}
-                                                    className="flex items-start space-x-3 text-gray-700"
-                                                >
-                                                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                                                    <span>{suggestion}</span>
-                                                </li>
-                                            ),
-                                        )}
-                                    </ul>
-                                </div>
-                            )}
 
                             {/* Upsell Card */}
                             <motion.div
