@@ -19,7 +19,10 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
             capture_pageview: false, // We'll handle this manually
             capture_pageleave: false,
             // Use reverse proxy if available to avoid CORS
-            ui_host: process.env.NODE_ENV === "production" ? "https://us.i.posthog.com" : undefined,
+            ui_host:
+                process.env.NODE_ENV === "production"
+                    ? "https://us.i.posthog.com"
+                    : undefined,
             // Graceful error handling
             loaded: (posthog) => {
                 if (process.env.NODE_ENV === "development") {
