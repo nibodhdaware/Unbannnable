@@ -3914,7 +3914,8 @@ ${rules
                                         Refer Friends
                                     </h2>
                                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                                        Earn 10 credits for each friend who signs up
+                                        Earn 10 credits for each friend who
+                                        signs up
                                     </p>
                                 </div>
                             </div>
