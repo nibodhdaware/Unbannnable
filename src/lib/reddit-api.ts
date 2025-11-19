@@ -5,14 +5,6 @@ interface Subreddit {
     id: string;
 }
 
-interface Flair {
-    id: string;
-    text: string;
-    css_class: string;
-    text_color: string;
-    background_color: string;
-}
-
 interface SubredditRule {
     kind: string;
     short_name: string;
@@ -87,13 +79,12 @@ class RedditAPI {
 
     async searchSubreddits(
         query: string,
-        limit: number = 25,
+        limit: number = 20,
     ): Promise<Subreddit[]> {
         try {
+            // Use Reddit's autocomplete API for faster, better results
             const response = await fetch(
-                `/api/reddit/subreddits?query=${encodeURIComponent(
-                    query,
-                )}&limit=${limit}`,
+                `/api/reddit/subreddits?query=${encodeURIComponent(query)}&limit=${limit}`,
             );
 
             if (!response.ok) {
@@ -105,43 +96,6 @@ class RedditAPI {
             return data;
         } catch (error) {
             console.error("Error searching subreddits:", error);
-            throw error;
-        }
-    }
-
-    async fetchSubredditFlairs(subredditName: string): Promise<Flair[]> {
-        // Reddit's public API now requires authentication, so we'll use our server-side scraping
-        console.log(
-            `🔍 Fetching flairs via server-side scraping for r/${subredditName}`,
-        );
-
-        // Fallback to our server API
-        try {
-            console.log(`🔄 Using server fallback API for r/${subredditName}`);
-            const response = await fetch(
-                `/api/reddit/flairs?subreddit=${encodeURIComponent(
-                    subredditName,
-                )}&t=${Date.now()}`,
-                {
-                    cache: "no-cache",
-                    headers: {
-                        "Cache-Control": "no-cache",
-                    },
-                },
-            );
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error(
-                `Error fetching flairs for r/${subredditName}:`,
-                error,
-            );
             throw error;
         }
     }
@@ -257,7 +211,6 @@ class RedditAPI {
         [subreddit: string]: {
             info?: any;
             rules?: SubredditRule[];
-            flairs?: Flair[];
             requirements?: PostRequirement | null;
         };
     }> {
@@ -286,7 +239,6 @@ class RedditAPI {
 export const redditAPI = new RedditAPI();
 export type {
     Subreddit,
-    Flair,
     SubredditRule,
     PostRequirement,
     AlternativeSubreddit,

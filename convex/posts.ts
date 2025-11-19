@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { getUserCredits, deductCredits } from "./users";
 
 // Create a new post
@@ -402,8 +403,67 @@ async function deductCreditsInternal(ctx: any, userId: any, amount: number) {
     return newCredits;
 }
 
+// Internal mutation to check and deduct credits
+export const checkAndDeductCredits = internalMutation({
+    args: {
+        userId: v.id("users"),
+        amount: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const userCredits = await getUserCreditsInternal(ctx, args.userId);
+        if (userCredits < args.amount) {
+            throw new Error(
+                `Insufficient credits. Need ${args.amount} credits.`,
+            );
+        }
+        await deductCreditsInternal(ctx, args.userId, args.amount);
+    },
+});
+
+// Internal mutation to update post analysis
+export const updatePostAnalysis = internalMutation({
+    args: {
+        postId: v.id("posts"),
+        analysis: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.postId, {
+            aiFeaturesUsed: ["AI Post Analyzer"],
+            totalCreditsSpent: 10,
+            aiAnalysisResults: {
+                postAnalyzer: args.analysis,
+            },
+        });
+    },
+});
+
+// Internal mutation to update post analysis with feature tracking
+export const updatePostAnalysisFeature = internalMutation({
+    args: {
+        postId: v.id("posts"),
+        featureName: v.string(),
+        creditsSpent: v.number(),
+        analysisKey: v.string(),
+        analysisValue: v.any(),
+    },
+    handler: async (ctx, args) => {
+        const post = await ctx.db.get(args.postId);
+        const existingFeatures = post?.aiFeaturesUsed || [];
+        const existingCredits = post?.totalCreditsSpent || 0;
+
+        await ctx.db.patch(args.postId, {
+            aiFeaturesUsed: [...existingFeatures, args.featureName],
+            totalCreditsSpent: existingCredits + args.creditsSpent,
+            aiAnalysisResults: {
+                ...post?.aiAnalysisResults,
+                [args.analysisKey]: args.analysisValue,
+            },
+        });
+    },
+});
+
 // AI Post Analyzer - 10 Credits
-export const usePostAnalyzer = mutation({
+export const usePostAnalyzer = action({
     args: {
         postId: v.id("posts"),
         userId: v.id("users"),
@@ -412,75 +472,100 @@ export const usePostAnalyzer = mutation({
         subreddit: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        // Check if user has enough credits
-        const userCredits = await getUserCreditsInternal(ctx, args.userId);
-        if (userCredits < 10) {
-            throw new Error(
-                "Insufficient credits. Need 10 credits for Post Analyzer.",
-            );
-        }
-
-        // Deduct credits
-        await deductCreditsInternal(ctx, args.userId, 10);
+        // Check and deduct credits
+        await ctx.runMutation(internal.posts.checkAndDeductCredits, {
+            userId: args.userId,
+            amount: 10,
+        });
 
         try {
-            // Import Gemini AI
-            const { GoogleGenerativeAI } = require("@google/generative-ai");
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            // Import Google Generative AI
+            const { GoogleGenerativeAI } = await import(
+                "@google/generative-ai"
+            );
+
+            const apiKey = process.env.GEMINI_API_KEY;
+
+            if (!apiKey) {
+                throw new Error("GEMINI_API_KEY not set in Convex environment");
+            }
+
+            const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({
                 model: "gemini-2.0-flash",
             });
 
-            // Create comprehensive analysis prompt
-            const prompt = `You are a Reddit post optimization expert. Analyze this post comprehensively and provide detailed insights.
+            // Fetch subreddit rules if available
+            let rulesText = "No specific rules available.";
+            if (args.subreddit) {
+                try {
+                    const rulesResponse = await fetch(
+                        `https://old.reddit.com/r/${args.subreddit}/about/rules.json`,
+                        {
+                            headers: {
+                                "User-Agent":
+                                    "UnbannnableApp/1.0 (by u/unbannnable)",
+                            },
+                        },
+                    );
+                    if (rulesResponse.ok) {
+                        const rulesData = await rulesResponse.json();
+                        if (rulesData.rules && rulesData.rules.length > 0) {
+                            rulesText = rulesData.rules
+                                .map(
+                                    (rule: any, i: number) =>
+                                        `${i + 1}. ${rule.short_name}`,
+                                )
+                                .join("\n");
+                        }
+                    }
+                } catch (error) {
+                    console.log("Could not fetch subreddit rules");
+                }
+            }
 
-Post Details:
-- Title: "${args.title}"
-- Body: "${args.body || "No body content"}"
-- Subreddit: ${args.subreddit ? `r/${args.subreddit}` : "Not specified"}
+            // Create concise analysis prompt
+            const prompt = `Analyze this Reddit post for r/${args.subreddit || "general"}.
 
-Provide a comprehensive analysis covering:
+ACTUAL POST CONTENT:
+Title: "${args.title}"
+${args.body ? `Body: "${args.body}"` : "Body: (none)"}
 
-**ENGAGEMENT POTENTIAL** (Score out of 10):
-- Rate the title's clickability and engagement potential
-- Analyze content length and structure
-- Consider timing and trending topics relevance
+SUBREDDIT RULES:
+${rulesText}
 
-**CONTENT QUALITY ANALYSIS**:
-- Assess clarity and readability
-- Check for compelling hooks and value proposition
-- Evaluate supporting evidence or examples
+IMPORTANT: Only analyze the ACTUAL content provided above. Do NOT make up example posts or hypothetical content.
 
-**OPTIMIZATION SUGGESTIONS**:
-- Specific title improvements
-- Content structure recommendations
-- Missing elements that could boost engagement
-- Call-to-action suggestions
+Provide SHORT analysis (max 150 words) in Markdown:
 
-**SUBREDDIT ALIGNMENT**:
-${args.subreddit ? `- How well does this fit r/${args.subreddit}'s community` : "- General subreddit recommendations"}
-- Community-specific optimization tips
-- Format and style suggestions
+## 📊 Score: X/10
+Why?
 
-**RISK ASSESSMENT**:
-- Potential rule violations or issues
-- Controversial elements to consider
-- Ban risk factors
+## ✅ Strengths
+- What works
 
-Provide actionable, specific recommendations with clear reasoning.`;
+## ⚠️ Issues
+- Problems found
+- Rule violations (if any)
+
+## 💡 Fixes
+1. Specific change
+2. Another fix
+
+## 🎯 Verdict
+Post it / Fix first / Don't post
+
+Be concise and specific to THIS post only.`;
 
             // Get AI analysis
             const result = await model.generateContent(prompt);
-            const response = await result.response;
+            const response = result.response;
             const analysis = response.text();
 
-            // Update post with AI analysis results
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: ["AI Post Analyzer"],
-                totalCreditsSpent: 10,
-                aiAnalysisResults: {
-                    postAnalyzer: analysis,
-                },
+            // Update post with AI analysis results (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysis, {
+                postId: args.postId,
+                analysis,
             });
 
             return { success: true, analysis, creditsSpent: 10 };
@@ -505,13 +590,10 @@ Provide actionable, specific recommendations with clear reasoning.`;
 
 Note: Full AI analysis temporarily unavailable. Basic optimization suggestions provided.`;
 
-            // Update post with fallback analysis
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: ["AI Post Analyzer"],
-                totalCreditsSpent: 10,
-                aiAnalysisResults: {
-                    postAnalyzer: fallbackAnalysis,
-                },
+            // Update post with fallback analysis (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysis, {
+                postId: args.postId,
+                analysis: fallbackAnalysis,
             });
 
             return {
@@ -524,7 +606,7 @@ Note: Full AI analysis temporarily unavailable. Basic optimization suggestions p
 });
 
 // Rule Checker - 5 Credits
-export const useRuleChecker = mutation({
+export const useRuleChecker = action({
     args: {
         postId: v.id("posts"),
         userId: v.id("users"),
@@ -533,16 +615,11 @@ export const useRuleChecker = mutation({
         subreddit: v.string(),
     },
     handler: async (ctx, args) => {
-        // Check if user has enough credits
-        const userCredits = await getUserCreditsInternal(ctx, args.userId);
-        if (userCredits < 5) {
-            throw new Error(
-                "Insufficient credits. Need 5 credits for Rule Checker.",
-            );
-        }
-
-        // Deduct credits
-        await deductCreditsInternal(ctx, args.userId, 5);
+        // Check and deduct credits using internal mutation
+        await ctx.runMutation(internal.posts.checkAndDeductCredits, {
+            userId: args.userId,
+            amount: 5,
+        });
 
         try {
             // Import Gemini AI
@@ -575,73 +652,49 @@ export const useRuleChecker = mutation({
                 );
             }
 
-            // Create comprehensive rule checking prompt
-            const prompt = `You are a Reddit rule compliance expert. Analyze this post for potential rule violations.
+            // Create concise rule checking prompt
+            const prompt = `Reddit rule compliance check for r/${args.subreddit}.
 
-Post Details:
-- Title: "${args.title}"
-- Body: "${args.body || "No body content"}"
-- Target Subreddit: r/${args.subreddit}
+Post: "${args.title}"
+Body: "${args.body || "None"}"
 
 ${
     subredditRules.length > 0
-        ? `
-Subreddit Rules:
-${subredditRules
-    .map(
-        (rule: any, index: number) =>
-            `${index + 1}. ${rule.short_name}: ${rule.description || rule.violation_reason}`,
-    )
-    .join("\n")}
-`
-        : "Note: Specific subreddit rules could not be fetched. Using general Reddit guidelines."
+        ? `Rules:\n${subredditRules.map((rule: any, i: number) => `${i + 1}. ${rule.short_name}`).join("\n")}`
+        : "Using general Reddit guidelines."
 }
 
-Analyze for:
+Provide concise analysis (max 200 words) in Markdown:
 
-**TITLE COMPLIANCE**:
-- Length and formatting requirements
-- Prohibited words or phrases
-- Required formatting elements
-- Clickbait or misleading content
+## 📋 Compliance Score
+X/10 with risk level
 
-**CONTENT COMPLIANCE**:
-- Self-promotion restrictions
-- Off-topic content
-- Required information or context
-- Prohibited content types
+## ✅ What's Good
+1-2 things that follow rules
 
-**POSTING GUIDELINES**:
-- Flair requirements
-- Post timing restrictions
-- Frequency limitations
-- Community-specific formats
+## ⚠️ Issues Found
+Specific violations (if any)
 
-**RISK ASSESSMENT**:
-Rate the overall compliance risk (Low/Medium/High) and explain:
-- Specific rules that might be violated
-- Recommended changes to ensure compliance
-- Alternative approaches if current post is risky
+## 💡 Quick Fixes
+1-2 actionable changes
 
-Provide specific, actionable compliance recommendations.`;
+## 🎯 Verdict
+One sentence: Safe to post / Fix issues first
+
+Keep it concise, specific, and actionable.`;
 
             // Get AI analysis
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const ruleCheck = response.text();
 
-            // Update post with existing features + new one
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [...existingFeatures, "Rule Checker"],
-                totalCreditsSpent: existingCredits + 5,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    ruleChecker: ruleCheck,
-                },
+            // Update post with AI analysis results (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysisFeature, {
+                postId: args.postId,
+                featureName: "Rule Checker",
+                creditsSpent: 5,
+                analysisKey: "ruleChecker",
+                analysisValue: ruleCheck,
             });
 
             return { success: true, ruleCheck, creditsSpent: 5 };
@@ -669,18 +722,13 @@ Provide specific, actionable compliance recommendations.`;
 **Compliance Risk**: Medium - Manual rule verification recommended
 Note: Full rule analysis temporarily unavailable.`;
 
-            // Update post with fallback data
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [...existingFeatures, "Rule Checker"],
-                totalCreditsSpent: existingCredits + 5,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    ruleChecker: fallbackRuleCheck,
-                },
+            // Update post with fallback data (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysisFeature, {
+                postId: args.postId,
+                featureName: "Rule Checker",
+                creditsSpent: 5,
+                analysisKey: "ruleChecker",
+                analysisValue: fallbackRuleCheck,
             });
 
             return {
@@ -693,7 +741,7 @@ Note: Full rule analysis temporarily unavailable.`;
 });
 
 // Find Better Subreddits - 5 Credits
-export const findBetterSubreddits = mutation({
+export const findBetterSubreddits = action({
     args: {
         postId: v.id("posts"),
         userId: v.id("users"),
@@ -702,16 +750,11 @@ export const findBetterSubreddits = mutation({
         currentSubreddit: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        // Check if user has enough credits
-        const userCredits = await getUserCreditsInternal(ctx, args.userId);
-        if (userCredits < 5) {
-            throw new Error(
-                "Insufficient credits. Need 5 credits for Find Better Subreddits.",
-            );
-        }
-
-        // Deduct credits
-        await deductCreditsInternal(ctx, args.userId, 5);
+        // Check and deduct credits using internal mutation
+        await ctx.runMutation(internal.posts.checkAndDeductCredits, {
+            userId: args.userId,
+            amount: 5,
+        });
 
         try {
             // Import Gemini AI
@@ -721,63 +764,50 @@ export const findBetterSubreddits = mutation({
                 model: "gemini-2.0-flash",
             });
 
-            // Create comprehensive subreddit recommendation prompt
-            const prompt = `You are a Reddit community expert. Analyze this post and recommend the best subreddits for maximum engagement and success.
+            // Create concise subreddit recommendation prompt
+            const prompt = `Find better subreddits for this post.
 
-Post Content:
-- Title: "${args.title}"
-- Body: "${args.body || "No body content"}"
-${args.currentSubreddit ? `- Current Target: r/${args.currentSubreddit}` : "- No specific subreddit chosen yet"}
+Post: "${args.title}"
+Body: "${args.body || "None"}"
+${args.currentSubreddit ? `Current: r/${args.currentSubreddit}` : ""}
 
-Analysis Requirements:
+Provide concise recommendations (max 200 words) in Markdown:
 
-**CONTENT ANALYSIS**:
-- Primary topic and theme identification
-- Content type (question, discussion, news, story, advice, etc.)
-- Target audience demographics
-- Engagement potential factors
+## 🎯 Top Matches
 
-**SUBREDDIT MATCHING**:
-Find 5-7 subreddits with the highest success probability. For each, provide:
+### r/Subreddit1 (Score: X/10)
+- Size: XX members
+- Expected: XX upvotes
+- Why: Brief reason
 
-**r/SubredditName** (Match Score: X/10)
-- **Community Size**: Member count and activity level
-- **Engagement Prediction**: Expected upvotes and comments
-- **Success Probability**: Percentage chance of positive reception  
-- **Key Advantages**: Why this community is perfect for this content
-- **Posting Requirements**: Flair, formatting, timing considerations
-- **Potential Challenges**: What could go wrong and how to avoid it
+### r/Subreddit2 (Score: X/10)
+- Size: XX members
+- Expected: XX upvotes
+- Why: Brief reason
 
-**STRATEGIC RECOMMENDATIONS**:
-- **Primary Target**: Best single subreddit choice with reasoning
-- **Cross-posting Strategy**: Which communities allow cross-posting
-- **Timing Optimization**: Best posting times for each community
-- **Content Adaptation**: How to modify post for different communities
+(List 3-5 subreddits)
 
-**ENGAGEMENT MAXIMIZATION**:
-- Title variations for different subreddits
-- Community-specific language and tone adjustments
-- Flair and formatting requirements
+## 💡 Best Choice
+One sentence recommendation with reasoning.
 
-Rank all recommendations by overall success probability and expected engagement.`;
+## ⏰ Pro Tips
+- Best posting time
+- Required flair (if any)
+
+Keep it concise and actionable.`;
 
             // Get AI analysis
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const betterSubreddits = response.text();
 
-            // Update post with existing features + new one
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [...existingFeatures, "Find Better Subreddits"],
-                totalCreditsSpent: existingCredits + 5,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    betterSubreddits: [betterSubreddits],
-                },
+            // Update post with AI analysis results (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysisFeature, {
+                postId: args.postId,
+                featureName: "Find Better Subreddits",
+                creditsSpent: 5,
+                analysisKey: "betterSubreddits",
+                analysisValue: [betterSubreddits],
             });
 
             return {
@@ -827,18 +857,13 @@ ${args.currentSubreddit ? `**Current Target**: r/${args.currentSubreddit}` : ""}
 
 Note: Enhanced AI analysis temporarily unavailable.`;
 
-            // Update post with fallback data
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [...existingFeatures, "Find Better Subreddits"],
-                totalCreditsSpent: existingCredits + 5,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    betterSubreddits: [fallbackSuggestions],
-                },
+            // Update post with fallback data (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysisFeature, {
+                postId: args.postId,
+                featureName: "Find Better Subreddits",
+                creditsSpent: 5,
+                analysisKey: "betterSubreddits",
+                analysisValue: [fallbackSuggestions],
             });
 
             return {
@@ -851,7 +876,7 @@ Note: Enhanced AI analysis temporarily unavailable.`;
 });
 
 // Anomaly Detection - 3 Credits
-export const detectAnomalies = mutation({
+export const detectAnomalies = action({
     args: {
         postId: v.id("posts"),
         userId: v.id("users"),
@@ -860,16 +885,11 @@ export const detectAnomalies = mutation({
         subreddit: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        // Check if user has enough credits
-        const userCredits = await getUserCreditsInternal(ctx, args.userId);
-        if (userCredits < 3) {
-            throw new Error(
-                "Insufficient credits. Need 3 credits for Anomaly Detection.",
-            );
-        }
-
-        // Deduct credits
-        await deductCreditsInternal(ctx, args.userId, 3);
+        // Check and deduct credits using internal mutation
+        await ctx.runMutation(internal.posts.checkAndDeductCredits, {
+            userId: args.userId,
+            amount: 3,
+        });
 
         try {
             // Import Gemini AI
@@ -879,82 +899,46 @@ export const detectAnomalies = mutation({
                 model: "gemini-2.0-flash",
             });
 
-            // Create comprehensive anomaly detection prompt
-            const prompt = `You are a Reddit content safety expert. Analyze this post for potential ban risks and anomalies that could trigger automated moderation or community backlash.
+            // Create concise anomaly detection prompt
+            const prompt = `Check for ban risks and red flags.
 
-Post Content:
-- Title: "${args.title}"
-- Body: "${args.body || "No body content"}"
-${args.subreddit ? `- Target Subreddit: r/${args.subreddit}` : ""}
+Post: "${args.title}"
+Body: "${args.body || "None"}"
+${args.subreddit ? `Subreddit: r/${args.subreddit}` : ""}
 
-**SPAM DETECTION**:
-Analyze for spam indicators:
-- Excessive promotional language
-- Suspicious link patterns
-- Copy-paste content markers
-- Commercial intent signals
+Provide concise analysis (max 200 words) in Markdown:
 
-**BEHAVIORAL ANOMALIES**:
-Check for patterns that might trigger suspicion:
-- Unnatural writing patterns
-- Bot-like content structure
-- Keyword stuffing
-- Artificial engagement attempts
+## 🛡️ Safety Score
+X/10 overall risk level
 
-**COMMUNITY VIOLATIONS**:
-Identify potential community issues:
-- Sensitive topic handling
-- Controversial statement risks
-- Potential rule violations
-- Cultural sensitivity problems
+## ✅ Looks Good
+- What's safe about the post
 
-**MODERATION TRIGGERS**:
-Detect elements that commonly trigger auto-moderation:
-- Banned keywords or phrases
-- Suspicious formatting patterns
-- External link risks
-- Account age/karma dependencies
+## 🚨 Red Flags
+- Spam indicators
+- Auto-mod triggers
+- Ban risks
 
-**RISK ASSESSMENT**:
-Provide detailed risk analysis:
+## 💡 How to Fix
+1-2 specific changes to reduce risk
 
-**Overall Safety Score**: X/10
+## 🎯 Verdict
+One sentence: Safe / Needs changes / High risk
 
-**High Risk Factors** (immediate attention needed):
-- List any critical issues
-
-**Medium Risk Factors** (consider modifications):  
-- List moderate concerns
-
-**Low Risk Factors** (monitor but acceptable):
-- List minor considerations
-
-**RECOMMENDATIONS**:
-- Specific changes to reduce ban risk
-- Timing suggestions for posting
-- Account preparation requirements
-- Community engagement strategies
-
-**MITIGATION STRATEGIES**:
-If risks are detected, provide actionable solutions to make the post safer while maintaining its effectiveness.`;
+Keep it concise and actionable.`;
 
             // Get AI analysis
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const anomalies = response.text();
 
-            // Update post with existing features + new one
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [...existingFeatures, "Anomaly Detection"],
-                totalCreditsSpent: existingCredits + 3,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    anomalyDetection: anomalies,
-                },
+            // Update post with AI analysis results (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysisFeature, {
+                postId: args.postId,
+                featureName: "Anomaly Detection",
+                creditsSpent: 3,
+                analysisKey: "anomalyDetection",
+                analysisValue: anomalies,
             });
 
             return { success: true, anomalies, creditsSpent: 3 };
@@ -998,174 +982,19 @@ If risks are detected, provide actionable solutions to make the post safer while
 
 Note: Enhanced AI analysis temporarily unavailable.`;
 
-            // Update post with fallback data
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [...existingFeatures, "Anomaly Detection"],
-                totalCreditsSpent: existingCredits + 3,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    anomalyDetection: fallbackAnomalies,
-                },
+            // Update post with fallback data (use runMutation)
+            await ctx.runMutation(internal.posts.updatePostAnalysisFeature, {
+                postId: args.postId,
+                featureName: "Anomaly Detection",
+                creditsSpent: 3,
+                analysisKey: "anomalyDetection",
+                analysisValue: fallbackAnomalies,
             });
 
             return {
                 success: true,
                 anomalies: fallbackAnomalies,
                 creditsSpent: 3,
-            };
-        }
-    },
-});
-
-// Smart Flair Suggestions - 2 Credits
-export const getFlairSuggestions = mutation({
-    args: {
-        postId: v.id("posts"),
-        userId: v.id("users"),
-        title: v.string(),
-        body: v.optional(v.string()),
-        subreddit: v.string(),
-    },
-    handler: async (ctx, args) => {
-        // Check if user has enough credits
-        const userCredits = await getUserCreditsInternal(ctx, args.userId);
-        if (userCredits < 2) {
-            throw new Error(
-                "Insufficient credits. Need 2 credits for Smart Flair Suggestions.",
-            );
-        }
-
-        // Deduct credits
-        await deductCreditsInternal(ctx, args.userId, 2);
-
-        try {
-            // Import Gemini AI
-            const { GoogleGenerativeAI } = require("@google/generative-ai");
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash",
-            });
-
-            // Use fallback flairs since we can't fetch from external API in mutations
-            const fallbackFlairs = [
-                "Discussion",
-                "Question",
-                "Advice Needed",
-                "News",
-                "Meta",
-                "Help",
-                "Review",
-                "Guide",
-                "Opinion",
-                "Announcement",
-            ];
-
-            // Create prompt for Gemini AI to suggest best flair
-            const prompt = `You are a Reddit flair recommendation expert. Analyze this post content and recommend the most appropriate flair from the available options.
-
-Post Details:
-- Title: "${args.title}"
-- Body: "${args.body || "No body content"}"
-- Subreddit: r/${args.subreddit}
-
-Available Flairs:
-${fallbackFlairs.map((flair: string, index: number) => `${index + 1}. ${flair}`).join("\n")}
-
-Instructions:
-1. Analyze the post content carefully
-2. Consider the post's purpose (asking question, starting discussion, seeking advice, sharing news, etc.)
-3. Match it with the most appropriate flair from the available options
-4. Return ONLY the exact flair text (no numbers, no extra text)
-5. Choose the most specific and relevant option
-
-**ANALYSIS REASONING**: Briefly explain why this flair fits the content best.
-
-**RECOMMENDED FLAIR**: [exact flair text here]`;
-
-            // Get AI recommendation
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const aiResponse = response.text();
-
-            // Extract recommended flair
-            const flairMatch = aiResponse.match(
-                /\*\*RECOMMENDED FLAIR\*\*:\s*(.+)/i,
-            );
-            const recommendedFlair = flairMatch
-                ? flairMatch[1].trim()
-                : fallbackFlairs[0];
-
-            // Validate the recommendation is from available flairs
-            const validFlair =
-                fallbackFlairs.find(
-                    (flair: string) =>
-                        flair.toLowerCase() === recommendedFlair.toLowerCase(),
-                ) || fallbackFlairs[0];
-
-            // Update post with existing features + new one
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [
-                    ...existingFeatures,
-                    "Smart Flair Suggestions",
-                ],
-                totalCreditsSpent: existingCredits + 2,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    flairSuggestions: fallbackFlairs,
-                },
-            });
-
-            return {
-                success: true,
-                flairSuggestions: fallbackFlairs,
-                recommendedFlair: validFlair,
-                reasoning: aiResponse,
-                creditsSpent: 2,
-            };
-        } catch (error: any) {
-            console.error("Error in Smart Flair Suggestions:", error);
-
-            // Fallback to generic suggestions if AI fails
-            const fallbackFlairs = [
-                "Discussion",
-                "Question",
-                "Advice Needed",
-                "Meta",
-                "Help",
-            ];
-
-            // Update post with fallback data
-            const post = await ctx.db.get(args.postId);
-            const existingFeatures = post?.aiFeaturesUsed || [];
-            const existingCredits = post?.totalCreditsSpent || 0;
-
-            await ctx.db.patch(args.postId, {
-                aiFeaturesUsed: [
-                    ...existingFeatures,
-                    "Smart Flair Suggestions",
-                ],
-                totalCreditsSpent: existingCredits + 2,
-                aiAnalysisResults: {
-                    ...post?.aiAnalysisResults,
-                    flairSuggestions: fallbackFlairs,
-                },
-            });
-
-            return {
-                success: true,
-                flairSuggestions: fallbackFlairs,
-                recommendedFlair: fallbackFlairs[0],
-                reasoning:
-                    "AI analysis temporarily unavailable. Using general recommendation.",
-                creditsSpent: 2,
             };
         }
     },

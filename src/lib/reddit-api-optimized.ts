@@ -1,5 +1,3 @@
-import { NextRequest } from "next/server";
-
 interface RedditTokenResponse {
     access_token: string;
     token_type: string;
@@ -11,14 +9,6 @@ interface Subreddit {
     public_description: string;
     subscribers: number;
     id: string;
-}
-
-interface Flair {
-    id: string;
-    text: string;
-    css_class: string;
-    text_color: string;
-    background_color: string;
 }
 
 interface SubredditRule {
@@ -84,7 +74,6 @@ class RedditAPIOptimized {
         TOKEN: 50 * 60 * 1000, // 50 minutes
         SUBREDDIT_INFO: 30 * 60 * 1000, // 30 minutes
         RULES: 60 * 60 * 1000, // 1 hour
-        FLAIRS: 60 * 60 * 1000, // 1 hour
         POST_REQUIREMENTS: 60 * 60 * 1000, // 1 hour
         SUBREDDITS_LIST: 10 * 60 * 1000, // 10 minutes
     };
@@ -123,9 +112,9 @@ class RedditAPIOptimized {
         this.rateLimiter.requests++;
     }
 
-    private async getAccessToken(): Promise<string> {
+    private async getAccessToken(): Promise<string | null> {
         if (this.accessToken && Date.now() < this.tokenExpiry) {
-            return this.accessToken;
+            return this.accessToken!;
         }
 
         const cacheKey = "reddit_access_token";
@@ -134,7 +123,7 @@ class RedditAPIOptimized {
             this.accessToken = cached.data;
             this.tokenExpiry =
                 Date.now() + (cached.ttl - (Date.now() - cached.timestamp));
-            return this.accessToken;
+            return this.accessToken!;
         }
 
         await this.checkRateLimit();
@@ -149,6 +138,8 @@ class RedditAPIOptimized {
         const auth = Buffer.from(`${clientId}:${clientSecret}`).toString(
             "base64",
         );
+
+        console.log("🔑 Using client credentials (public API access)");
 
         const response = await fetch(
             "https://www.reddit.com/api/v1/access_token",
@@ -165,14 +156,21 @@ class RedditAPIOptimized {
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(
-                `Failed to get access token: ${response.statusText} - ${errorText}`,
+            console.error(`❌ Token fetch failed: ${errorText}`);
+            console.warn(
+                "⚠️  OAuth unavailable - some features will use mock data",
             );
+            // Return null instead of throwing - let endpoints handle fallback
+            return null;
         }
 
         const data: RedditTokenResponse = await response.json();
         this.accessToken = data.access_token;
-        this.tokenExpiry = Date.now() + data.expires_in * 1000 - 60000; // Refresh 1 minute early
+        this.tokenExpiry = Date.now() + data.expires_in * 1000 - 60000;
+
+        console.log(
+            `✅ Access token obtained, expires in ${data.expires_in} seconds`,
+        );
 
         // Cache the token
         this.cache.set(cacheKey, {
@@ -229,23 +227,44 @@ class RedditAPIOptimized {
 
         const token = await this.getAccessToken();
 
+        console.log(`🌐 Making request to: ${url}`);
+
+        // Build headers - skip Authorization if no token available
+        const headers = new Headers(options.headers as HeadersInit);
+        if (!headers.has("User-Agent")) {
+            headers.set("User-Agent", "unbannnable/1.0");
+        }
+
+        if (token) {
+            headers.set("Authorization", `Bearer ${token}`);
+        }
+
         const response = await fetch(url, {
             ...options,
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "User-Agent": "reddit-unbanr/1.0",
-                ...options.headers,
-            },
+            headers,
         });
+
+        console.log(
+            `📡 Response status: ${response.status} ${response.statusText}`,
+        );
 
         if (!response.ok) {
             const errorText = await response.text();
+            console.error(`❌ API Error: ${errorText}`);
             throw new Error(
                 `Reddit API error ${response.status}: ${errorText}`,
             );
         }
 
-        return response.json();
+        const jsonData = await response.json();
+        console.log(
+            `📥 Response data type: ${Array.isArray(jsonData) ? "Array" : typeof jsonData}, length/keys:`,
+            Array.isArray(jsonData)
+                ? jsonData.length
+                : Object.keys(jsonData).length,
+        );
+
+        return jsonData;
     }
 
     // Batch request for multiple subreddit data
@@ -253,7 +272,6 @@ class RedditAPIOptimized {
         [subreddit: string]: {
             info?: any;
             rules?: SubredditRule[];
-            flairs?: Flair[];
             requirements?: PostRequirement | null;
         };
     }> {
@@ -266,19 +284,16 @@ class RedditAPIOptimized {
             const batch = subreddits.slice(i, i + batchSize);
             const batchPromises = batch.map(async (subreddit) => {
                 try {
-                    const [info, rules, flairs, requirements] =
+                    const [info, rules, requirements] =
                         await Promise.allSettled([
                             this.fetchSubredditInfo(subreddit),
                             this.fetchSubredditRules(subreddit),
-                            this.fetchSubredditFlairs(subreddit),
                             this.fetchPostRequirements(subreddit),
                         ]);
 
                     results[subreddit] = {
                         info: info.status === "fulfilled" ? info.value : null,
                         rules: rules.status === "fulfilled" ? rules.value : [],
-                        flairs:
-                            flairs.status === "fulfilled" ? flairs.value : [],
                         requirements:
                             requirements.status === "fulfilled"
                                 ? requirements.value
@@ -286,13 +301,12 @@ class RedditAPIOptimized {
                     };
                 } catch (error) {
                     console.error(
-                        `Error fetching data for r/${subreddit}:`,
+                        `Error fetching batch data for r/${subreddit}:`,
                         error,
                     );
                     results[subreddit] = {
                         info: null,
                         rules: [],
-                        flairs: [],
                         requirements: null,
                     };
                 }
@@ -305,40 +319,65 @@ class RedditAPIOptimized {
     }
 
     async fetchSubreddits(
-        limit: number = 50,
+        limit: number = 10,
         query?: string,
     ): Promise<Subreddit[]> {
         const cacheKey = `subreddits_${limit}_${query || "popular"}`;
 
-        return this.makeRequest<any>(
-            query
-                ? `https://oauth.reddit.com/subreddits/search?q=${encodeURIComponent(query)}&limit=${limit}&sort=relevance`
-                : `https://oauth.reddit.com/subreddits/popular?limit=${limit}`,
-            cacheKey,
-            this.CACHE_TTL.SUBREDDITS_LIST,
-        ).then((data: any) => {
-            if (!data || !data.data || !data.data.children) {
-                console.error("Invalid response format:", data);
-                throw new Error("Invalid response format from Reddit API");
-            }
+        // Use old.reddit.com which is more reliable for public API access
+        const url = query
+            ? `https://old.reddit.com/subreddits/search.json?q=${encodeURIComponent(query)}&limit=${limit}`
+            : `https://old.reddit.com/subreddits/popular.json?limit=${limit}`;
 
-            return data.data.children.map((child: any) => ({
-                display_name: child.data.display_name,
-                public_description: child.data.public_description || "",
-                subscribers: child.data.subscribers || 0,
-                id: child.data.id,
-            }));
+        // Check cache first
+        const cached = this.cache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < cached.ttl) {
+            return cached.data;
+        }
+
+        // Make public request without OAuth
+        const response = await fetch(url, {
+            headers: {
+                "User-Agent": "reddit-unbanr/1.0",
+            },
         });
+
+        if (!response.ok) {
+            throw new Error(`Reddit API error ${response.status}`);
+        }
+
+        const data: any = await response.json();
+
+        if (!data || !data.data || !data.data.children) {
+            console.error("Invalid response format:", data);
+            throw new Error("Invalid response format from Reddit API");
+        }
+
+        const results = data.data.children.map((child: any) => ({
+            display_name: child.data.display_name,
+            public_description: child.data.public_description || "",
+            subscribers: child.data.subscribers || 0,
+            id: child.data.id,
+        }));
+
+        // Cache the result
+        this.cache.set(cacheKey, {
+            data: results,
+            timestamp: Date.now(),
+            ttl: this.CACHE_TTL.SUBREDDITS_LIST,
+        });
+
+        return results;
     }
 
     async fetchSubredditInfo(subreddit: string): Promise<any> {
         const cacheKey = `subreddit_info_${subreddit}`;
 
-        return this.makeRequest(
+        return this.makeRequest<any>(
             `https://oauth.reddit.com/r/${subreddit}/about`,
             cacheKey,
             this.CACHE_TTL.SUBREDDIT_INFO,
-        ).then((data) => {
+        ).then((data: any) => {
             if (!data.data) {
                 throw new Error("Subreddit not found");
             }
@@ -355,16 +394,34 @@ class RedditAPIOptimized {
     async fetchSubredditRules(subreddit: string): Promise<SubredditRule[]> {
         const cacheKey = `subreddit_rules_${subreddit}`;
 
-        return this.makeRequest(
-            `https://oauth.reddit.com/r/${subreddit}/about/rules`,
-            cacheKey,
-            this.CACHE_TTL.RULES,
-        ).then((data) => {
+        // Check cache first
+        const cached = this.cache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < this.CACHE_TTL.RULES) {
+            return cached.data;
+        }
+
+        try {
+            // Use public Reddit API (no OAuth needed)
+            const response = await fetch(
+                `https://old.reddit.com/r/${subreddit}/about/rules.json`,
+                {
+                    headers: {
+                        "User-Agent": "reddit-unbanr/1.0",
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch rules: ${response.status}`);
+            }
+
+            const data = await response.json();
+
             if (!data.rules || !Array.isArray(data.rules)) {
                 return [];
             }
 
-            return data.rules.map((rule: any) => ({
+            const rules = data.rules.map((rule: any) => ({
                 kind: rule.kind || "all",
                 short_name: rule.short_name || "Rule",
                 description: rule.description || "",
@@ -373,30 +430,19 @@ class RedditAPIOptimized {
                 priority: rule.priority || 0,
                 violation_reason: rule.violation_reason || "",
             }));
-        });
-    }
 
-    async fetchSubredditFlairs(subreddit: string): Promise<Flair[]> {
-        const cacheKey = `subreddit_flairs_${subreddit}`;
+            // Cache the result
+            this.cache.set(cacheKey, {
+                data: rules,
+                timestamp: Date.now(),
+                ttl: this.CACHE_TTL.RULES,
+            });
 
-        return this.makeRequest(
-            `https://oauth.reddit.com/r/${subreddit}/api/link_flair_v2.json?raw_json=1`,
-            cacheKey,
-            this.CACHE_TTL.FLAIRS,
-        ).then((data) => {
-            const rawFlairs: any[] = Array.isArray(data) ? data : [];
-
-            return rawFlairs.map((flair: any) => ({
-                id:
-                    flair.id ||
-                    flair.text?.toLowerCase().replace(/\s+/g, "-") ||
-                    "",
-                text: flair.text || "",
-                css_class: flair.css_class || "",
-                text_color: flair.text_color || "dark",
-                background_color: flair.background_color || "#dadada",
-            }));
-        });
+            return rules;
+        } catch (error) {
+            console.error(`Error fetching rules for r/${subreddit}:`, error);
+            return [];
+        }
     }
 
     async fetchPostRequirements(
@@ -405,11 +451,11 @@ class RedditAPIOptimized {
         const cacheKey = `post_requirements_${subreddit}`;
 
         try {
-            return await this.makeRequest(
+            return await this.makeRequest<any>(
                 `https://oauth.reddit.com/r/${subreddit}/api/post_requirements`,
                 cacheKey,
                 this.CACHE_TTL.POST_REQUIREMENTS,
-            ).then((data) => ({
+            ).then((data: any) => ({
                 title_required: data.title_required !== false,
                 title_text_max_length: data.title_text_max_length || 300,
                 title_text_min_length: data.title_text_min_length || 1,
@@ -603,7 +649,7 @@ Return only a JSON array with this exact structure:
 ]`;
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
                 {
                     method: "POST",
                     headers: {
@@ -665,15 +711,14 @@ Return only a JSON array with this exact structure:
     }
 
     // Clear cache for a specific subreddit
-    clearSubredditCache(subreddit: string): void {
-        const keys = [
+    clearSubredditCache(subreddit: string) {
+        const keysToDelete = [
             `subreddit_info_${subreddit}`,
             `subreddit_rules_${subreddit}`,
-            `subreddit_flairs_${subreddit}`,
             `post_requirements_${subreddit}`,
         ];
 
-        keys.forEach((key) => this.cache.delete(key));
+        keysToDelete.forEach((key) => this.cache.delete(key));
     }
 
     // Clear all cache

@@ -109,44 +109,21 @@ Return only a JSON array with this exact structure:
   }
 ]`;
 
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=${apiKey}`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    contents: [
-                        {
-                            parts: [
-                                {
-                                    text: prompt,
-                                },
-                            ],
-                        },
-                    ],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 1024,
-                    },
-                }),
-            },
-        );
+        const { generateText } = await import("ai");
+        const { google } = await import("@ai-sdk/google");
 
-        if (!response.ok) {
-            throw new Error(`Gemini API request failed: ${response.status}`);
-        }
+        const { text: resultText } = await generateText({
+            model: google("gemini-2.0-flash", { apiKey }),
+            prompt,
+        });
 
-        const data = await response.json();
-        const result = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-        if (!result) {
-            throw new Error("No content generated from Gemini API");
+        const jsonMatch = resultText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+            throw new Error("No content generated from AI");
         }
 
         // Parse the JSON response
-        const suggestedSubreddits = JSON.parse(result);
+        const suggestedSubreddits = JSON.parse(jsonMatch[0]);
 
         // Fetch subreddit information and verify rules for each suggestion
         for (const suggestion of suggestedSubreddits.slice(0, 12)) {

@@ -4,13 +4,14 @@ import dynamic from "next/dynamic";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
 import { useCredits } from "@/hooks/useCredits";
-import { useMutation, useQuery } from "convex/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { useMutation, useQuery, useAction } from "convex/react";
 import ReferralSection from "@/components/ReferralSection";
 import { api } from "../../../convex/_generated/api";
 import {
     redditAPI,
     type Subreddit,
-    type Flair,
     type SubredditRule,
     type PostRequirement,
     type AlternativeSubreddit,
@@ -38,7 +39,6 @@ import {
 import {
     Card,
     CardContent,
-    CardHeader,
     CardTitle,
     CardDescription,
 } from "@/components/ui/card";
@@ -48,14 +48,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-    Users,
-    ChevronDown,
-    Copy,
-    ExternalLink,
-    AlertCircle,
-    CheckCircle2,
-} from "lucide-react";
+import { Users, AlertCircle } from "lucide-react";
 
 // Component to fetch and display AI-generated subreddit alternatives
 const AISubredditCard = ({
@@ -222,11 +215,10 @@ function AppPageContent() {
 
     // Convex mutations and queries for AI tools
     const createPost = useMutation(api.posts.createPost);
-    const usePostAnalyzer = useMutation(api.posts.usePostAnalyzer);
-    const useRuleChecker = useMutation(api.posts.useRuleChecker);
-    const findBetterSubreddits = useMutation(api.posts.findBetterSubreddits);
-    const detectAnomalies = useMutation(api.posts.detectAnomalies);
-    const getFlairSuggestions = useMutation(api.posts.getFlairSuggestions);
+    const usePostAnalyzer = useAction(api.posts.usePostAnalyzer);
+    const useRuleChecker = useAction(api.posts.useRuleChecker);
+    const findBetterSubreddits = useAction(api.posts.findBetterSubreddits);
+    const detectAnomalies = useAction(api.posts.detectAnomalies);
 
     // Query for user posts (for draft/postId management)
     const userRecord = useQuery(
@@ -252,12 +244,10 @@ function AppPageContent() {
     const [body, setBody] = useState("");
     const [subreddits, setSubreddits] = useState<Subreddit[]>([]);
     const [allSubreddits, setAllSubreddits] = useState<Subreddit[]>([]);
-    const [flairs, setFlairs] = useState<Flair[]>([]);
     const [rules, setRules] = useState<SubredditRule[]>([]);
     const [postRequirements, setPostRequirements] =
         useState<PostRequirement | null>(null);
     const [loadingSubreddits, setLoadingSubreddits] = useState(true);
-    const [loadingFlairs, setLoadingFlairs] = useState(false);
     const [loadingRules, setLoadingRules] = useState(false);
     const [loadingRequirements, setLoadingRequirements] = useState(false);
     const [loadingSearch, setLoadingSearch] = useState(false);
@@ -277,6 +267,7 @@ function AppPageContent() {
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [aiToolResults, setAiToolResults] = useState<Record<string, any>>({});
     const [showPricingPopup, setShowPricingPopup] = useState(false);
+    const [showReferralPopup, setShowReferralPopup] = useState(false);
     const [optimizedTitle, setOptimizedTitle] = useState<string>("");
     const [optimizedBody, setOptimizedBody] = useState<string>("");
     const [optimizedFlair, setOptimizedFlair] = useState<string>("");
@@ -352,12 +343,8 @@ function AppPageContent() {
             .search(searchQuery)
             .map((result) => result.item);
 
-        // Also sort search results alphabetically
-        return searchResults.sort((a, b) =>
-            a.display_name
-                .toLowerCase()
-                .localeCompare(b.display_name.toLowerCase()),
-        );
+        // Return results sorted by relevance (Fuse.js score), not alphabetically
+        return searchResults;
     }, [fuse, searchQuery, allSubreddits, subreddits]);
 
     useEffect(() => {
@@ -539,7 +526,8 @@ function AppPageContent() {
         try {
             setLoadingSubreddits(true);
             setError("");
-            const data = await redditAPI.fetchSubreddits(100);
+            // Fetch more popular subreddits for better fuzzy search coverage
+            const data = await redditAPI.fetchSubreddits(500);
             setAllSubreddits(data);
         } catch (err) {
             console.error("Error fetching subreddits:", err);
@@ -567,45 +555,27 @@ function AppPageContent() {
         setIsDropdownOpen(false);
         setRules([]);
         setPostRequirements(null);
-        // Clear previous flairs immediately so UI doesn't show stale options
-        setFlairs([]);
 
         // Increment fetch id for this request
         const fetchId = ++latestFetchIdRef.current;
 
         if (selectedSubreddit) {
             try {
-                setLoadingFlairs(true);
                 setLoadingRules(true);
                 setLoadingRequirements(true);
 
-                const [flairData, rulesData, requirementsData] =
-                    await Promise.all([
-                        redditAPI
-                            .fetchSubredditFlairs(selectedSubreddit)
-                            .catch((err) => {
-                                console.error(
-                                    `Error fetching flairs in frontend:`,
-                                    err,
-                                );
-                                return [];
-                            }),
-                        redditAPI
-                            .fetchSubredditRules(selectedSubreddit)
-                            .catch(() => []),
-                        redditAPI
-                            .fetchPostRequirements(selectedSubreddit)
-                            .catch(() => null),
-                    ]);
+                const [rulesData, requirementsData] = await Promise.all([
+                    redditAPI
+                        .fetchSubredditRules(selectedSubreddit)
+                        .catch(() => []),
+                    redditAPI
+                        .fetchPostRequirements(selectedSubreddit)
+                        .catch(() => null),
+                ]);
 
                 // Ignore if a newer subreddit change happened since this request started
                 if (fetchId !== latestFetchIdRef.current) return;
 
-                console.log(
-                    `📊 Flairs received for r/${selectedSubreddit}:`,
-                    flairData.length,
-                );
-                setFlairs(flairData);
                 setRules(rulesData);
                 setPostRequirements(requirementsData);
             } catch (err) {
@@ -615,13 +585,11 @@ function AppPageContent() {
                 );
                 // Ignore if stale
                 if (fetchId !== latestFetchIdRef.current) return;
-                setFlairs([]);
                 setRules([]);
                 setPostRequirements(null);
             } finally {
                 // Ignore if stale
                 if (fetchId !== latestFetchIdRef.current) return;
-                setLoadingFlairs(false);
                 setLoadingRules(false);
                 setLoadingRequirements(false);
             }
@@ -634,6 +602,8 @@ function AppPageContent() {
         setIsDropdownOpen(true);
         setSelectedIndex(-1);
 
+        // Use Fuse.js for local fuzzy search - no API calls needed
+        // The filteredSubreddits useMemo will handle the fuzzy matching
         const combinedSubreddits = [...allSubreddits, ...subreddits];
         const exactMatch = combinedSubreddits.find(
             (sr) => sr.display_name.toLowerCase() === value.toLowerCase(),
@@ -641,24 +611,6 @@ function AppPageContent() {
 
         if (exactMatch && value.length > 0) {
             handleSubredditChange(exactMatch.display_name);
-        } else {
-            setFlairs([]);
-            if (value.length >= 3 && !loadingSearch) {
-                try {
-                    setLoadingSearch(true);
-                    const searchResults = await redditAPI.searchSubreddits(
-                        value,
-                        20,
-                    );
-                    setSubreddits(searchResults);
-                } catch (err) {
-                    console.error("Error searching subreddits:", err);
-                } finally {
-                    setLoadingSearch(false);
-                }
-            } else if (value.length < 3) {
-                setSubreddits([]);
-            }
         }
     };
 
@@ -772,8 +724,7 @@ function AppPageContent() {
                 postRequirements: postRequirements
                     ? JSON.stringify(postRequirements)
                     : "None",
-                availableFlairs:
-                    flairs.map((f) => f.text).join(", ") || "None available",
+                flairRequired: postRequirements?.is_flair_required || false,
             };
 
             // Enhanced prompt for AI optimization with rule checking
@@ -786,7 +737,7 @@ function AppPageContent() {
 - Current Flair: "${context.flair}"
 - Subreddit Rules: ${context.rules}
 - Post Requirements: ${context.postRequirements}
-- Available Flairs: ${context.availableFlairs}
+- Flair Required: ${context.flairRequired ? "Yes" : "No"}
 
 **STEP 1: RULE VIOLATION ANALYSIS**
 Carefully analyze the draft post against the subreddit rules and requirements. Look for:
@@ -841,45 +792,24 @@ Provide your response in exactly this format:
 **FLAIR_REASONING:**
 [If NO violations, explain flair choice. If YES violations, write "Cannot optimize - rule violations detected"]`;
 
-            // Use Gemini API directly instead of ai-bind
+            // Use AI SDK for Gemini
+            const { generateText } = await import("ai");
+            const { google } = await import("@ai-sdk/google");
+
             const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
             let result = "";
             try {
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=${apiKey}`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            contents: [
-                                {
-                                    parts: [
-                                        {
-                                            text: prompt,
-                                        },
-                                    ],
-                                },
-                            ],
-                            generationConfig: {
-                                temperature: 0.7,
-                                maxOutputTokens: 2048,
-                            },
-                        }),
-                    },
-                );
-
-                if (!response.ok) {
-                    console.warn(
-                        `Gemini API request failed: ${response.status} ${response.statusText}`,
-                    );
-                    throw new Error(`API request failed: ${response.status}`);
+                if (!apiKey) {
+                    throw new Error("Gemini API key not configured");
                 }
 
-                const data = await response.json();
-                result = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const { text } = await generateText({
+                    model: google("gemini-2.0-flash", { apiKey }),
+                    prompt,
+                });
+
+                result = text;
 
                 if (!result) {
                     throw new Error("No content generated from API");
@@ -891,7 +821,7 @@ Provide your response in exactly this format:
                 // Create post record after successful AI optimization
                 await createPostRecord();
             } catch (apiError) {
-                console.error("Gemini API error:", apiError);
+                console.error("AI SDK error:", apiError);
                 // Fallback to enhanced local optimization
                 throw apiError;
             }
@@ -910,12 +840,7 @@ Provide your response in exactly this format:
                     setTitleReasoning(
                         "Enhanced title for better engagement and readability",
                     );
-                    if (flairs.length > 0) {
-                        setOptimizedFlair(flairs[0].text);
-                        setFlairReasoning(
-                            "Selected most appropriate flair for content categorization",
-                        );
-                    }
+                    // AI will suggest flair if needed
                 }
             }, 500);
         } catch (error) {
@@ -973,15 +898,13 @@ ${
 }
 
 **RECOMMENDED_FLAIR:**
-${flair || (flairs.length > 0 ? flairs[0].text : "Discussion")}
+${flair || "Discussion"}
 
 **FLAIR_REASONING:**
 ${
     flair
         ? "Using user-selected flair as it appears appropriate for the content."
-        : flairs.length > 0
-          ? "Selected most relevant available flair for content categorization."
-          : "Discussion flair recommended for general community engagement."
+        : "Discussion flair recommended for general community engagement. User can manually adjust if needed."
 }
 
 **AI Analysis:**
@@ -1483,6 +1406,15 @@ ${rules
                                 >
                                     Buy Credits
                                 </Button>
+                                <Button
+                                    onClick={() => setShowReferralPopup(true)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-[#FF4500] text-[#FF4500] hover:bg-[#FF4500] hover:text-white"
+                                >
+                                    <Users className="w-4 h-4 mr-1" />
+                                    Refer Friends
+                                </Button>
                             </div>
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
@@ -1506,44 +1438,6 @@ ${rules
                     {copyNotification}
                 </div>
             )}
-
-            {/* Referral Accordion Section */}
-            <SignedIn>
-                <Card className="w-full rounded-none border-x-0 border-t-0 shadow-none">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                        <Accordion type="single" collapsible className="w-full">
-                            <AccordionItem
-                                value="referral"
-                                className="border-b-0"
-                            >
-                                <AccordionTrigger className="hover:no-underline py-6">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="w-10 h-10 bg-[#FF4500] rounded-full flex items-center justify-center shadow-md">
-                                            <Users className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div className="text-left">
-                                            <CardTitle className="text-lg text-neutral-900 dark:text-white mb-1">
-                                                Refer Friends
-                                            </CardTitle>
-                                            <CardDescription className="text-neutral-600 dark:text-neutral-400">
-                                                Earn 10 credits for each friend
-                                                who signs up
-                                            </CardDescription>
-                                        </div>
-                                    </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pb-6">
-                                    <Card className="border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
-                                        <CardContent className="p-6">
-                                            <ReferralSection />
-                                        </CardContent>
-                                    </Card>
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </div>
-                </Card>
-            </SignedIn>
 
             <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_20px_1fr] xl:grid-cols-[1fr_20px_400px] gap-0">
@@ -1766,34 +1660,28 @@ ${rules
                                                 *
                                             </span>
                                         )}
-                                        {loadingFlairs && (
-                                            <span className="ml-2 inline-flex items-center">
-                                                <div className="animate-spin rounded-full h-3 w-3 border-2 border-[#FF4500] border-t-transparent"></div>
-                                            </span>
-                                        )}
                                     </Label>
-                                    <select
-                                        key={subreddit || "no-sr"}
+                                    <input
+                                        type="text"
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         value={flair}
                                         onChange={(e) =>
                                             setFlair(e.target.value)
                                         }
-                                        disabled={loadingFlairs || !subreddit}
-                                    >
-                                        <option value="">
-                                            {loadingFlairs
-                                                ? "Loading flairs..."
-                                                : subreddit
-                                                  ? "No flair"
-                                                  : "Select a subreddit first"}
-                                        </option>
-                                        {flairs.map((f) => (
-                                            <option key={f.id} value={f.text}>
-                                                {f.text}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        placeholder={
+                                            subreddit
+                                                ? "Enter post flair (e.g., Discussion, Question, Help)"
+                                                : "Select a subreddit first"
+                                        }
+                                        disabled={!subreddit}
+                                    />
+                                    {postRequirements?.is_flair_required && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            ⚠️ This subreddit requires a flair.
+                                            AI will suggest one during
+                                            optimization.
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Body */}
@@ -2446,132 +2334,6 @@ ${rules
                                                     </div>
                                                 </div>
                                             </button>
-
-                                            {/* Smart Flair Suggestions - 2 Credits */}
-                                            <button
-                                                onClick={async () => {
-                                                    if (
-                                                        !title.trim() ||
-                                                        !subreddit
-                                                    ) {
-                                                        alert(
-                                                            "Please enter a title and select a subreddit first",
-                                                        );
-                                                        return;
-                                                    }
-
-                                                    if (credits.credits < 2) {
-                                                        alert(
-                                                            "You need 2 credits for flair suggestions. Please buy more credits.",
-                                                        );
-                                                        return;
-                                                    }
-
-                                                    try {
-                                                        setIsGeneratingAI(true);
-
-                                                        // Create a temporary post if none exists
-                                                        let currentPostId =
-                                                            postId;
-                                                        if (
-                                                            !currentPostId &&
-                                                            userRecord
-                                                        ) {
-                                                            const newPost =
-                                                                await createPost(
-                                                                    {
-                                                                        userId: userRecord._id,
-                                                                        title,
-                                                                        body,
-                                                                        subreddit,
-                                                                        status: "draft",
-                                                                    },
-                                                                );
-                                                            currentPostId =
-                                                                newPost;
-                                                            setPostId(newPost);
-                                                        }
-
-                                                        if (
-                                                            currentPostId &&
-                                                            userRecord
-                                                        ) {
-                                                            const result =
-                                                                await getFlairSuggestions(
-                                                                    {
-                                                                        postId: currentPostId as any,
-                                                                        userId: userRecord._id,
-                                                                        title,
-                                                                        body,
-                                                                        subreddit,
-                                                                    },
-                                                                );
-
-                                                            // Set the recommended flair automatically
-                                                            if (
-                                                                result.recommendedFlair
-                                                            ) {
-                                                                setFlair(
-                                                                    result.recommendedFlair,
-                                                                );
-                                                            }
-
-                                                            // Store result in state with detailed info
-                                                            setAiToolResults(
-                                                                (prev) => ({
-                                                                    ...prev,
-                                                                    flairSuggestions:
-                                                                        result.flairSuggestions.join(
-                                                                            "\n",
-                                                                        ),
-                                                                    recommendedFlair:
-                                                                        result.recommendedFlair,
-                                                                }),
-                                                            );
-
-                                                            // No alert - results shown in AI Tools section
-                                                        }
-                                                    } catch (error: any) {
-                                                        alert(
-                                                            error.message ||
-                                                                "Error suggesting flairs. Please try again.",
-                                                        );
-                                                    } finally {
-                                                        setIsGeneratingAI(
-                                                            false,
-                                                        );
-                                                    }
-                                                }}
-                                                disabled={
-                                                    isGeneratingAI ||
-                                                    credits.credits < 2
-                                                }
-                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 2 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
-                                            >
-                                                <div className="flex items-center space-x-4 flex-1">
-                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-xl">
-                                                            🏷️
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-left flex-1 min-w-0">
-                                                        <div className="font-semibold text-sm truncate">
-                                                            Smart Flair
-                                                            Suggestions
-                                                        </div>
-                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
-                                                            AI analyzes your
-                                                            post & auto-selects
-                                                            the best flair
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
-                                                    <div className="text-xs bg-green-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
-                                                        2 Credits
-                                                    </div>
-                                                </div>
-                                            </button>
                                         </div>
                                     ) : (
                                         // Show AI results and new analysis button
@@ -2582,10 +2344,16 @@ ${rules
                                                     <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm flex items-center">
                                                         🤖 Post Analysis Results
                                                     </h4>
-                                                    <div className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap">
-                                                        {
-                                                            aiToolResults.postAnalyzer
-                                                        }
+                                                    <div className="text-xs text-blue-800 dark:text-blue-200 prose prose-sm prose-blue dark:prose-invert max-w-none">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[
+                                                                remarkGfm,
+                                                            ]}
+                                                        >
+                                                            {
+                                                                aiToolResults.postAnalyzer
+                                                            }
+                                                        </ReactMarkdown>
                                                     </div>
                                                 </div>
                                             )}
@@ -2596,10 +2364,16 @@ ${rules
                                                     <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 text-sm flex items-center">
                                                         🔍 Rule Check Results
                                                     </h4>
-                                                    <div className="text-xs text-green-800 dark:text-green-200 whitespace-pre-wrap">
-                                                        {
-                                                            aiToolResults.ruleChecker
-                                                        }
+                                                    <div className="text-xs text-green-800 dark:text-green-200 prose prose-sm prose-green dark:prose-invert max-w-none">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[
+                                                                remarkGfm,
+                                                            ]}
+                                                        >
+                                                            {
+                                                                aiToolResults.ruleChecker
+                                                            }
+                                                        </ReactMarkdown>
                                                     </div>
                                                 </div>
                                             )}
@@ -2611,10 +2385,16 @@ ${rules
                                                         🧭 Better Subreddit
                                                         Suggestions
                                                     </h4>
-                                                    <div className="text-xs text-purple-800 dark:text-purple-200 whitespace-pre-wrap">
-                                                        {
-                                                            aiToolResults.betterSubreddits
-                                                        }
+                                                    <div className="text-xs text-purple-800 dark:text-purple-200 prose prose-sm prose-purple dark:prose-invert max-w-none">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[
+                                                                remarkGfm,
+                                                            ]}
+                                                        >
+                                                            {
+                                                                aiToolResults.betterSubreddits
+                                                            }
+                                                        </ReactMarkdown>
                                                     </div>
                                                 </div>
                                             )}
@@ -2626,33 +2406,17 @@ ${rules
                                                         ⚠️ Anomaly Detection
                                                         Results
                                                     </h4>
-                                                    <div className="text-xs text-yellow-800 dark:text-yellow-200 whitespace-pre-wrap">
-                                                        {
-                                                            aiToolResults.anomalyDetection
-                                                        }
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Flair Suggestions Results */}
-                                            {aiToolResults.flairSuggestions && (
-                                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 text-sm flex items-center">
-                                                        🏷️ Flair Suggestions
-                                                    </h4>
-                                                    <div className="text-xs text-green-800 dark:text-green-200 whitespace-pre-wrap">
-                                                        {
-                                                            aiToolResults.flairSuggestions
-                                                        }
-                                                    </div>
-                                                    {aiToolResults.recommendedFlair && (
-                                                        <div className="mt-2 text-xs text-green-700 dark:text-green-300 font-medium">
-                                                            Recommended:{" "}
+                                                    <div className="text-xs text-yellow-800 dark:text-yellow-200 prose prose-sm prose-yellow dark:prose-invert max-w-none">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[
+                                                                remarkGfm,
+                                                            ]}
+                                                        >
                                                             {
-                                                                aiToolResults.recommendedFlair
+                                                                aiToolResults.anomalyDetection
                                                             }
-                                                        </div>
-                                                    )}
+                                                        </ReactMarkdown>
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -4098,6 +3862,65 @@ ${rules
                                     </SignedOut>
                                 </div>
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Referral Popup Modal */}
+            <AnimatePresence>
+                {showReferralPopup && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowReferralPopup(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-2xl w-full p-8 relative"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowReferralPopup(false)}
+                                className="absolute top-4 right-4 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors"
+                            >
+                                <svg
+                                    className="w-6 h-6"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+
+                            {/* Header */}
+                            <div className="flex items-center space-x-4 mb-6">
+                                <div className="w-12 h-12 bg-[#FF4500] rounded-full flex items-center justify-center shadow-lg">
+                                    <Users className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                        Refer Friends
+                                    </h2>
+                                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                                        Earn 10 credits for each friend who signs up
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Referral Section */}
+                            <ReferralSection />
                         </motion.div>
                     </motion.div>
                 )}
