@@ -63,7 +63,6 @@ export default function SuccessPage() {
 
             try {
                 setLoading(true);
-                try {
                 setCreditAllocationStatus({
                     status: "pending",
                     message: "Processing your payment and activating lifetime plan...",
