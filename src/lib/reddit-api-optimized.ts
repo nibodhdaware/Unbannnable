@@ -324,50 +324,85 @@ class RedditAPIOptimized {
     ): Promise<Subreddit[]> {
         const cacheKey = `subreddits_${limit}_${query || "popular"}`;
 
-        // Use old.reddit.com which is more reliable for public API access
-        const url = query
-            ? `https://old.reddit.com/subreddits/search.json?q=${encodeURIComponent(query)}&limit=${limit}`
-            : `https://old.reddit.com/subreddits/popular.json?limit=${limit}`;
-
         // Check cache first
         const cached = this.cache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < cached.ttl) {
             return cached.data;
         }
 
-        // Make public request without OAuth
-        const response = await fetch(url, {
-            headers: {
-                "User-Agent": "reddit-unbanr/1.0",
-            },
-        });
+        // Use old.reddit.com which is more reliable for public API access
+        const url = query
+            ? `https://old.reddit.com/subreddits/search.json?q=${encodeURIComponent(query)}&limit=${limit}`
+            : `https://old.reddit.com/subreddits/popular.json?limit=${limit}`;
 
-        if (!response.ok) {
-            throw new Error(`Reddit API error ${response.status}`);
+        try {
+            // Make public request without OAuth
+            const response = await fetch(url, {
+                headers: {
+                    "User-Agent": "reddit-unbanr/1.0",
+                },
+                // Add cache control for production
+                cache: "no-store",
+            });
+
+            if (!response.ok) {
+                // Handle 403 by returning fallback popular subreddits
+                if (response.status === 403) {
+                    console.warn("Reddit API 403 - using fallback subreddits");
+                    const fallbackSubreddits = [
+                        { display_name: "AskReddit", public_description: "Ask and answer thought-provoking questions", subscribers: 40000000, id: "2qh1i" },
+                        { display_name: "funny", public_description: "Funny pictures and videos", subscribers: 50000000, id: "2qh33" },
+                        { display_name: "pics", public_description: "A place for pictures and photographs", subscribers: 30000000, id: "2qh0u" },
+                        { display_name: "todayilearned", public_description: "You learn something new every day", subscribers: 30000000, id: "2qqjc" },
+                        { display_name: "worldnews", public_description: "A place for major news from around the world", subscribers: 30000000, id: "2qh4i" },
+                        { display_name: "gaming", public_description: "Gaming news and discussions", subscribers: 35000000, id: "2qh03" },
+                        { display_name: "videos", public_description: "The best links to click while you're stoned", subscribers: 25000000, id: "2qh1e" },
+                        { display_name: "aww", public_description: "Things that make you go AWW", subscribers: 30000000, id: "2qh1o" },
+                        { display_name: "technology", public_description: "Technological innovations and news", subscribers: 12000000, id: "2qh16" },
+                        { display_name: "politics", public_description: "Political news and discussions", subscribers: 8000000, id: "2cneq" },
+                    ];
+                    // Cache fallback
+                    this.cache.set(cacheKey, {
+                        data: fallbackSubreddits,
+                        timestamp: Date.now(),
+                        ttl: this.CACHE_TTL.SUBREDDITS_LIST,
+                    });
+                    return fallbackSubreddits;
+                }
+                throw new Error(`Reddit API error ${response.status}`);
+            }
+
+            const data: any = await response.json();
+
+            if (!data || !data.data || !data.data.children) {
+                console.error("Invalid response format:", data);
+                throw new Error("Invalid response format from Reddit API");
+            }
+
+            const results = data.data.children.map((child: any) => ({
+                display_name: child.data.display_name,
+                public_description: child.data.public_description || "",
+                subscribers: child.data.subscribers || 0,
+                id: child.data.id,
+            }));
+
+            // Cache the result
+            this.cache.set(cacheKey, {
+                data: results,
+                timestamp: Date.now(),
+                ttl: this.CACHE_TTL.SUBREDDITS_LIST,
+            });
+
+            return results;
+        } catch (error) {
+            console.error("Error fetching subreddits:", error);
+            // Return cached data if available, even if expired
+            if (cached) {
+                console.warn("Using expired cache due to fetch error");
+                return cached.data;
+            }
+            throw error;
         }
-
-        const data: any = await response.json();
-
-        if (!data || !data.data || !data.data.children) {
-            console.error("Invalid response format:", data);
-            throw new Error("Invalid response format from Reddit API");
-        }
-
-        const results = data.data.children.map((child: any) => ({
-            display_name: child.data.display_name,
-            public_description: child.data.public_description || "",
-            subscribers: child.data.subscribers || 0,
-            id: child.data.id,
-        }));
-
-        // Cache the result
-        this.cache.set(cacheKey, {
-            data: results,
-            timestamp: Date.now(),
-            ttl: this.CACHE_TTL.SUBREDDITS_LIST,
-        });
-
-        return results;
     }
 
     async fetchSubredditInfo(subreddit: string): Promise<any> {

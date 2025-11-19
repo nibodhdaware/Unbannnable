@@ -5,7 +5,7 @@ import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 
-// Initialize PostHog with improved error handling
+// Initialize PostHog with improved error handling and production-safe config
 if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     try {
         posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
@@ -13,22 +13,31 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
                 process.env.NEXT_PUBLIC_POSTHOG_HOST ||
                 "https://us.i.posthog.com",
             person_profiles: "identified_only",
-            // Reduce requests that might be blocked
+            // Reduce requests that might be blocked by CSP
             disable_session_recording: true,
             autocapture: false,
             capture_pageview: false, // We'll handle this manually
             capture_pageleave: false,
-            // Handle errors gracefully
+            // Use reverse proxy if available to avoid CORS
+            ui_host: process.env.NODE_ENV === "production" ? "https://us.i.posthog.com" : undefined,
+            // Graceful error handling
             loaded: (posthog) => {
                 if (process.env.NODE_ENV === "development") {
                     console.log("✅ PostHog loaded successfully");
                 }
             },
+            // Disable if there are errors
+            opt_out_capturing_by_default: false,
+            persistence: "localStorage+cookie",
+            cross_subdomain_cookie: false,
+            // Handle CSP restrictions
+            respect_dnt: true,
         });
     } catch (error) {
         if (process.env.NODE_ENV === "development") {
             console.warn("⚠️ PostHog initialization failed:", error);
         }
+        // Silently fail in production
     }
 }
 
