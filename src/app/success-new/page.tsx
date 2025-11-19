@@ -65,7 +65,8 @@ export default function SuccessPage() {
                 setLoading(true);
                 setCreditAllocationStatus({
                     status: "pending",
-                    message: "Processing your payment and activating lifetime plan...",
+                    message:
+                        "Processing your payment and activating lifetime plan...",
                 });
 
                 // Get payment details from URL
@@ -75,7 +76,7 @@ export default function SuccessPage() {
                     urlParams.get("id") ||
                     urlParams.get("payment");
                 const amountParam = urlParams.get("amount");
-                const amount = amountParam ? parseFloat(amountParam) : 19.00;
+                const amount = amountParam ? parseFloat(amountParam) : 19.0;
                 const amountCents = Math.round(amount * 100);
 
                 // Purchase lifetime plan (will add initial credits and set up monthly refresh)
@@ -183,7 +184,8 @@ export default function SuccessPage() {
                         Lifetime Plan Activated! 🎉
                     </CardTitle>
                     <CardDescription className="text-lg text-gray-600">
-                        Thank you for your purchase. Your lifetime plan is now active and you'll receive monthly credits automatically.
+                        Thank you for your purchase. Your lifetime plan is now
+                        active and you'll receive monthly credits automatically.
                     </CardDescription>
                 </CardHeader>
 
