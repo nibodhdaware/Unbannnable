@@ -13,28 +13,29 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
                 process.env.NEXT_PUBLIC_POSTHOG_HOST ||
                 "https://us.i.posthog.com",
             person_profiles: "identified_only",
-            // Reduce requests that might be blocked by CSP
+            // Disable all features that require external script loading
             disable_session_recording: true,
+            disable_surveys: true,
+            disable_scroll_properties: true,
             autocapture: false,
-            capture_pageview: false, // We'll handle this manually
+            capture_pageview: false,
             capture_pageleave: false,
-            // Use reverse proxy if available to avoid CORS
-            ui_host:
-                process.env.NODE_ENV === "production"
-                    ? "https://us.i.posthog.com"
-                    : undefined,
+            // Prevent loading external config files (this causes CORS)
+            advanced_disable_decide: true,
+            // Don't load toolbar or other UI features
+            disable_toolbar: true,
+            // Use only localStorage to avoid cookie domain issues
+            persistence: "localStorage",
+            cross_subdomain_cookie: false,
+            secure_cookie: process.env.NODE_ENV === "production",
+            // Handle CSP restrictions
+            respect_dnt: true,
             // Graceful error handling
             loaded: (posthog) => {
                 if (process.env.NODE_ENV === "development") {
                     console.log("✅ PostHog loaded successfully");
                 }
             },
-            // Disable if there are errors
-            opt_out_capturing_by_default: false,
-            persistence: "localStorage+cookie",
-            cross_subdomain_cookie: false,
-            // Handle CSP restrictions
-            respect_dnt: true,
         });
     } catch (error) {
         if (process.env.NODE_ENV === "development") {
