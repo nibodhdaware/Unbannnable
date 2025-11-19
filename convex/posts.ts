@@ -366,8 +366,7 @@ export const updatePostAIFeatures = internalMutation({
             totalCreditsSpent: currentCredits + args.creditsSpent,
             aiAnalysisResults: {
                 ...currentResults,
-                [args.featureName.toLowerCase().replace(/ /g, "")]:
-                    args.result,
+                [args.featureName.toLowerCase().replace(/ /g, "")]: args.result,
             },
         });
     },

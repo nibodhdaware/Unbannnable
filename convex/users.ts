@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
+import {
+    query,
+    mutation,
+    internalQuery,
+    internalMutation,
+} from "./_generated/server";
 
 // Get user by Clerk ID
 export const getUserByClerkId = query({
