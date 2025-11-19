@@ -63,9 +63,10 @@ export default function SuccessPage() {
 
             try {
                 setLoading(true);
+                try {
                 setCreditAllocationStatus({
                     status: "pending",
-                    message: "Processing your payment and adding credits...",
+                    message: "Processing your payment and activating lifetime plan...",
                 });
 
                 // Get payment details from URL
@@ -74,26 +75,28 @@ export default function SuccessPage() {
                     urlParams.get("payment_id") ||
                     urlParams.get("id") ||
                     urlParams.get("payment");
-                const amount = urlParams.get("amount") || "9.00";
+                const amountParam = urlParams.get("amount");
+                const amount = amountParam ? parseFloat(amountParam) : 19.00;
+                const amountCents = Math.round(amount * 100);
 
-                // Add 100 credits to user account
-                const newCreditTotal = await addCredits({
+                // Purchase lifetime plan (will add initial credits and set up monthly refresh)
+                const result = await purchaseLifetimePlan({
                     clerkId: user.id,
-                    credits: 100,
+                    amount: amountCents,
                 });
 
                 // Update status
                 setCreditAllocationStatus({
                     status: "success",
-                    message: "Successfully added 100 credits to your account!",
-                    creditsAdded: 100,
+                    message: result.message,
+                    creditsAdded: result.creditsAdded,
                 });
 
                 // Set basic payment details for display
                 setPaymentDetails({
                     paymentId: paymentId || `payment_${Date.now()}`,
                     status: "succeeded",
-                    amount: 900, // $9.00 in cents
+                    amount: amountCents,
                     currency: "USD",
                     customer: {
                         customer_id: user.id,
@@ -103,8 +106,10 @@ export default function SuccessPage() {
                     created_at: new Date().toISOString(),
                     metadata: {
                         userId: user.id,
-                        credits: "100",
-                        amount: amount,
+                        credits: result.creditsAdded.toString(),
+                        amount: amount.toString(),
+                        plan: result.plan,
+                        isLifetime: "true",
                     },
                 });
             } catch (err) {
@@ -112,7 +117,7 @@ export default function SuccessPage() {
                 setCreditAllocationStatus({
                     status: "error",
                     message:
-                        "Payment successful but there was an issue adding credits. Please contact support.",
+                        "Payment successful but there was an issue activating your plan. Please contact support.",
                 });
                 setError("Failed to process payment success");
             } finally {
@@ -126,7 +131,7 @@ export default function SuccessPage() {
             setError("Please sign in to view payment details");
             setLoading(false);
         }
-    }, [user, isLoaded, addCredits]);
+    }, [user, isLoaded, purchaseLifetimePlan]);
 
     const handleGoToApp = () => {
         router.push("/app");
@@ -176,11 +181,10 @@ export default function SuccessPage() {
                         <CheckCircle className="h-8 w-8 text-green-600" />
                     </div>
                     <CardTitle className="text-3xl font-bold text-gray-900">
-                        Payment Successful! 🎉
+                        Lifetime Plan Activated! 🎉
                     </CardTitle>
                     <CardDescription className="text-lg text-gray-600">
-                        Thank you for your purchase. Your credits have been
-                        added to your account.
+                        Thank you for your purchase. Your lifetime plan is now active and you'll receive monthly credits automatically.
                     </CardDescription>
                 </CardHeader>
 

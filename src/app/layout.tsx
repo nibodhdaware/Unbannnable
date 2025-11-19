@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import DynamicClientComponent from "./DynamicClientComponent"; // client logic here
 import ClerkWrapper from "@/components/ClerkWrapper";
+import ReferralHandler from "@/components/ReferralHandler";
 import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
@@ -151,6 +152,7 @@ export default function RootLayout({
                     />
                 </head>
                 <body>
+                    <ReferralHandler />
                     <DynamicClientComponent />
                     {children}
                     <Analytics />

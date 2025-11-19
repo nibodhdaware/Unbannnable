@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy, Share2, Users, Gift } from "lucide-react";
@@ -15,22 +17,16 @@ export default function ReferralSection({ className }: ReferralSectionProps) {
     const [copyNotification, setCopyNotification] = useState<string | null>(
         null,
     );
-    const [referralCode, setReferralCode] = useState<string>("");
-    const [referralCount, setReferralCount] = useState(0);
-    const [totalEarned, setTotalEarned] = useState(0);
 
-    useEffect(() => {
-        if (user) {
-            // Generate a simple referral code based on user ID
-            const code = user.id.slice(-8).toUpperCase();
-            setReferralCode(code);
+    // Get referral stats from database
+    const referralStats = useQuery(
+        api.users.getReferralStats,
+        user?.id ? { clerkId: user.id } : "skip",
+    );
 
-            // These would normally come from your database
-            // For now, using placeholder values
-            setReferralCount(0);
-            setTotalEarned(0);
-        }
-    }, [user]);
+    const referralCode = referralStats?.referralCode || "";
+    const referralCount = referralStats?.referralCount || 0;
+    const totalEarned = referralStats?.totalEarned || 0;
 
     const generateReferralLink = () => {
         if (!referralCode) return "";
@@ -219,4 +215,3 @@ export default function ReferralSection({ className }: ReferralSectionProps) {
         </div>
     );
 }
-
