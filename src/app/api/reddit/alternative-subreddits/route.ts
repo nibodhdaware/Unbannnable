@@ -113,7 +113,7 @@ Return only a JSON array with this exact structure:
         const { google } = await import("@ai-sdk/google");
 
         const { text: resultText } = await generateText({
-            model: google("gemini-2.0-flash", { apiKey }),
+            model: google("gemini-2.0-flash"),
             prompt,
         });
 

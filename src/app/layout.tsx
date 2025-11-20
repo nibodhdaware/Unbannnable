@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 import "./globals.css";
 import DynamicClientComponent from "./DynamicClientComponent"; // client logic here
 import ClerkWrapper from "@/components/ClerkWrapper";
@@ -152,7 +153,9 @@ export default function RootLayout({
                     />
                 </head>
                 <body>
-                    <ReferralHandler />
+                    <Suspense fallback={null}>
+                        <ReferralHandler />
+                    </Suspense>
                     <DynamicClientComponent />
                     {children}
                     <Analytics />

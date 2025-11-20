@@ -308,7 +308,7 @@ export default function BanChecker() {
 
             const shareData: ShareData = {
                 title: "Reddit Ban Risk Check",
-                text: `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at ${window.location.href}`,
+                text: `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at ${window.location.href}\n\ncheck.unbannnable.com by @nibodhdaware`,
                 files: [file],
             };
 
@@ -338,14 +338,13 @@ export default function BanChecker() {
                     new ClipboardItem({ "image/png": blob }),
                 ]);
 
-                const text = `My Reddit post has a ${result.banRisk}% ban risk 🚨\n\nCheck yours at`;
-                const tweetUrl = window.location.href;
+                const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\nCheck yours at ${window.location.href}\n\ncheck.unbannnable.com by @nibodhdaware`;
 
                 // Show instructions and open Twitter
                 setShowPasteInstructions(true);
                 setTimeout(() => {
                     window.open(
-                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(tweetUrl)}`,
+                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
                         "_blank",
                     );
                 }, 1500);
@@ -361,9 +360,9 @@ export default function BanChecker() {
                 URL.revokeObjectURL(url);
 
                 setTimeout(() => {
-                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\nCheck yours at`;
+                    const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\nCheck yours at ${window.location.href}\n\ncheck.unbannnable.com by @nibodhdaware`;
                     window.open(
-                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`,
+                        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
                         "_blank",
                     );
                 }, 100);
@@ -375,9 +374,9 @@ export default function BanChecker() {
         } catch (error) {
             console.error("Error generating image:", error);
             // Fallback to text-only
-            const text = `My Reddit post has a ${result.banRisk}% ban risk 😱 Check yours at`;
+            const text = `My Reddit post has a ${result.banRisk}% ban risk 😱\n\nCheck yours at ${window.location.href}\n\ncheck.unbannnable.com by @nibodhdaware`;
             window.open(
-                `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`,
+                `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
                 "_blank",
             );
             setSharingImage(false);

@@ -68,19 +68,13 @@ export async function POST(request: NextRequest) {
                     );
                 }
 
-                // Record payment in database
-                await convex.mutation(api.payments.createPayment, {
+                // Credits are already added via purchaseLifetimePlan mutation
+                // Payments table removed - using credit-only system
+                console.log("Payment processed:", {
                     paymentId: payment_id,
                     userId: user._id,
                     amount: amount,
-                    currency: currency || "USD",
-                    status: "succeeded",
                     customerEmail: customer_email,
-                    customerName: customer_name,
-                    paymentType: "one_time",
-                    planType: "credits",
-                    postsAllocated: parseInt(credits),
-                    metadata: JSON.stringify(metadata),
                 });
 
                 // Update user credits

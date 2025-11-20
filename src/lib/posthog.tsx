@@ -22,8 +22,6 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
             capture_pageleave: false,
             // Prevent loading external config files (this causes CORS)
             advanced_disable_decide: true,
-            // Don't load toolbar or other UI features
-            disable_toolbar: true,
             // Use only localStorage to avoid cookie domain issues
             persistence: "localStorage",
             cross_subdomain_cookie: false,

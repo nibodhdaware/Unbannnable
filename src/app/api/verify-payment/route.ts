@@ -26,37 +26,29 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if payment record exists and has been processed
-        const existingPayment = await convex.query(
-            api.payments.getPaymentByPaymentId,
-            {
-                paymentId: paymentId,
-            },
-        );
+        // Note: Payments table removed - using credit-only system
+        // Webhook handles credit allocation directly via purchaseLifetimePlan
+        // This endpoint now just confirms payment was received
 
-        if (existingPayment) {
-            // Payment has already been processed
+        // Check if user has lifetime plan (indicates payment processed)
+        const user = await convex.query(api.users.getUserByClerkId, {
+            clerkId: userId,
+        });
+
+        if (user?.lifetimePlan) {
             return NextResponse.json({
+                success: true,
                 alreadyProcessed: true,
-                status: existingPayment.status,
-                message:
-                    "Payment has already been processed and credits have been added.",
+                status: "succeeded",
+                message: "Payment processed - lifetime plan active",
             });
         }
 
-        // If we reach here, the payment hasn't been processed via webhook yet
-        // This could be because:
-        // 1. The webhook hasn't fired yet
-        // 2. The payment is invalid/fake
-        // 3. The payment is pending
-
-        // For security, we should verify with the payment provider
-        // But for now, we'll return that we need to wait
         return NextResponse.json({
+            success: true,
             alreadyProcessed: false,
             pending: true,
-            message:
-                "Payment is being verified. Please wait a moment and refresh if credits don't appear.",
+            message: "Payment verification in progress",
         });
     } catch (error) {
         console.error("Payment verification error:", error);

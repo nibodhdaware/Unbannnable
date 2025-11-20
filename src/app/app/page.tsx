@@ -805,7 +805,7 @@ Provide your response in exactly this format:
                 }
 
                 const { text } = await generateText({
-                    model: google("gemini-2.0-flash", { apiKey }),
+                    model: google("gemini-2.0-flash"),
                     prompt,
                 });
 
@@ -1952,7 +1952,6 @@ ${rules
                                                                         userId: userRecord._id,
                                                                         title,
                                                                         body,
-                                                                        subreddit,
                                                                     },
                                                                 );
 
@@ -2281,7 +2280,6 @@ ${rules
                                                                         userId: userRecord._id,
                                                                         title,
                                                                         body,
-                                                                        subreddit,
                                                                     },
                                                                 );
 

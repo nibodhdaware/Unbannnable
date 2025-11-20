@@ -56,6 +56,7 @@ export default function SuccessPage() {
 
     // Mutation to add credits
     const addCredits = useMutation(api.users.addCredits);
+    const purchaseLifetimePlan = useMutation(api.users.purchaseLifetimePlan);
 
     useEffect(() => {
         const handlePaymentSuccess = async () => {
