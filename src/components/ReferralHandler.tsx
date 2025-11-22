@@ -25,7 +25,6 @@ export default function ReferralHandler() {
                     clerkId: user.id,
                     fullName: user.fullName || undefined,
                     email: user.emailAddresses[0]?.emailAddress || "",
-                    role: "user",
                     referralCode: referralCode || undefined,
                 });
             } catch (error) {

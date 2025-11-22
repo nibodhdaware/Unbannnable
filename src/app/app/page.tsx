@@ -349,6 +349,15 @@ function AppPageContent() {
 
     useEffect(() => {
         fetchSubreddits();
+
+        // Check for subreddit param in URL
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const subParam = params.get("subreddit");
+            if (subParam) {
+                handleSubredditChange(subParam);
+            }
+        }
     }, []);
 
     // Function to parse AI output and extract optimized content
@@ -527,7 +536,8 @@ function AppPageContent() {
             setLoadingSubreddits(true);
             setError("");
             // Fetch more popular subreddits for better fuzzy search coverage
-            const data = await redditAPI.fetchSubreddits(500);
+            // Reduced limit to 100 to avoid API issues
+            const data = await redditAPI.fetchSubreddits(100);
             setAllSubreddits(data);
         } catch (err) {
             console.error("Error fetching subreddits:", err);

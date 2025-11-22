@@ -132,7 +132,9 @@ class RedditAPIOptimized {
         const clientSecret = process.env.REDDIT_CLIENT_SECRET;
 
         if (!clientId || !clientSecret) {
-            throw new Error("Reddit API credentials not configured");
+            // throw new Error("Reddit API credentials not configured");
+            // Fallback to public API if no credentials
+            return null;
         }
 
         const auth = Buffer.from(`${clientId}:${clientSecret}`).toString(

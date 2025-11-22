@@ -69,8 +69,51 @@ export default function Landing() {
         return null;
     }
 
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+            {
+                "@type": "Question",
+                name: "Why was my Reddit post removed immediately?",
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Immediate removal usually means you violated a hard rule like missing a required tag (e.g., [Question]), using a forbidden word, or having low karma. Unbannnable checks all these rules before you post.",
+                },
+            },
+            {
+                "@type": "Question",
+                name: 'How do I fix "Self-Promotion" bans?',
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Most subreddits have a 9:1 rule (9 helpful posts for every 1 self-promo). Our AI rewrites your post to focus on value first, making it less likely to be flagged as spam.",
+                },
+            },
+            {
+                "@type": "Question",
+                name: 'Can Unbannnable help with "Low Effort" removals?',
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Yes! The AI analyzes the subreddit's average post length and style, then expands your content to meet community standards for quality and depth.",
+                },
+            },
+            {
+                "@type": "Question",
+                name: "Does this work for all subreddits?",
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Unbannnable works with any public subreddit. It reads the latest sidebar rules, wiki, and pinned posts to ensure your content is compliant with the specific community guidelines.",
+                },
+            },
+        ],
+    };
+
     return (
         <div className="min-h-screen bg-white dark:bg-neutral-950">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             {/* Navigation */}
             <nav className="relative z-50 px-4 sm:px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -147,14 +190,14 @@ export default function Landing() {
                                 transition={{ duration: 0.9, ease: "easeOut" }}
                                 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-white mb-4 sm:mb-6 leading-tight"
                             >
-                                Stop Getting{" "}
+                                Stop Reddit Bans:{" "}
                                 <span className="text-[#FF4500] relative inline-block">
                                     <span className="relative">
-                                        Banned on Reddit
+                                        AI-Powered Post Checker
                                         <span className="absolute inset-x-0 top-1/2 h-0.5 bg-[#FF4500] transform -rotate-2"></span>
                                     </span>
-                                </span>
-                                . AI Fixes Your Posts.
+                                </span>{" "}
+                                & Optimizer
                             </motion.h1>
 
                             <motion.p
@@ -334,6 +377,9 @@ export default function Landing() {
             {/* Pricing Section */}
             <PricingSection />
 
+            {/* FAQ Section */}
+            <FAQSection />
+
             {/* CTA Section */}
             <CTASection />
 
@@ -437,7 +483,7 @@ function FeaturesSection() {
                     className="text-center mb-16"
                 >
                     <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
-                        What You Get
+                        AI Reddit Rule Check: Catch Bans Before They Happen
                     </h2>
                     <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
                         Everything you need to post on Reddit without getting
@@ -514,7 +560,7 @@ function HowItWorksSection() {
                     className="text-center mb-16"
                 >
                     <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
-                        How It Works
+                        How to Fix Reddit Posts in 3 Steps
                     </h2>
                     <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
                         Get a ban-proof post in under 30 seconds
@@ -593,6 +639,97 @@ function CTASection() {
                         </Button>
                     </SignedIn>
                 </motion.div>
+            </div>
+        </section>
+    );
+}
+
+// FAQ Section Component
+function FAQSection() {
+    return (
+        <section className="py-20 px-4 sm:px-6 bg-neutral-50 dark:bg-neutral-900">
+            <div className="max-w-4xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    viewport={{ once: true, margin: "-100px" }}
+                    className="text-center mb-16"
+                >
+                    <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-white mb-4">
+                        Common Reddit Ban Triggers & How Unbannnable Fixes Them
+                    </h2>
+                    <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
+                        Learn why posts get removed and how our AI prevents it
+                    </p>
+                </motion.div>
+
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">
+                                Why was my Reddit post removed immediately?
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-neutral-600 dark:text-neutral-400">
+                                Immediate removal usually means you violated a
+                                hard rule like missing a required tag (e.g.,
+                                [Question]), using a forbidden word, or having
+                                low karma. Unbannnable checks all these rules
+                                before you post.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">
+                                How do I fix "Self-Promotion" bans?
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-neutral-600 dark:text-neutral-400">
+                                Most subreddits have a 9:1 rule (9 helpful posts
+                                for every 1 self-promo). Our AI rewrites your
+                                post to focus on value first, making it less
+                                likely to be flagged as spam.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">
+                                Can Unbannnable help with "Low Effort" removals?
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-neutral-600 dark:text-neutral-400">
+                                Yes! The AI analyzes the subreddit's average
+                                post length and style, then expands your content
+                                to meet community standards for quality and
+                                depth.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">
+                                Does this work for all subreddits?
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-neutral-600 dark:text-neutral-400">
+                                Unbannnable works with any public subreddit. It
+                                reads the latest sidebar rules, wiki, and pinned
+                                posts to ensure your content is compliant with
+                                the specific community guidelines.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </section>
     );

@@ -19,20 +19,18 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Unbannnable - AI-Powered Reddit Post Optimization Tool",
+    title: "Unbannnable: AI Reddit Post Optimizer | Stop Bans in Seconds",
     description:
-        "AI-powered Reddit post optimization tool that analyzes posts, checks subreddit rules, suggests improvements, and finds the best communities for your content. Never get banned again.",
+        "Paste your Reddit post—AI checks rules, fixes bans, suggests subreddits. Free trial. Never get shadowbanned again. The ultimate Reddit post checker.",
     keywords: [
-        "Reddit",
-        "AI",
-        "post optimization",
-        "subreddit rules",
-        "Reddit safety",
-        "content analysis",
-        "social media optimization",
-        "Reddit tool",
-        "subreddit finder",
-        "content moderation",
+        "reddit post checker",
+        "avoid reddit ban",
+        "reddit rule compliance tool",
+        "fix reddit post for bans",
+        "AI reddit optimizer",
+        "reddit shadowban test",
+        "how to post on reddit without getting banned",
+        "reddit posting guide",
     ],
     authors: [{ name: "Unbannnable Team" }],
     creator: "Unbannnable",

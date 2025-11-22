@@ -81,6 +81,16 @@ export default function BanChecker() {
     // Load popular subreddits on mount
     useEffect(() => {
         fetchPopularSubreddits();
+
+        // Check for subreddit param in URL
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const subParam = params.get("subreddit");
+            if (subParam) {
+                setSubreddit(subParam);
+                setSearchQuery(subParam);
+            }
+        }
     }, []);
 
     // Close dropdown when clicking outside
@@ -115,6 +125,72 @@ export default function BanChecker() {
             setAllSubreddits(subs);
         } catch (err) {
             console.error("Error fetching subreddits:", err);
+            // Fallback to popular subreddits if API fails
+            setAllSubreddits([
+                {
+                    display_name: "AskReddit",
+                    public_description:
+                        "Ask and answer thought-provoking questions",
+                    subscribers: 40000000,
+                    id: "2qh1i",
+                },
+                {
+                    display_name: "funny",
+                    public_description: "Funny pictures and videos",
+                    subscribers: 50000000,
+                    id: "2qh33",
+                },
+                {
+                    display_name: "pics",
+                    public_description: "A place for pictures and photographs",
+                    subscribers: 30000000,
+                    id: "2qh0u",
+                },
+                {
+                    display_name: "todayilearned",
+                    public_description: "You learn something new every day",
+                    subscribers: 30000000,
+                    id: "2qqjc",
+                },
+                {
+                    display_name: "worldnews",
+                    public_description:
+                        "A place for major news from around the world",
+                    subscribers: 30000000,
+                    id: "2qh4i",
+                },
+                {
+                    display_name: "gaming",
+                    public_description: "Gaming news and discussions",
+                    subscribers: 35000000,
+                    id: "2qh03",
+                },
+                {
+                    display_name: "videos",
+                    public_description:
+                        "The best links to click while you're stoned",
+                    subscribers: 25000000,
+                    id: "2qh1e",
+                },
+                {
+                    display_name: "aww",
+                    public_description: "Things that make you go AWW",
+                    subscribers: 30000000,
+                    id: "2qh1o",
+                },
+                {
+                    display_name: "technology",
+                    public_description: "Technological innovations and news",
+                    subscribers: 12000000,
+                    id: "2qh16",
+                },
+                {
+                    display_name: "politics",
+                    public_description: "Political news and discussions",
+                    subscribers: 8000000,
+                    id: "2cneq",
+                },
+            ]);
         } finally {
             setLoadingSubreddits(false);
         }
