@@ -2127,8 +2127,8 @@ ${rules
                                                             Rule Checker
                                                         </div>
                                                         <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                                                            Check subreddit
-                                                            rule compliance
+                                                            Check subreddit rule
+                                                            compliance
                                                         </div>
                                                     </div>
                                                 </div>
