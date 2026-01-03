@@ -28,13 +28,14 @@ export function useUserPosts() {
     );
 
     // Check if user is admin by email
-    const isAdminByEmail = clerkUser?.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com";
+    const isAdminByEmail =
+        clerkUser?.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com";
 
     // Ensure user is created with admin status
     useEffect(() => {
         if (clerkUser && !userRecord) {
             const email = clerkUser.emailAddresses[0]?.emailAddress;
-            
+
             console.log("Creating/updating user with admin status:", {
                 email,
                 isAdminEmail: isAdminByEmail,
@@ -46,7 +47,6 @@ export function useUserPosts() {
                 email: email || "",
                 fullName: clerkUser.fullName || undefined,
                 isAdmin: isAdminByEmail,
-                role: isAdminByEmail ? "admin" : "user",
             });
         }
     }, [clerkUser, userRecord, createOrUpdateUser, isAdminByEmail]);
@@ -56,12 +56,9 @@ export function useUserPosts() {
         return {
             userRecord,
             postStats: {
-                freePostsUsed: 0,
-                freePostsRemaining: 0,
-                purchasedPostsRemaining: 0,
-                totalPostsUsed: 0,
+                totalCredits: 0,
+                postsCreated: userPosts?.length || 0,
                 hasUnlimitedAccess: true,
-                unlimitedExpiry: null,
                 isAdmin: true,
             },
             canCreatePost: {
@@ -77,12 +74,9 @@ export function useUserPosts() {
     return {
         userRecord,
         postStats: postStats || {
-            freePostsUsed: 0,
-            freePostsRemaining: 1,
-            purchasedPostsRemaining: 0,
-            totalPostsUsed: 0,
+            totalCredits: 0,
+            postsCreated: 0,
             hasUnlimitedAccess: false,
-            unlimitedExpiry: null,
             isAdmin: false,
         },
         canCreatePost: canCreatePost || {

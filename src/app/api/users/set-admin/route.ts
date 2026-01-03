@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
             clerkId: user.clerkId,
             fullName: user.fullName,
             email: user.email,
-            role: "admin",
             isAdmin: true,
         });
 

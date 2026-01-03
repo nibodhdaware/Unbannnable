@@ -14,6 +14,8 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as creditRefresh from "../creditRefresh.js";
+import type * as emailActions from "../emailActions.js";
+import type * as emails from "../emails.js";
 import type * as posts from "../posts.js";
 import type * as users from "../users.js";
 
@@ -27,6 +29,8 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   creditRefresh: typeof creditRefresh;
+  emailActions: typeof emailActions;
+  emails: typeof emails;
   posts: typeof posts;
   users: typeof users;
 }>;

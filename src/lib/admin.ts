@@ -32,7 +32,6 @@ export async function ensureAdminStatus(
                 email,
                 fullName,
                 isAdmin: true,
-                role: "admin",
             });
         }
     } catch (error) {
@@ -59,7 +58,7 @@ export async function getUserRole(
 
         return {
             isAdmin: adminStatus,
-            role: adminStatus ? "admin" : user.role || "user",
+            role: adminStatus ? "admin" : "user",
         };
     } catch (error) {
         console.error("Error getting user role:", error);

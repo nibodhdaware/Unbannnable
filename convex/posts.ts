@@ -1,6 +1,28 @@
 import { v } from "convex/values";
 import { query, mutation, action, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Helper function to call Gemini
+async function callGemini(prompt: string): Promise<string> {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error("GEMINI_API_KEY not configured");
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+
+    if (!text) {
+        throw new Error("No content generated from Gemini");
+    }
+
+    return text;
+}
 
 // Create a new post (simplified - uses credits only)
 export const createPost = mutation({
@@ -139,43 +161,41 @@ export const usePostAnalyzer = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 1 credit if not admin
+        // Deduct 10 credits if not admin (Post Analyzer costs 10 credits)
         if (!isAdmin) {
             await ctx.runMutation(internal.users.deductCreditsInternal, {
                 userId: args.userId,
-                credits: 1,
+                credits: 10,
             });
         }
 
-        // Call external AI API
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/api/analyze-post`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: args.title,
-                    body: args.body,
-                    subreddit: args.subreddit,
-                }),
-            },
-        );
+        // Build the prompt for post analysis
+        const prompt = `Analyze this Reddit post for r/${args.subreddit || "general"}:
 
-        if (!response.ok) {
-            throw new Error("Failed to analyze post");
-        }
+Title: ${args.title}
+Body: ${args.body || "(no body)"}
 
-        const analysis = await response.json();
+Provide a comprehensive analysis including:
+1. Overall quality score (1-10)
+2. Title effectiveness and suggestions
+3. Content clarity and engagement potential
+4. Subreddit appropriateness
+5. Potential issues or rule violations
+6. Specific improvement recommendations
+
+Format your response in a clear, actionable way.`;
+
+        const analysis = await callGemini(prompt);
 
         // Update post with AI results
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "AI Post Analyzer",
-            result: analysis.analysis,
-            creditsSpent: isAdmin ? 0 : 1,
+            result: analysis,
+            creditsSpent: isAdmin ? 0 : 10,
         });
 
-        return analysis.analysis;
+        return analysis;
     },
 });
 
@@ -195,43 +215,43 @@ export const useRuleChecker = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 1 credit if not admin
+        // Deduct 5 credits if not admin (Rule Checker costs 5 credits)
         if (!isAdmin) {
             await ctx.runMutation(internal.users.deductCreditsInternal, {
                 userId: args.userId,
-                credits: 1,
+                credits: 5,
             });
         }
 
-        // Call external AI API
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/api/check-rules`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: args.title,
-                    body: args.body,
-                    subreddit: args.subreddit,
-                }),
-            },
-        );
+        // Build the prompt for rule checking
+        const prompt = `Check if this Reddit post follows typical subreddit rules for r/${args.subreddit}:
 
-        if (!response.ok) {
-            throw new Error("Failed to check rules");
-        }
+Title: ${args.title}
+Body: ${args.body || "(no body)"}
 
-        const result = await response.json();
+Analyze for common Reddit posting rules including:
+1. Title formatting requirements
+2. Content policy compliance
+3. Spam/self-promotion concerns
+4. Flair requirements (if typical for this subreddit)
+5. Any potential rule violations
+
+Provide:
+- A clear YES/NO on whether the post likely complies with rules
+- List of potential issues if any
+- Specific suggestions to fix any problems`;
+
+        const rulesCheck = await callGemini(prompt);
 
         // Update post with AI results
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "Rule Checker",
-            result: result.rulesCheck,
-            creditsSpent: isAdmin ? 0 : 1,
+            result: rulesCheck,
+            creditsSpent: isAdmin ? 0 : 5,
         });
 
-        return result.rulesCheck;
+        return rulesCheck;
     },
 });
 
@@ -251,43 +271,40 @@ export const findBetterSubreddits = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 1 credit if not admin
+        // Deduct 5 credits if not admin (Find Subreddits costs 5 credits)
         if (!isAdmin) {
             await ctx.runMutation(internal.users.deductCreditsInternal, {
                 userId: args.userId,
-                credits: 1,
+                credits: 5,
             });
         }
 
-        // Call external AI API
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/api/find-subreddits`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: args.title,
-                    body: args.body,
-                    currentSubreddit: args.currentSubreddit,
-                }),
-            },
-        );
+        // Build the prompt for finding better subreddits
+        const prompt = `Suggest the best subreddits for this Reddit post:
 
-        if (!response.ok) {
-            throw new Error("Failed to find subreddits");
-        }
+Title: ${args.title}
+Body: ${args.body || "(no body)"}
+${args.currentSubreddit ? `Currently targeting: r/${args.currentSubreddit}` : ""}
 
-        const result = await response.json();
+Provide 5-7 subreddit recommendations with:
+1. Subreddit name (r/example)
+2. Why it's a good fit
+3. Estimated subscriber count/activity level
+4. Any specific posting tips for that subreddit
+
+Format as a numbered list. Focus on active communities where the post would get good engagement.`;
+
+        const subreddits = await callGemini(prompt);
 
         // Update post with AI results
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "Better Subreddits",
-            result: result.subreddits,
-            creditsSpent: isAdmin ? 0 : 1,
+            result: subreddits,
+            creditsSpent: isAdmin ? 0 : 5,
         });
 
-        return result.subreddits;
+        return subreddits;
     },
 });
 
@@ -306,42 +323,43 @@ export const detectAnomalies = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 1 credit if not admin
+        // Deduct 3 credits if not admin (Anomaly Detection costs 3 credits)
         if (!isAdmin) {
             await ctx.runMutation(internal.users.deductCreditsInternal, {
                 userId: args.userId,
-                credits: 1,
+                credits: 3,
             });
         }
 
-        // Call external AI API
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}/api/detect-anomalies`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: args.title,
-                    body: args.body,
-                }),
-            },
-        );
+        // Build the prompt for anomaly detection
+        const prompt = `Analyze this Reddit post for potential issues that could cause it to be removed or downvoted:
 
-        if (!response.ok) {
-            throw new Error("Failed to detect anomalies");
-        }
+Title: ${args.title}
+Body: ${args.body || "(no body)"}
 
-        const result = await response.json();
+Check for:
+1. Clickbait or misleading title
+2. Spam indicators
+3. Controversial or inflammatory language
+4. Grammar/spelling issues that hurt credibility
+5. Formatting problems
+6. Missing context that could confuse readers
+7. Self-promotion red flags
+8. Low-effort content indicators
+
+Provide a risk assessment (Low/Medium/High) and specific recommendations to improve the post's chances of success.`;
+
+        const analysis = await callGemini(prompt);
 
         // Update post with AI results
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "Anomaly Detection",
-            result: result.analysis,
-            creditsSpent: isAdmin ? 0 : 1,
+            result: analysis,
+            creditsSpent: isAdmin ? 0 : 3,
         });
 
-        return result.analysis;
+        return analysis;
     },
 });
 
@@ -361,12 +379,22 @@ export const updatePostAIFeatures = internalMutation({
         const currentCredits = post.totalCreditsSpent || 0;
         const currentResults = post.aiAnalysisResults || {};
 
+        // Map feature names to schema field names
+        const featureKeyMap: Record<string, string> = {
+            "AI Post Analyzer": "postAnalyzer",
+            "Rule Checker": "ruleChecker",
+            "Better Subreddits": "betterSubreddits",
+            "Anomaly Detection": "anomalyDetection",
+        };
+
+        const schemaKey = featureKeyMap[args.featureName] || args.featureName;
+
         await ctx.db.patch(args.postId, {
             aiFeaturesUsed: [...currentFeatures, args.featureName],
             totalCreditsSpent: currentCredits + args.creditsSpent,
             aiAnalysisResults: {
                 ...currentResults,
-                [args.featureName.toLowerCase().replace(/ /g, "")]: args.result,
+                [schemaKey]: args.result,
             },
         });
     },

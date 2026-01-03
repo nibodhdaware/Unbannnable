@@ -252,11 +252,28 @@ class RedditAPIOptimized {
             `📡 Response status: ${response.status} ${response.statusText}`,
         );
 
+        // Check content type to detect HTML responses
+        const contentType = response.headers.get("content-type") || "";
+
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`❌ API Error: ${errorText}`);
+            // Only log first 200 chars if it looks like HTML
+            const isHtml =
+                errorText.startsWith("<!doctype") ||
+                errorText.startsWith("<html");
+            console.error(
+                `❌ API Error: ${isHtml ? "(HTML error page)" : errorText.slice(0, 500)}`,
+            );
             throw new Error(
-                `Reddit API error ${response.status}: ${errorText}`,
+                `Reddit API error ${response.status}: ${isHtml ? "Received HTML instead of JSON (API unavailable)" : errorText.slice(0, 200)}`,
+            );
+        }
+
+        // Check if we got HTML instead of JSON (sometimes Reddit returns 200 with HTML)
+        if (contentType.includes("text/html")) {
+            console.error("❌ Received HTML response instead of JSON");
+            throw new Error(
+                "Reddit API returned HTML instead of JSON - endpoint may not exist or require authentication",
             );
         }
 
@@ -578,9 +595,18 @@ class RedditAPIOptimized {
 
             if (!response.ok) {
                 console.warn(
-                    `Failed to fetch rules for r/${subreddit} (${response.status}), falling back to content policy`,
+                    `⚠️ Failed to fetch rules for r/${subreddit} (${response.status}), using defaults`,
                 );
-                return this.fetchContentPolicy();
+                return [];
+            }
+
+            // Check if we got HTML instead of JSON
+            const contentType = response.headers.get("content-type") || "";
+            if (contentType.includes("text/html")) {
+                console.warn(
+                    `⚠️ Got HTML instead of JSON for r/${subreddit} rules, using defaults`,
+                );
+                return [];
             }
 
             const data = await response.json();
@@ -667,11 +693,23 @@ class RedditAPIOptimized {
                 is_flair_required: data.is_flair_required === true,
             }));
         } catch (error) {
-            // If post requirements endpoint doesn't exist or fails, return null
-            if (error instanceof Error && error.message.includes("404")) {
-                return null;
-            }
-            throw error;
+            // Return default requirements if API fails
+            console.warn(
+                `⚠️ Could not fetch post requirements for r/${subreddit}, using defaults`,
+            );
+            return {
+                title_required: true,
+                title_text_max_length: 300,
+                title_text_min_length: 1,
+                body_restriction_policy: "none",
+                domain_blacklist: [],
+                domain_whitelist: [],
+                body_blacklisted_strings: [],
+                body_required_strings: [],
+                title_blacklisted_strings: [],
+                title_required_strings: [],
+                is_flair_required: false,
+            };
         }
     }
 
@@ -813,9 +851,9 @@ class RedditAPIOptimized {
         strictRules: string[],
     ): Promise<Array<{ name: string; reason: string }>> {
         try {
-            const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+            const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
             if (!apiKey) {
-                throw new Error("Gemini API key not configured");
+                throw new Error("Anthropic API key not configured");
             }
 
             const prompt = `You are a Reddit expert. A user wants to post the following content but the subreddit r/${currentSubreddit} has strict rules that prevent it.
@@ -846,46 +884,37 @@ Return only a JSON array with this exact structure:
   }
 ]`;
 
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
+            const Anthropic = (await import("@anthropic-ai/sdk")).default;
+            const anthropic = new Anthropic({
+                apiKey: apiKey,
+                dangerouslyAllowBrowser: true,
+            });
+
+            const message = await anthropic.messages.create({
+                model: "claude-haiku-4-5-20250514",
+                max_tokens: 1024,
+                messages: [
+                    {
+                        role: "user",
+                        content: prompt,
                     },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [
-                                    {
-                                        text: prompt,
-                                    },
-                                ],
-                            },
-                        ],
-                        generationConfig: {
-                            temperature: 0.7,
-                            maxOutputTokens: 1024,
-                        },
-                    }),
-                },
+                ],
+            });
+
+            const textBlock = message.content.find(
+                (block) => block.type === "text",
             );
-
-            if (!response.ok) {
-                throw new Error(
-                    `Gemini API request failed: ${response.status}`,
-                );
+            if (!textBlock || textBlock.type !== "text") {
+                throw new Error("No content generated from Claude API");
             }
 
-            const data = await response.json();
-            const result =
-                data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-            if (!result) {
-                throw new Error("No content generated from Gemini API");
+            const result = textBlock.text;
+            const jsonMatch = result.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) {
+                throw new Error("No JSON array found in response");
             }
 
-            return JSON.parse(result);
+            return JSON.parse(jsonMatch[0]);
         } catch (error) {
             console.error("Error getting AI suggestions:", error);
             // Return fallback suggestions

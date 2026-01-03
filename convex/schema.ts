@@ -14,7 +14,7 @@ export default defineSchema({
         isAdmin: v.optional(v.boolean()),
 
         // Credits
-        credits: v.optional(v.number()), // Current credit balance
+        credits: v.optional(v.number()),
 
         // Referral system
         referralCode: v.optional(v.string()),
@@ -23,11 +23,26 @@ export default defineSchema({
         hasReceivedSignupBonus: v.optional(v.boolean()),
 
         // Lifetime plan
-        lifetimePlan: v.optional(v.string()), // "basic" or "premium"
+        lifetimePlan: v.optional(v.string()),
         lifetimePlanPurchasedAt: v.optional(v.number()),
         creditsLastRefreshedAt: v.optional(v.number()),
 
-        // DEPRECATED - kept for backward compatibility with old data (will be removed after migration)
+        // Email preferences
+        emailPreferences: v.optional(
+            v.object({
+                allEmails: v.optional(v.boolean()),
+                marketingEmails: v.optional(v.boolean()),
+                criticalUpdates: v.optional(v.boolean()),
+                newsletter: v.optional(v.boolean()),
+                promotional: v.optional(v.boolean()),
+                productUpdates: v.optional(v.boolean()),
+                weeklyDigest: v.optional(v.boolean()),
+            }),
+        ),
+        lastEmailSentAt: v.optional(v.number()),
+        unsubscribedAt: v.optional(v.number()),
+
+        // Legacy fields - kept for data compatibility (not used in new code)
         role: v.optional(v.string()),
         totalPurchasedPosts: v.optional(v.number()),
         lastMonthlyRefreshDate: v.optional(v.number()),
@@ -36,7 +51,8 @@ export default defineSchema({
         unlimitedMonthlyExpiry: v.optional(v.number()),
     })
         .index("by_clerk_id", ["clerkId"])
-        .index("by_referral_code", ["referralCode"]),
+        .index("by_referral_code", ["referralCode"])
+        .index("by_email", ["email"]),
 
     posts: defineTable({
         // Core post data
@@ -44,20 +60,21 @@ export default defineSchema({
         title: v.string(),
         body: v.optional(v.string()),
         subreddit: v.optional(v.string()),
-        status: v.optional(v.string()), // "posted", "failed", "pending"
+        status: v.optional(v.string()),
         createdAt: v.number(),
-
-        // DEPRECATED - kept for backward compatibility with old data
-        postType: v.optional(v.string()), // Old field - will be removed after data cleanup
+        postType: v.optional(v.string()), // Legacy field - not used in new code
 
         // AI features tracking
-        aiFeaturesUsed: v.optional(v.array(v.string())), // e.g., ["AI Post Analyzer", "Rule Checker"]
-        totalCreditsSpent: v.optional(v.number()), // Total credits spent on AI features for this post
+        aiFeaturesUsed: v.optional(v.array(v.string())),
+        totalCreditsSpent: v.optional(v.number()),
         aiAnalysisResults: v.optional(
             v.object({
                 postAnalyzer: v.optional(v.string()),
                 ruleChecker: v.optional(v.string()),
-                betterSubreddits: v.optional(v.array(v.string())),
+                // Support both array (legacy) and string (new) formats
+                betterSubreddits: v.optional(
+                    v.union(v.string(), v.array(v.string())),
+                ),
                 anomalyDetection: v.optional(v.string()),
                 flairSuggestions: v.optional(v.array(v.string())),
             }),
@@ -65,4 +82,29 @@ export default defineSchema({
     })
         .index("by_user_id", ["userId"])
         .index("by_user_and_date", ["userId", "createdAt"]),
+
+    // Email events tracking
+    emailEvents: defineTable({
+        userId: v.id("users"),
+        emailType: v.string(),
+        status: v.string(),
+        sentAt: v.number(),
+        openedAt: v.optional(v.number()),
+        clickedAt: v.optional(v.number()),
+        metadata: v.optional(v.any()),
+    })
+        .index("by_user_id", ["userId"])
+        .index("by_email_type", ["emailType"])
+        .index("by_sent_at", ["sentAt"]),
+
+    // Email content cache (for AI-generated personalized content)
+    emailContentCache: defineTable({
+        userId: v.id("users"),
+        emailType: v.string(),
+        personalizedContent: v.string(),
+        generatedAt: v.number(),
+        expiresAt: v.number(),
+    })
+        .index("by_user_and_type", ["userId", "emailType"])
+        .index("by_expires_at", ["expiresAt"]),
 });

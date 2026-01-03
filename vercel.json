@@ -3,6 +3,10 @@
         {
             "path": "/api/cron/refresh-credits",
             "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/cron/email-triggers",
+            "schedule": "0 9 * * *"
         }
     ]
 }

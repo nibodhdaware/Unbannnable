@@ -6,6 +6,8 @@ import "./globals.css";
 import DynamicClientComponent from "./DynamicClientComponent"; // client logic here
 import ClerkWrapper from "@/components/ClerkWrapper";
 import ReferralHandler from "@/components/ReferralHandler";
+import CookieConsent from "@/components/CookieConsent";
+import EmailSubscriptionPopup from "@/components/EmailSubscriptionPopup";
 import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
@@ -156,6 +158,8 @@ export default function RootLayout({
                     </Suspense>
                     <DynamicClientComponent />
                     {children}
+                    <CookieConsent />
+                    <EmailSubscriptionPopup />
                     <Analytics />
                 </body>
             </html>

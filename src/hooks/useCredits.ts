@@ -5,11 +5,11 @@ import { useUser } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
 
 export function useCredits() {
-    const { user } = useUser();
+    const { user, isLoaded: isUserLoaded } = useUser();
     const clerkId = user?.id;
 
     // Get user credits
-    const credits = useQuery(
+    const creditsQuery = useQuery(
         api.users.getUserCredits,
         clerkId ? { clerkId } : "skip",
     );
@@ -23,7 +23,7 @@ export function useCredits() {
             throw new Error("User not authenticated");
         }
 
-        if (!credits || credits < amount) {
+        if (creditsQuery === undefined || creditsQuery < amount) {
             throw new Error("Insufficient credits");
         }
 
@@ -35,12 +35,16 @@ export function useCredits() {
 
     // Check if user has enough credits
     const hasCredits = (amount: number) => {
-        return credits !== undefined && credits >= amount;
+        return creditsQuery !== undefined && creditsQuery >= amount;
     };
 
+    // Determine loading state properly
+    const isLoading =
+        !isUserLoaded || (clerkId !== undefined && creditsQuery === undefined);
+
     return {
-        credits: credits || 0,
-        isLoading: credits === undefined,
+        credits: creditsQuery ?? 0,
+        isLoading,
         deductCredits,
         hasCredits,
     };

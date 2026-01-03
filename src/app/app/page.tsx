@@ -211,7 +211,7 @@ function AppPageContent() {
         useUserSync();
 
     // Initialize credits system
-    const credits = useCredits();
+    const creditsHook = useCredits();
 
     // Convex mutations and queries for AI tools
     const createPost = useMutation(api.posts.createPost);
@@ -226,6 +226,10 @@ function AppPageContent() {
         user ? { clerkId: user.id } : "skip",
     );
     const [postId, setPostId] = useState<string>("");
+
+    // Use userRecord.credits as primary source, fallback to creditsHook
+    const currentCredits = userRecord?.credits ?? creditsHook.credits;
+    const creditsLoading = creditsHook.isLoading && userRecord === undefined;
 
     // Initialize PostHog tracking
     usePostHogIdentify();
@@ -802,24 +806,39 @@ Provide your response in exactly this format:
 **FLAIR_REASONING:**
 [If NO violations, explain flair choice. If YES violations, write "Cannot optimize - rule violations detected"]`;
 
-            // Use AI SDK for Gemini
-            const { generateText } = await import("ai");
-            const { google } = await import("@ai-sdk/google");
+            // Use Anthropic SDK for Claude Haiku 4.5
+            const Anthropic = (await import("@anthropic-ai/sdk")).default;
 
-            const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+            const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
 
             let result = "";
             try {
                 if (!apiKey) {
-                    throw new Error("Gemini API key not configured");
+                    throw new Error("Anthropic API key not configured");
                 }
 
-                const { text } = await generateText({
-                    model: google("gemini-2.0-flash"),
-                    prompt,
+                const anthropic = new Anthropic({
+                    apiKey: apiKey,
+                    dangerouslyAllowBrowser: true,
                 });
 
-                result = text;
+                const message = await anthropic.messages.create({
+                    model: "claude-haiku-4-5-20250514",
+                    max_tokens: 2048,
+                    messages: [
+                        {
+                            role: "user",
+                            content: prompt,
+                        },
+                    ],
+                });
+
+                const textBlock = message.content.find(
+                    (block) => block.type === "text",
+                );
+                if (textBlock && textBlock.type === "text") {
+                    result = textBlock.text;
+                }
 
                 if (!result) {
                     throw new Error("No content generated from API");
@@ -1403,11 +1422,11 @@ ${rules
                             <div className="flex items-center space-x-2">
                                 <Badge
                                     variant="secondary"
-                                    className="px-3 py-1.5 text-sm"
+                                    className="px-3 py-1.5 text-sm font-medium"
                                 >
-                                    {credits.isLoading
-                                        ? "..."
-                                        : `${credits.credits} credits`}
+                                    {creditsLoading
+                                        ? "Loading..."
+                                        : `${currentCredits} credits`}
                                 </Badge>
                                 <Button
                                     onClick={() => setShowPricingPopup(true)}
@@ -1420,10 +1439,10 @@ ${rules
                                     onClick={() => setShowReferralPopup(true)}
                                     variant="outline"
                                     size="sm"
-                                    className="border-[#FF4500] text-[#FF4500] hover:bg-[#FF4500] hover:text-white"
+                                    className="border-[#FF4500] text-[#FF4500] hover:bg-[#FF4500] hover:text-white hidden sm:flex"
                                 >
                                     <Users className="w-4 h-4 mr-1" />
-                                    Refer Friends
+                                    Refer
                                 </Button>
                             </div>
                             <UserButton afterSignOutUrl="/" />
@@ -1450,10 +1469,10 @@ ${rules
             )}
 
             <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_20px_1fr] xl:grid-cols-[1fr_20px_400px] gap-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left Column - Post Creation Form */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-8 border border-neutral-200 dark:border-neutral-800 h-[85vh] flex flex-col">
+                    <div className="flex flex-col">
+                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-6 lg:p-8 border border-neutral-200 dark:border-neutral-800 flex flex-col">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
                                     Create a Post
@@ -1502,7 +1521,7 @@ ${rules
                             )}
 
                             <form
-                                className="space-y-4 flex-1 overflow-y-auto"
+                                className="space-y-5 flex-1"
                                 onSubmit={handleSubmit}
                             >
                                 {/* Subreddit Selection */}
@@ -1556,7 +1575,7 @@ ${rules
 
                                     {/* Dropdown */}
                                     {isDropdownOpen && (
-                                        <div className="absolute z-10 w-full mt-3 bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                                             {loadingSubreddits ||
                                             loadingSearch ? (
                                                 <div className="px-4 py-4 flex items-center justify-center">
@@ -1577,7 +1596,7 @@ ${rules
                                                         <button
                                                             key={sr.id}
                                                             type="button"
-                                                            className={`w-full text-left px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 last:border-b-0 focus:outline-none transition-all duration-200 text-sm transform hover:scale-[1.02] ${
+                                                            className={`w-full text-left px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 last:border-b-0 focus:outline-none transition-colors ${
                                                                 index ===
                                                                 selectedIndex
                                                                     ? "bg-[#FF4500] text-white"
@@ -1595,7 +1614,7 @@ ${rules
                                                             }
                                                         >
                                                             <div
-                                                                className={`font-medium ${
+                                                                className={`font-medium text-sm ${
                                                                     index ===
                                                                     selectedIndex
                                                                         ? "text-white"
@@ -1633,7 +1652,7 @@ ${rules
 
                                     {isDropdownOpen && (
                                         <div
-                                            className="fixed inset-0 z-0"
+                                            className="fixed inset-0 z-40"
                                             onClick={() =>
                                                 setIsDropdownOpen(false)
                                             }
@@ -1671,25 +1690,22 @@ ${rules
                                             </span>
                                         )}
                                     </Label>
-                                    <input
+                                    <Input
                                         type="text"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                         value={flair}
                                         onChange={(e) =>
                                             setFlair(e.target.value)
                                         }
                                         placeholder={
                                             subreddit
-                                                ? "Enter post flair (e.g., Discussion, Question, Help)"
+                                                ? "Enter post flair (e.g., Discussion, Question)"
                                                 : "Select a subreddit first"
                                         }
                                         disabled={!subreddit}
                                     />
                                     {postRequirements?.is_flair_required && (
-                                        <p className="text-xs text-muted-foreground mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1.5">
                                             ⚠️ This subreddit requires a flair.
-                                            AI will suggest one during
-                                            optimization.
                                         </p>
                                     )}
                                 </div>
@@ -1862,12 +1878,9 @@ ${rules
                         </div>
                     </div>
 
-                    {/* Spacer Column */}
-                    <div className="hidden lg:block"></div>
-
                     {/* Right Column - AI Tools */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-8 border border-neutral-200 dark:border-neutral-800 sticky top-6 h-[85vh] flex flex-col">
+                    <div className="flex flex-col">
+                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-6 lg:p-8 border border-neutral-200 dark:border-neutral-800 lg:sticky lg:top-6 flex flex-col">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
                                     AI Tools
@@ -1919,7 +1932,7 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (credits.credits < 10) {
+                                                    if (currentCredits < 10) {
                                                         alert(
                                                             "You need 10 credits to use the Post Analyzer. Please buy more credits.",
                                                         );
@@ -1965,12 +1978,12 @@ ${rules
                                                                     },
                                                                 );
 
-                                                            // Store result in state instead of alert
+                                                            // Store result in state - result is the analysis string directly
                                                             setAiToolResults(
                                                                 (prev) => ({
                                                                     ...prev,
                                                                     postAnalyzer:
-                                                                        result.analysis,
+                                                                        result,
                                                                 }),
                                                             );
                                                         }
@@ -1987,31 +2000,30 @@ ${rules
                                                 }}
                                                 disabled={
                                                     isGeneratingAI ||
-                                                    credits.credits < 10
+                                                    currentCredits < 10
                                                 }
-                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 10 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 10 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
                                             >
-                                                <div className="flex items-center space-x-4 flex-1">
-                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-xl">
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-lg">
                                                             🤖
                                                         </span>
                                                     </div>
-                                                    <div className="text-left flex-1 min-w-0">
-                                                        <div className="font-semibold text-sm truncate">
+                                                    <div className="text-left min-w-0">
+                                                        <div className="font-medium text-sm">
                                                             AI Post Analyzer
                                                         </div>
-                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                                             Analyze your post
-                                                            and tell you what's
-                                                            wrong
+                                                            for issues
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
-                                                    <div className="text-xs bg-[#FF4500] text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
-                                                        10 Credits
-                                                    </div>
+                                                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                                                    <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded">
+                                                        10 credits
+                                                    </span>
                                                     {isGeneratingAI && (
                                                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
                                                     )}
@@ -2031,7 +2043,7 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (credits.credits < 5) {
+                                                    if (currentCredits < 5) {
                                                         alert(
                                                             "You need 5 credits to use the Rule Checker. Please buy more credits.",
                                                         );
@@ -2078,12 +2090,12 @@ ${rules
                                                                     },
                                                                 );
 
-                                                            // Store result in state instead of alert
+                                                            // Store result in state - result is the string directly
                                                             setAiToolResults(
                                                                 (prev) => ({
                                                                     ...prev,
                                                                     ruleChecker:
-                                                                        result.ruleCheck,
+                                                                        result,
                                                                 }),
                                                             );
                                                         }
@@ -2100,32 +2112,29 @@ ${rules
                                                 }}
                                                 disabled={
                                                     isGeneratingAI ||
-                                                    credits.credits < 5
+                                                    currentCredits < 5
                                                 }
-                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 5 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
                                             >
-                                                <div className="flex items-center space-x-4 flex-1">
-                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-xl">
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-lg">
                                                             🔍
                                                         </span>
                                                     </div>
-                                                    <div className="text-left flex-1 min-w-0">
-                                                        <div className="font-semibold text-sm truncate">
+                                                    <div className="text-left min-w-0">
+                                                        <div className="font-medium text-sm">
                                                             Rule Checker
                                                         </div>
-                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
-                                                            Verify your post
-                                                            follows subreddit
-                                                            rules
+                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                            Check subreddit
+                                                            rule compliance
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
-                                                    <div className="text-xs bg-blue-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
-                                                        5 Credits
-                                                    </div>
-                                                </div>
+                                                <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded flex-shrink-0 ml-3">
+                                                    5 credits
+                                                </span>
                                             </button>
 
                                             {/* Find Better Subreddits - 5 Credits */}
@@ -2138,7 +2147,7 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (credits.credits < 5) {
+                                                    if (currentCredits < 5) {
                                                         alert(
                                                             "You need 5 credits to find better subreddits. Please buy more credits.",
                                                         );
@@ -2186,12 +2195,12 @@ ${rules
                                                                     },
                                                                 );
 
-                                                            // Store result in state instead of alert
+                                                            // Store result in state - result is the string directly
                                                             setAiToolResults(
                                                                 (prev) => ({
                                                                     ...prev,
                                                                     betterSubreddits:
-                                                                        result.suggestions,
+                                                                        result,
                                                                 }),
                                                             );
                                                         }
@@ -2208,33 +2217,30 @@ ${rules
                                                 }}
                                                 disabled={
                                                     isGeneratingAI ||
-                                                    credits.credits < 5
+                                                    currentCredits < 5
                                                 }
-                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 5 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
                                             >
-                                                <div className="flex items-center space-x-4 flex-1">
-                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-xl">
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-lg">
                                                             🧭
                                                         </span>
                                                     </div>
-                                                    <div className="text-left flex-1 min-w-0">
-                                                        <div className="font-semibold text-sm truncate">
+                                                    <div className="text-left min-w-0">
+                                                        <div className="font-medium text-sm">
                                                             Find Better
                                                             Subreddits
                                                         </div>
-                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
-                                                            Discover where your
-                                                            post would work
-                                                            better
+                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                            Discover better
+                                                            communities
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
-                                                    <div className="text-xs bg-blue-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
-                                                        5 Credits
-                                                    </div>
-                                                </div>
+                                                <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded flex-shrink-0 ml-3">
+                                                    5 credits
+                                                </span>
                                             </button>
 
                                             {/* Anomaly Detection - 3 Credits */}
@@ -2247,7 +2253,7 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (credits.credits < 3) {
+                                                    if (currentCredits < 3) {
                                                         alert(
                                                             "You need 3 credits for anomaly detection. Please buy more credits.",
                                                         );
@@ -2293,12 +2299,12 @@ ${rules
                                                                     },
                                                                 );
 
-                                                            // Store result in state instead of alert
+                                                            // Store result in state - result is the string directly
                                                             setAiToolResults(
                                                                 (prev) => ({
                                                                     ...prev,
                                                                     anomalyDetection:
-                                                                        result.anomalies,
+                                                                        result,
                                                                 }),
                                                             );
                                                         }
@@ -2315,32 +2321,29 @@ ${rules
                                                 }}
                                                 disabled={
                                                     isGeneratingAI ||
-                                                    credits.credits < 3
+                                                    currentCredits < 3
                                                 }
-                                                className={`w-full flex items-center justify-between p-5 rounded-xl bg-transparent border-2 shadow-sm hover:shadow-md transition-all duration-200 min-h-[80px] ${credits.credits < 3 ? "border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 cursor-not-allowed" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 3 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
                                             >
-                                                <div className="flex items-center space-x-4 flex-1">
-                                                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-xl">
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-lg">
                                                             ⚠️
                                                         </span>
                                                     </div>
-                                                    <div className="text-left flex-1 min-w-0">
-                                                        <div className="font-semibold text-sm truncate">
+                                                    <div className="text-left min-w-0">
+                                                        <div className="font-medium text-sm">
                                                             Anomaly Detection
                                                         </div>
-                                                        <div className="text-xs mt-1 text-neutral-500 dark:text-neutral-400 line-clamp-2">
-                                                            Detect potential
-                                                            issues that could
-                                                            cause bans
+                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                            Find ban-triggering
+                                                            issues
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right flex flex-col items-end justify-center ml-4 flex-shrink-0">
-                                                    <div className="text-xs bg-yellow-500 text-white px-2 py-1 rounded mb-1 whitespace-nowrap">
-                                                        3 Credits
-                                                    </div>
-                                                </div>
+                                                <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded flex-shrink-0 ml-3">
+                                                    3 credits
+                                                </span>
                                             </button>
                                         </div>
                                     ) : (

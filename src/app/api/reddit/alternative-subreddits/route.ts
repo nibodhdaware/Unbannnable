@@ -63,7 +63,7 @@ function detectStrictRules(rules: SubredditRule[]): string[] {
     return detectedRules;
 }
 
-// Function to get alternative subreddits using Gemini AI
+// Function to get alternative subreddits using Claude AI
 async function getAlternativeSubredditsWithAI(
     title: string,
     body: string,
@@ -74,10 +74,11 @@ async function getAlternativeSubredditsWithAI(
     const alternatives: AlternativeSubreddit[] = [];
 
     try {
-        // Use Gemini API to suggest alternative subreddits
-        const apiKey =
-            process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-            "AIzaSyDjyDhQmJHb-fNwNmShUkqpCd-QG8Y9T7o";
+        // Use Claude API to suggest alternative subreddits
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            throw new Error("Anthropic API key not configured");
+        }
 
         const prompt = `You are a Reddit expert. A user wants to post the following content but the subreddit r/${currentSubreddit} has strict rules that prevent it.
 
@@ -109,14 +110,30 @@ Return only a JSON array with this exact structure:
   }
 ]`;
 
-        const { generateText } = await import("ai");
-        const { google } = await import("@ai-sdk/google");
-
-        const { text: resultText } = await generateText({
-            model: google("gemini-2.0-flash"),
-            prompt,
+        const Anthropic = (await import("@anthropic-ai/sdk")).default;
+        const anthropic = new Anthropic({
+            apiKey: apiKey,
         });
 
+        const message = await anthropic.messages.create({
+            model: "claude-haiku-4-5-20250514",
+            max_tokens: 1024,
+            messages: [
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
+        });
+
+        const textBlock = message.content.find(
+            (block) => block.type === "text",
+        );
+        if (!textBlock || textBlock.type !== "text") {
+            throw new Error("No content generated from Claude API");
+        }
+
+        const resultText = textBlock.text;
         const jsonMatch = resultText.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
             throw new Error("No content generated from AI");
