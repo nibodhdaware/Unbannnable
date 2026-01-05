@@ -851,9 +851,9 @@ class RedditAPIOptimized {
         strictRules: string[],
     ): Promise<Array<{ name: string; reason: string }>> {
         try {
-            const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+            const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
             if (!apiKey) {
-                throw new Error("Anthropic API key not configured");
+                throw new Error("Gemini API key not configured");
             }
 
             const prompt = `You are a Reddit expert. A user wants to post the following content but the subreddit r/${currentSubreddit} has strict rules that prevent it.
@@ -884,31 +884,22 @@ Return only a JSON array with this exact structure:
   }
 ]`;
 
-            const Anthropic = (await import("@anthropic-ai/sdk")).default;
-            const anthropic = new Anthropic({
-                apiKey: apiKey,
-                dangerouslyAllowBrowser: true,
-            });
-
-            const message = await anthropic.messages.create({
-                model: "claude-haiku-4-5-20250514",
-                max_tokens: 1024,
-                messages: [
-                    {
-                        role: "user",
-                        content: prompt,
-                    },
-                ],
-            });
-
-            const textBlock = message.content.find(
-                (block) => block.type === "text",
+            const { GoogleGenerativeAI } = await import(
+                "@google/generative-ai"
             );
-            if (!textBlock || textBlock.type !== "text") {
-                throw new Error("No content generated from Claude API");
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.0-flash",
+            });
+
+            const geminiResult = await model.generateContent(prompt);
+            const response = geminiResult.response;
+            const result = response.text();
+
+            if (!result) {
+                throw new Error("No content generated from Gemini API");
             }
 
-            const result = textBlock.text;
             const jsonMatch = result.match(/\[[\s\S]*\]/);
             if (!jsonMatch) {
                 throw new Error("No JSON array found in response");

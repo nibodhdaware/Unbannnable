@@ -63,7 +63,7 @@ function detectStrictRules(rules: SubredditRule[]): string[] {
     return detectedRules;
 }
 
-// Function to get alternative subreddits using Claude AI
+// Function to get alternative subreddits using Gemini AI
 async function getAlternativeSubredditsWithAI(
     title: string,
     body: string,
@@ -74,10 +74,10 @@ async function getAlternativeSubredditsWithAI(
     const alternatives: AlternativeSubreddit[] = [];
 
     try {
-        // Use Claude API to suggest alternative subreddits
-        const apiKey = process.env.ANTHROPIC_API_KEY;
+        // Use Gemini API to suggest alternative subreddits
+        const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            throw new Error("Anthropic API key not configured");
+            throw new Error("Gemini API key not configured");
         }
 
         const prompt = `You are a Reddit expert. A user wants to post the following content but the subreddit r/${currentSubreddit} has strict rules that prevent it.
@@ -110,30 +110,18 @@ Return only a JSON array with this exact structure:
   }
 ]`;
 
-        const Anthropic = (await import("@anthropic-ai/sdk")).default;
-        const anthropic = new Anthropic({
-            apiKey: apiKey,
-        });
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-        const message = await anthropic.messages.create({
-            model: "claude-haiku-4-5-20250514",
-            max_tokens: 1024,
-            messages: [
-                {
-                    role: "user",
-                    content: prompt,
-                },
-            ],
-        });
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const resultText = response.text();
 
-        const textBlock = message.content.find(
-            (block) => block.type === "text",
-        );
-        if (!textBlock || textBlock.type !== "text") {
-            throw new Error("No content generated from Claude API");
+        if (!resultText) {
+            throw new Error("No content generated from Gemini API");
         }
 
-        const resultText = textBlock.text;
         const jsonMatch = resultText.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
             throw new Error("No content generated from AI");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ interface EmailPreferences {
     criticalUpdates: boolean;
 }
 
-export default function EmailPreferencesPage() {
+function EmailPreferencesContent() {
     const { isSignedIn, isLoaded } = useAuth();
     const searchParams = useSearchParams();
     const [preferences, setPreferences] = useState<EmailPreferences>({
@@ -296,5 +296,21 @@ export default function EmailPreferencesPage() {
                 </Card>
             </div>
         </div>
+    );
+}
+
+function LoadingFallback() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <div className="animate-pulse text-gray-500">Loading...</div>
+        </div>
+    );
+}
+
+export default function EmailPreferencesPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <EmailPreferencesContent />
+        </Suspense>
     );
 }

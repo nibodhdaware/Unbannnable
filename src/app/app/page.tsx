@@ -806,39 +806,27 @@ Provide your response in exactly this format:
 **FLAIR_REASONING:**
 [If NO violations, explain flair choice. If YES violations, write "Cannot optimize - rule violations detected"]`;
 
-            // Use Anthropic SDK for Claude Haiku 4.5
-            const Anthropic = (await import("@anthropic-ai/sdk")).default;
+            // Use Gemini for AI optimization
+            const { GoogleGenerativeAI } = await import(
+                "@google/generative-ai"
+            );
 
-            const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+            const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
             let result = "";
             try {
                 if (!apiKey) {
-                    throw new Error("Anthropic API key not configured");
+                    throw new Error("Gemini API key not configured");
                 }
 
-                const anthropic = new Anthropic({
-                    apiKey: apiKey,
-                    dangerouslyAllowBrowser: true,
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-2.0-flash",
                 });
 
-                const message = await anthropic.messages.create({
-                    model: "claude-haiku-4-5-20250514",
-                    max_tokens: 2048,
-                    messages: [
-                        {
-                            role: "user",
-                            content: prompt,
-                        },
-                    ],
-                });
-
-                const textBlock = message.content.find(
-                    (block) => block.type === "text",
-                );
-                if (textBlock && textBlock.type === "text") {
-                    result = textBlock.text;
-                }
+                const geminiResult = await model.generateContent(prompt);
+                const response = geminiResult.response;
+                result = response.text();
 
                 if (!result) {
                     throw new Error("No content generated from API");

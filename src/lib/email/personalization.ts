@@ -1,9 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // System prompt for email personalization
 const SYSTEM_PROMPT = `You are writing a friendly, helpful email for Unbannnable, a SaaS product that helps Reddit users check their posts before submitting to avoid getting banned or having posts removed.
@@ -126,7 +124,7 @@ function getTimeOfDayLabel(hour: number): string {
 }
 
 /**
- * Generate personalized email content using Claude Haiku
+ * Generate personalized email content using Gemini
  */
 export async function generatePersonalizedContent(
     emailType: EmailType,
@@ -134,29 +132,19 @@ export async function generatePersonalizedContent(
 ): Promise<string | null> {
     try {
         const prompt = getPersonalizationPrompt({ emailType, userStats });
+        const fullPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
 
-        const message = await anthropic.messages.create({
-            model: "claude-haiku-4-5-20250514",
-            max_tokens: 150,
-            messages: [
-                {
-                    role: "user",
-                    content: prompt,
-                },
-            ],
-            system: SYSTEM_PROMPT,
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const result = await model.generateContent(fullPrompt);
+        const response = result.response;
+        const text = response.text();
 
-        // Extract text from response
-        const textBlock = message.content.find(
-            (block) => block.type === "text",
-        );
-        if (!textBlock || textBlock.type !== "text") {
-            console.error("No text content in Claude response");
+        if (!text) {
+            console.error("No text content in Gemini response");
             return null;
         }
 
-        return textBlock.text.trim();
+        return text.trim();
     } catch (error) {
         console.error("Error generating personalized content:", error);
         return null;
