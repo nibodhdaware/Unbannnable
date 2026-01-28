@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,6 +31,35 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
+            <head>
+                {/* Google Analytics */}
+                <Script
+                    strategy="afterInteractive"
+                    src="https://www.googletagmanager.com/gtag/js?id=G-6Z1BS78WMS"
+                />
+                <Script
+                    id="google-analytics"
+                    strategy="afterInteractive"
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            window.dataLayer = window.dataLayer || [];
+                            function gtag(){dataLayer.push(arguments);}
+                            gtag('js', new Date());
+                            gtag('config', 'G-6Z1BS78WMS', {
+                                page_path: window.location.pathname,
+                            });
+                        `,
+                    }}
+                />
+                {/* Datafast Analytics */}
+                <Script
+                    defer
+                    data-website-id="dfid_yWPu6WidqnIKdvlrFj9kq"
+                    data-domain="unbannnable.com"
+                    data-allow-localhost="true"
+                    src="https://datafa.st/js/script.js"
+                />
+            </head>
             <body>{children}</body>
         </html>
     );

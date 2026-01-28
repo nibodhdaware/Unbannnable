@@ -23,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
     title: "Unbannnable: AI Reddit Post Optimizer | Stop Bans in Seconds",
     description:
-        "Paste your Reddit post—AI checks rules, fixes bans, suggests subreddits. Free trial. Never get shadowbanned again. The ultimate Reddit post checker.",
+        "Stop getting banned on Reddit. Unbannnable uses AI to check subreddit rules, fix ban triggers, and optimize your posts for maximum engagement. Never get shadowbanned or removed again—the ultimate Reddit post checker and optimizer.",
     keywords: [
         "reddit post checker",
         "avoid reddit ban",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
         process.env.NEXT_PUBLIC_APP_URL || "https://unbannnable.com",
     ),
     alternates: {
-        canonical: "/",
+        canonical: "https://unbannnable.com",
     },
     openGraph: {
         title: "Unbannnable - AI-Powered Reddit Post Optimization Tool",
@@ -104,6 +104,38 @@ export default function RootLayout({
                 className={`${inter.variable} ${jetbrainsMono.variable}`}
             >
                 <head>
+                    <link rel="preconnect" href="https://www.googletagmanager.com" />
+                    <link rel="preconnect" href="https://www.google-analytics.com" />
+                    <link rel="preconnect" href="https://clerk.unbannnable.com" />
+                    <link rel="preconnect" href="https://img.clerk.com" />
+                    <link rel="preconnect" href="https://api.producthunt.com" />
+                    {/* Google Analytics */}
+                    <Script
+                        strategy="afterInteractive"
+                        src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID || "G-6Z1BS78WMS"}`}
+                    />
+                    <Script
+                        id="google-analytics"
+                        strategy="afterInteractive"
+                        dangerouslySetInnerHTML={{
+                            __html: `
+                                window.dataLayer = window.dataLayer || [];
+                                function gtag(){dataLayer.push(arguments);}
+                                gtag('js', new Date());
+                                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID || "G-6Z1BS78WMS"}', {
+                                    page_path: window.location.pathname,
+                                });
+                            `,
+                        }}
+                    />
+                    {/* Datafast Analytics */}
+                    <Script
+                        defer
+                        data-website-id="dfid_yWPu6WidqnIKdvlrFj9kq"
+                        data-domain="unbannnable.com"
+                        data-allow-localhost="true"
+                        src="https://datafa.st/js/script.js"
+                    />
                     {/* Prevent FOUC by setting theme before page renders */}
                     <script
                         dangerouslySetInnerHTML={{

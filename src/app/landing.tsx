@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import { JSX, useEffect, useState } from "react";
@@ -172,15 +173,15 @@ export default function Landing() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    <img
+                                    <Image
                                         src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1010314&theme=light&t=1756369550719"
                                         alt="Unbannnable - Reddit rule compliance made simple | Product Hunt"
                                         style={{
                                             width: "200px",
                                             height: "43px",
                                         }}
-                                        width="200"
-                                        height="43"
+                                        width={200}
+                                        height={43}
                                     />
                                 </a>
                             </motion.div>

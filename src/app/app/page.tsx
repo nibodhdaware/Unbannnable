@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
@@ -1390,9 +1391,11 @@ ${rules
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     {/* Left side - Logo and Brand */}
                     <div className="flex items-center space-x-2 sm:space-x-3">
-                        <img
+                        <Image
                             src="/icon.png"
                             alt="Unbannnable Logo"
+                            width={32}
+                            height={32}
                             className="w-6 h-6 sm:w-8 sm:h-8"
                         />
                         <a

@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
     experimental: {
         serverComponentsExternalPackages: ["@clerk/nextjs"],
     },
+    images: {
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "api.producthunt.com",
+            },
+        ],
+    },
     async headers() {
         return [
             {
@@ -23,9 +31,9 @@ const nextConfig: NextConfig = {
                         key: "Content-Security-Policy",
                         value: [
                             "default-src 'self'",
-                            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us-assets.i.posthog.com https://us.i.posthog.com https://*.clerk.accounts.dev https://challenges.cloudflare.com",
-                            "connect-src 'self' https://us.i.posthog.com https://*.clerk.accounts.dev https://api.convex.cloud wss://*.convex.cloud https://old.reddit.com https://www.reddit.com https://generativelanguage.googleapis.com",
-                            "img-src 'self' data: https: blob:",
+                            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us-assets.i.posthog.com https://us.i.posthog.com https://*.clerk.accounts.dev https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com",
+                            "connect-src 'self' https://us.i.posthog.com https://*.clerk.accounts.dev https://api.convex.cloud wss://*.convex.cloud https://old.reddit.com https://www.reddit.com https://generativelanguage.googleapis.com https://www.google-analytics.com",
+                            "img-src 'self' data: https: blob: https://www.google-analytics.com",
                             "style-src 'self' 'unsafe-inline'",
                             "font-src 'self' data:",
                             "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
