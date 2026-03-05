@@ -303,6 +303,8 @@ function AppPageContent() {
         subreddit: string;
         flair: string;
     } | null>(null);
+    const [autoAnalyzeFromUrl, setAutoAnalyzeFromUrl] = useState(false);
+    const autoAnalyzeTriggeredRef = useRef(false);
 
     // Billing states
     const [paymentLoading, setPaymentLoading] = useState(false); // Fuzzy search configuration
@@ -355,12 +357,21 @@ function AppPageContent() {
     useEffect(() => {
         fetchSubreddits();
 
-        // Check for subreddit param in URL
+        // Hydrate draft fields from URL params (used by Chrome extension deep analysis).
         if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
             const subParam = params.get("subreddit");
+            const titleParam = params.get("title");
+            const bodyParam = params.get("body");
+            const autoAnalyzeParam = params.get("autoAnalyze");
+
             if (subParam) {
                 handleSubredditChange(subParam);
+            }
+            if (titleParam) setTitle(titleParam);
+            if (bodyParam) setBody(bodyParam);
+            if (autoAnalyzeParam === "1") {
+                setAutoAnalyzeFromUrl(true);
             }
         }
     }, []);
@@ -1104,6 +1115,29 @@ ${rules
             setLoadingViability(false);
         }
     };
+
+    useEffect(() => {
+        if (!autoAnalyzeFromUrl || autoAnalyzeTriggeredRef.current) return;
+        if (!isLoaded || !user) return;
+        if (!subreddit.trim() || !title.trim()) return;
+        if (loadingRules || loadingRequirements || isGeneratingAI) return;
+
+        autoAnalyzeTriggeredRef.current = true;
+
+        (async () => {
+            await checkPostViability();
+            await generateAIOptimizedPost();
+        })();
+    }, [
+        autoAnalyzeFromUrl,
+        isLoaded,
+        user,
+        subreddit,
+        title,
+        loadingRules,
+        loadingRequirements,
+        isGeneratingAI,
+    ]);
 
     // Function to check for strict rules and suggest alternatives
     const checkStrictRulesAndSuggestAlternatives = async () => {
