@@ -303,20 +303,21 @@
 
   function classifyInputTarget(target) {
     if (!target) return null;
-    const tag = (target.tagName || "").toLowerCase();
-    const contentEditable = target.getAttribute?.("contenteditable") === "true";
+    const field =
+      target.closest?.('[contenteditable="true"], textarea, input') || target;
+    const tag = (field.tagName || "").toLowerCase();
+    const contentEditable = field.getAttribute?.("contenteditable") === "true";
     if (!(tag === "input" || tag === "textarea" || contentEditable)) return null;
 
-    const text = readText(target);
-    if (!text) return null;
+    const text = readText(field);
 
     const meta = [
-      target.getAttribute?.("placeholder") || "",
-      target.getAttribute?.("name") || "",
-      target.getAttribute?.("aria-label") || "",
-      target.getAttribute?.("data-testid") || "",
-      target.id || "",
-      target.className || "",
+      field.getAttribute?.("placeholder") || "",
+      field.getAttribute?.("name") || "",
+      field.getAttribute?.("aria-label") || "",
+      field.getAttribute?.("data-testid") || "",
+      field.id || "",
+      field.className || "",
     ]
       .join(" ")
       .toLowerCase();
@@ -346,41 +347,43 @@
 
     root.innerHTML = `
       <style>
-        .ub-wrap{font-family:Inter,Segoe UI,Roboto,sans-serif;background:#fff;border:1px solid #ffd8c9;border-radius:14px;color:#141414;box-shadow:0 8px 28px rgba(0,0,0,.15);overflow:hidden}
+        .ub-wrap{font-family:"Instrument Sans",Inter,Segoe UI,Roboto,sans-serif;background:#f2f0e9;border:2px solid #1a1a1a;border-radius:0;color:#1a1a1a;box-shadow:8px 8px 0 #1a1a1a;overflow:hidden}
         .ub-accordion{margin:0}
-        .ub-summary{list-style:none;cursor:pointer;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+        .ub-summary{list-style:none;cursor:pointer;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:2px solid #1a1a1a}
         .ub-summary::-webkit-details-marker{display:none}
-        .ub-summary:hover{background:#fff8f4}
-        .ub-chevron{font-size:14px;color:#666}
+        .ub-summary:hover{background:#ece8dc}
+        .ub-chevron{font-size:14px;color:#4f4f4f}
         .ub-accordion[open] .ub-chevron{transform:rotate(180deg)}
         .ub-content{padding:0 12px 12px}
         .ub-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
         .ub-left{display:flex;flex-direction:column;gap:2px}
         .ub-controls{display:flex;gap:6px;align-items:center}
-        .ub-title{font-size:16px;font-weight:800;margin:0;color:#ff4500}
-        .ub-sub{font-size:12px;color:#666;margin-top:2px}
-        .ub-btn{border:0;border-radius:10px;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer}
+        .ub-brand{display:flex;align-items:center;gap:8px}
+        .ub-brand-mark{width:16px;height:16px;border:2px solid #1a1a1a;background:linear-gradient(135deg,#f2f0e9 0 50%, #ff4d00 50% 100%);box-sizing:border-box}
+        .ub-title{font-family:"DM Serif Display",Georgia,serif;font-size:18px;font-weight:800;margin:0;color:#1a1a1a}
+        .ub-sub{font-size:12px;color:#5d5d5d;margin-top:2px}
+        .ub-btn{border:2px solid #1a1a1a;border-radius:0;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer}
         .ub-btn-primary{background:#ff4500;color:#fff}
         .ub-btn-primary:hover{background:#e03d00}
-        .ub-btn-ghost{background:#fff;border:1px solid #e7e1dd;color:#666}
-        .ub-btn-outline{background:#fff;color:#ff4500;border:1px solid #ff4500}
-        .ub-card{border:1px solid #f1ece8;border-radius:10px;padding:9px;margin-bottom:8px;background:#fff}
-        .ub-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#777;margin-bottom:4px}
+        .ub-btn-ghost{background:#f2f0e9;color:#4f4f4f}
+        .ub-btn-outline{background:#f2f0e9;color:#ff4500;border-color:#ff4500}
+        .ub-card{border:2px solid #1a1a1a;padding:9px;margin-bottom:8px;background:#fff}
+        .ub-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#666;margin-bottom:4px}
         .ub-val{font-size:12px;font-weight:600;line-height:1.35;word-break:break-word}
-        .ub-muted{color:#666;font-weight:500}
+        .ub-muted{color:#636363;font-weight:500}
         .ub-stats{display:flex;gap:8px;margin:8px 0}
-        .ub-stat{flex:1;border:1px solid #f1ece8;border-radius:8px;padding:7px;background:#fff8f4}
-        .ub-k{font-size:10px;color:#666;text-transform:uppercase}
+        .ub-stat{flex:1;border:2px solid #1a1a1a;padding:7px;background:#f7f5ef}
+        .ub-k{font-size:10px;color:#5b5b5b;text-transform:uppercase}
         .ub-v{font-size:14px;font-weight:800;margin-top:2px}
         .ub-status{display:inline-flex;padding:2px 8px;border-radius:999px;font-size:11px;background:#f4f4f4;color:#666;text-transform:capitalize}
         .ub-status.ok{background:#e9f8e9;color:#1f7a1f}
         .ub-status.bad{background:#fdeaea;color:#b42222}
         .ub-status.warn{background:#fff3e5;color:#9a4e00}
-        .ub-output{font-size:12px;line-height:1.42;white-space:pre-wrap;color:#333;max-height:200px;overflow:auto}
+        .ub-output{font-size:12px;line-height:1.42;white-space:pre-wrap;color:#232323;max-height:200px;overflow:auto}
         .ub-row{display:flex;gap:8px;margin-top:8px}
         .ub-row > button{flex:1}
         .ub-collapsed-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-        .ub-chip{font-size:11px;padding:3px 8px;border-radius:999px;background:#fff3e5;color:#9a4e00;border:1px solid #ffd9b4;text-transform:capitalize}
+        .ub-chip{font-size:11px;padding:3px 8px;border-radius:999px;background:#fff3e5;color:#9a4e00;border:2px solid #ffd9b4;text-transform:capitalize}
         .ub-chip.safe{background:#e9f8e9;color:#1f7a1f;border-color:#bfe3bf}
         .ub-chip.risky,.ub-chip.error{background:#fdeaea;color:#b42222;border-color:#efc2c2}
       </style>
@@ -388,7 +391,7 @@
         <details id="ubAccordion" class="ub-accordion" ${isCollapsed ? "" : "open"}>
           <summary class="ub-summary">
             <div class="ub-left">
-              <h3 class="ub-title">Unbannnable</h3>
+              <div class="ub-brand"><span class="ub-brand-mark"></span><h3 class="ub-title">Unbannnable</h3></div>
               <div class="ub-sub">Post check before publish</div>
             </div>
             <div class="ub-controls">
@@ -631,7 +634,7 @@
     }, 1800);
 
     onFocus = () => {
-      refreshAll(false).catch(() => {});
+      refreshAll(true).catch(() => {});
     };
     window.addEventListener("focus", onFocus);
 
@@ -642,7 +645,7 @@
       } else if (classified?.kind === "body") {
         liveDraft.body = classified.text;
       }
-      refreshAll(false).catch(() => {});
+      refreshAll(true).catch(() => {});
     };
     window.addEventListener("input", onInput, true);
   }

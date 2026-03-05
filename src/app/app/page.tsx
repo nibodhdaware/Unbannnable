@@ -153,7 +153,7 @@ const AISubredditCard = ({
                             {reason}
                         </p>
                     </div>
-                    <button
+                    <Button
                         onClick={() => {
                             trackFeatureUsage("alternative_subreddit_used", {
                                 original_subreddit: subredditName,
@@ -161,10 +161,11 @@ const AISubredditCard = ({
                             });
                             onUse();
                         }}
-                        className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
+                        size="sm"
+                        className="ml-3 bg-yellow-600 text-white rounded-none text-xs hover:bg-yellow-700 transition-colors"
                     >
                         Use
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -189,7 +190,7 @@ const AISubredditCard = ({
                         {reason}
                     </p>
                 </div>
-                <button
+                <Button
                     onClick={() => {
                         trackFeatureUsage("alternative_subreddit_used", {
                             original_subreddit: subredditName,
@@ -197,14 +198,61 @@ const AISubredditCard = ({
                         });
                         onUse();
                     }}
-                    className="ml-3 bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 transition-colors"
+                    size="sm"
+                    className="ml-3 bg-yellow-600 text-white rounded-none text-xs hover:bg-yellow-700 transition-colors"
                 >
                     Use
-                </button>
+                </Button>
             </div>
         </div>
     );
 };
+
+function AiToolIcon({
+    type,
+    className = "w-5 h-5",
+}: {
+    type: "analyzer" | "rules" | "subreddits" | "anomaly";
+    className?: string;
+}) {
+    if (type === "analyzer") {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" className={className}>
+                <rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.8" />
+                <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+                <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+                <path d="M9 16c1 .8 5 .8 6 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <path d="M12 3v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+        );
+    }
+    if (type === "rules") {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" className={className}>
+                <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.8" />
+                <path d="M16 16l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M8.5 11l1.7 1.7L13.5 9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        );
+    }
+    if (type === "subreddits") {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" className={className}>
+                <path d="M12 4v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M6 10l6-6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M6 20h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M8 17h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+        );
+    }
+    return (
+        <svg viewBox="0 0 24 24" fill="none" className={className}>
+            <path d="M12 3l9 16H3L12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+            <path d="M12 9v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+        </svg>
+    );
+}
 
 function AppPageContent() {
     // Initialize user sync
@@ -1410,23 +1458,31 @@ ${rules
 
     // Define AI tool buttons for reuse
     const aiToolButtons = (
-        <button
+        <Button
             onClick={() => setAiToolResults({})}
-            className="px-3 py-1.5 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-xs font-medium"
+            size="sm"
+            className="rounded-none bg-[#FF4500] text-white hover:bg-[#e03d00] text-xs font-medium uppercase tracking-wide"
         >
             Run New Analysis
-        </button>
+        </Button>
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
+        <div className="min-h-screen bg-[#F2F0E9] text-[#1A1A1A] dark:bg-[#121212] dark:text-[#F2F0E9]">
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+                .font-heavy-serif { font-family: 'DM Serif Display', serif; }
+                .font-sans-body { font-family: 'Instrument Sans', sans-serif; }
+                .animate-swiss-marquee { animation: swissMarquee 20s linear infinite; }
+                @keyframes swissMarquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+            `}</style>
             {/* Navigation Header */}
-            <nav className="w-full bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 py-3 sm:py-4">
+            <nav className="w-full bg-[#F2F0E9] dark:bg-[#121212] border-b-2 border-[#1A1A1A] dark:border-[#F2F0E9]/30 px-4 sm:px-6 py-3 sm:py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     {/* Left side - Logo and Brand */}
                     <div className="flex items-center space-x-2 sm:space-x-3">
                         <Image
-                            src="/icon.png"
+                            src="/unbannnable-mark.svg"
                             alt="Unbannnable Logo"
                             width={32}
                             height={32}
@@ -1434,7 +1490,7 @@ ${rules
                         />
                         <a
                             href="#"
-                            className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white hover:text-[#FF4500] dark:hover:text-[#FF4500] transition-colors"
+                            className="font-heavy-serif text-lg sm:text-2xl font-bold text-[#1A1A1A] dark:text-[#F2F0E9] hover:text-[#FF4500] transition-colors"
                         >
                             Unbannnable
                         </a>
@@ -1447,7 +1503,7 @@ ${rules
                             <div className="flex items-center space-x-2">
                                 <Badge
                                     variant="secondary"
-                                    className="px-3 py-1.5 text-sm font-medium"
+                                    className="px-3 py-1.5 text-sm font-semibold rounded-none border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/40 bg-white dark:bg-[#1B1B1B] text-[#1A1A1A] dark:text-[#F2F0E9]"
                                 >
                                     {creditsLoading
                                         ? "Loading..."
@@ -1455,7 +1511,7 @@ ${rules
                                 </Badge>
                                 <Button
                                     onClick={() => setShowPricingPopup(true)}
-                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white"
+                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white rounded-none"
                                     size="sm"
                                 >
                                     Buy Credits
@@ -1464,7 +1520,7 @@ ${rules
                                     onClick={() => setShowReferralPopup(true)}
                                     variant="outline"
                                     size="sm"
-                                    className="border-[#FF4500] text-[#FF4500] hover:bg-[#FF4500] hover:text-white hidden sm:flex"
+                                    className="border-[#FF4500] text-[#FF4500] hover:bg-[#FF4500] hover:text-white hidden sm:flex rounded-none"
                                 >
                                     <Users className="w-4 h-4 mr-1" />
                                     Refer
@@ -1475,7 +1531,7 @@ ${rules
                         <SignedOut>
                             <SignInButton mode="modal">
                                 <Button
-                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white"
+                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white rounded-none"
                                     size="sm"
                                 >
                                     Login
@@ -1485,6 +1541,15 @@ ${rules
                     </div>
                 </div>
             </nav>
+            <section className="bg-[#1A1A1A] text-[#F2F0E9] py-2 overflow-hidden border-b-2 border-[#1A1A1A]">
+                <div className="animate-swiss-marquee whitespace-nowrap font-sans-body font-bold uppercase tracking-widest text-xs sm:text-sm">
+                    {[...Array(5)].map((_, i) => (
+                        <span key={i} className="mx-8">
+                            ANALYZE • OPTIMIZE • PUBLISH • NO REMOVALS •
+                        </span>
+                    ))}
+                </div>
+            </section>
 
             {/* Copy Notification */}
             {copyNotification && (
@@ -1497,9 +1562,14 @@ ${rules
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left Column - Post Creation Form */}
                     <div className="flex flex-col">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-6 lg:p-8 border border-neutral-200 dark:border-neutral-800 flex flex-col">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                            className="bg-white dark:bg-[#1A1A1A] rounded-none shadow-[8px_8px_0px_0px_#1A1A1A] dark:shadow-none p-6 lg:p-8 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/35 flex flex-col"
+                        >
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                <h2 className="font-heavy-serif text-2xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F2F0E9]">
                                     Create a Post
                                 </h2>
                                 {draftPost && !user && (
@@ -1557,7 +1627,7 @@ ${rules
                                     <div className="relative">
                                         <Input
                                             type="text"
-                                            className="pr-10"
+                                            className={`pr-10 border-2 border-[#1A1A1A]/60 dark:border-[#F2F0E9]/35 bg-white dark:bg-[#181818] text-[#1A1A1A] dark:text-[#F2F0E9] placeholder:text-[#8091AB] dark:placeholder:text-neutral-500 focus-visible:ring-0 focus-visible:ring-offset-0 ${isDropdownOpen ? "rounded-b-none border-b-0" : ""}`}
                                             placeholder={
                                                 loadingSubreddits
                                                     ? "Loading..."
@@ -1582,7 +1652,7 @@ ${rules
                                                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#FF4500] border-t-transparent"></div>
                                             ) : (
                                                 <svg
-                                                    className="h-4 w-4 text-neutral-400"
+                                                    className="h-4 w-4 text-neutral-500 dark:text-neutral-400"
                                                     fill="none"
                                                     stroke="currentColor"
                                                     viewBox="0 0 24 24"
@@ -1600,7 +1670,7 @@ ${rules
 
                                     {/* Dropdown */}
                                     {isDropdownOpen && (
-                                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        <div className="absolute top-full z-50 w-full mt-0 bg-white dark:bg-[#121212] border-2 border-[#1A1A1A]/60 dark:border-[#F2F0E9]/35 border-t-0 rounded-b-2xl shadow-xl overflow-hidden max-h-72 overflow-y-auto">
                                             {loadingSubreddits ||
                                             loadingSearch ? (
                                                 <div className="px-4 py-4 flex items-center justify-center">
@@ -1621,11 +1691,11 @@ ${rules
                                                         <button
                                                             key={sr.id}
                                                             type="button"
-                                                            className={`w-full text-left px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 last:border-b-0 focus:outline-none transition-colors ${
+                                                            className={`w-full text-left px-4 py-3 border-b border-[#1A1A1A]/10 dark:border-[#F2F0E9]/15 last:border-b-0 focus:outline-none transition-colors ${
                                                                 index ===
                                                                 selectedIndex
                                                                     ? "bg-[#FF4500] text-white"
-                                                                    : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                                                                    : "hover:bg-[#FF4D00]/8 dark:hover:bg-[#FF4D00]/12"
                                                             }`}
                                                             onClick={() =>
                                                                 handleSubredditChange(
@@ -1900,27 +1970,33 @@ ${rules
                                     </details>
                                 </div>
                             )}
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Right Column - AI Tools */}
                     <div className="flex flex-col">
-                        <div className="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl p-6 lg:p-8 border border-neutral-200 dark:border-neutral-800 lg:sticky lg:top-6 flex flex-col">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.05 }}
+                            className="bg-white dark:bg-[#1A1A1A] rounded-none shadow-[8px_8px_0px_0px_#1A1A1A] dark:shadow-none p-6 lg:p-8 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/35 lg:sticky lg:top-6 flex flex-col"
+                        >
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+                                <h2 className="font-heavy-serif text-2xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F2F0E9]">
                                     AI Tools
                                 </h2>
                                 <div className="flex items-center space-x-2">
                                     {Object.keys(aiToolResults).length > 0 &&
                                         !isGeneratingAI && (
-                                            <button
+                                            <Button
                                                 onClick={() =>
                                                     setAiToolResults({})
                                                 }
-                                                className="px-3 py-1.5 bg-[#FF4500] text-white rounded-lg hover:bg-[#e03d00] transition-colors text-xs font-medium"
+                                                size="sm"
+                                                className="rounded-none bg-[#FF4500] text-white hover:bg-[#e03d00] text-xs font-medium uppercase tracking-wide"
                                             >
                                                 Run New Analysis
-                                            </button>
+                                            </Button>
                                         )}
                                     {isGeneratingAI && (
                                         <div className="flex items-center text-sm text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full">
@@ -2027,26 +2103,24 @@ ${rules
                                                     isGeneratingAI ||
                                                     currentCredits < 10
                                                 }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 10 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 10 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-lg">
-                                                            🤖
-                                                        </span>
+                                                        <AiToolIcon type="analyzer" className="w-5 h-5 text-blue-700" />
                                                     </div>
                                                     <div className="text-left min-w-0">
                                                         <div className="font-medium text-sm">
                                                             AI Post Analyzer
                                                         </div>
-                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        <div className="text-xs text-[#3C3C3C]">
                                                             Analyze your post
                                                             for issues
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                                                    <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded">
+                                                    <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none">
                                                         10 credits
                                                     </span>
                                                     {isGeneratingAI && (
@@ -2139,25 +2213,23 @@ ${rules
                                                     isGeneratingAI ||
                                                     currentCredits < 5
                                                 }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-lg">
-                                                            🔍
-                                                        </span>
+                                                        <AiToolIcon type="rules" className="w-5 h-5 text-green-700" />
                                                     </div>
                                                     <div className="text-left min-w-0">
                                                         <div className="font-medium text-sm">
                                                             Rule Checker
                                                         </div>
-                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        <div className="text-xs text-[#3C3C3C]">
                                                             Check subreddit rule
                                                             compliance
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded flex-shrink-0 ml-3">
+                                                <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none flex-shrink-0 ml-3">
                                                     5 credits
                                                 </span>
                                             </button>
@@ -2244,26 +2316,24 @@ ${rules
                                                     isGeneratingAI ||
                                                     currentCredits < 5
                                                 }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-lg">
-                                                            🧭
-                                                        </span>
+                                                        <AiToolIcon type="subreddits" className="w-5 h-5 text-purple-700" />
                                                     </div>
                                                     <div className="text-left min-w-0">
                                                         <div className="font-medium text-sm">
                                                             Find Better
                                                             Subreddits
                                                         </div>
-                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        <div className="text-xs text-[#3C3C3C]">
                                                             Discover better
                                                             communities
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded flex-shrink-0 ml-3">
+                                                <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none flex-shrink-0 ml-3">
                                                     5 credits
                                                 </span>
                                             </button>
@@ -2348,25 +2418,23 @@ ${rules
                                                     isGeneratingAI ||
                                                     currentCredits < 3
                                                 }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 3 ? "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 cursor-not-allowed opacity-60" : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 3 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                                                        <span className="text-lg">
-                                                            ⚠️
-                                                        </span>
+                                                        <AiToolIcon type="anomaly" className="w-5 h-5 text-amber-700" />
                                                     </div>
                                                     <div className="text-left min-w-0">
                                                         <div className="font-medium text-sm">
                                                             Anomaly Detection
                                                         </div>
-                                                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        <div className="text-xs text-[#3C3C3C]">
                                                             Find ban-triggering
                                                             issues
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded flex-shrink-0 ml-3">
+                                                <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none flex-shrink-0 ml-3">
                                                     3 credits
                                                 </span>
                                             </button>
@@ -2377,8 +2445,8 @@ ${rules
                                             {/* Post Analyzer Results */}
                                             {aiToolResults.postAnalyzer && (
                                                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm flex items-center">
-                                                        🤖 Post Analysis Results
+                                                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm flex items-center gap-2">
+                                                        <AiToolIcon type="analyzer" className="w-4 h-4" /> Post Analysis Results
                                                     </h4>
                                                     <div className="text-xs text-blue-800 dark:text-blue-200 prose prose-sm prose-blue dark:prose-invert max-w-none">
                                                         <ReactMarkdown
@@ -2397,8 +2465,8 @@ ${rules
                                             {/* Rule Checker Results */}
                                             {aiToolResults.ruleChecker && (
                                                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 text-sm flex items-center">
-                                                        🔍 Rule Check Results
+                                                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 text-sm flex items-center gap-2">
+                                                        <AiToolIcon type="rules" className="w-4 h-4" /> Rule Check Results
                                                     </h4>
                                                     <div className="text-xs text-green-800 dark:text-green-200 prose prose-sm prose-green dark:prose-invert max-w-none">
                                                         <ReactMarkdown
@@ -2417,8 +2485,8 @@ ${rules
                                             {/* Better Subreddits Results */}
                                             {aiToolResults.betterSubreddits && (
                                                 <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 text-sm flex items-center">
-                                                        🧭 Better Subreddit
+                                                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 text-sm flex items-center gap-2">
+                                                        <AiToolIcon type="subreddits" className="w-4 h-4" /> Better Subreddit
                                                         Suggestions
                                                     </h4>
                                                     <div className="text-xs text-purple-800 dark:text-purple-200 prose prose-sm prose-purple dark:prose-invert max-w-none">
@@ -2438,8 +2506,8 @@ ${rules
                                             {/* Anomaly Detection Results */}
                                             {aiToolResults.anomalyDetection && (
                                                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 text-sm flex items-center">
-                                                        ⚠️ Anomaly Detection
+                                                    <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 text-sm flex items-center gap-2">
+                                                        <AiToolIcon type="anomaly" className="w-4 h-4" /> Anomaly Detection
                                                         Results
                                                     </h4>
                                                     <div className="text-xs text-yellow-800 dark:text-yellow-200 prose prose-sm prose-yellow dark:prose-invert max-w-none">
@@ -3431,16 +3499,16 @@ ${rules
                             {/* Regenerate Button - Always visible at bottom */}
                             {aiOutput && !showViabilityWarning && (
                                 <div className="pt-3 border-t border-neutral-200 dark:border-neutral-700 mt-auto">
-                                    <button
+                                    <Button
                                         onClick={generateAIOptimizedPost}
                                         disabled={isGeneratingAI}
-                                        className="w-full py-3 px-4 bg-gradient-to-r from-[#FF4500] to-orange-600 hover:from-[#e03d00] hover:to-orange-700 text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
+                                        className="w-full py-3 px-4 bg-gradient-to-r from-[#FF4500] to-orange-600 hover:from-[#e03d00] hover:to-orange-700 text-white rounded-none font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
                                     >
                                         Regenerate Optimization
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Middle spacer */}

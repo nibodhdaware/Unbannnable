@@ -86,9 +86,9 @@ export const metadata: Metadata = {
         },
     },
     icons: {
-        icon: "/icon.png",
-        shortcut: "/icon.png",
-        apple: "/icon.png",
+        icon: "/unbannnable-mark-dark.png",
+        shortcut: "/unbannnable-mark-dark.png",
+        apple: "/unbannnable-mark-dark.png",
     },
 };
 
@@ -136,26 +136,19 @@ export default function RootLayout({
                         data-allow-localhost="true"
                         src="https://datafa.st/js/script.js"
                     />
-                    {/* Prevent FOUC by setting theme before page renders */}
+                    {/* Force light theme before page renders */}
                     <script
                         dangerouslySetInnerHTML={{
                             __html: `
-                                (function() {
-                                    try {
-                                        var theme = localStorage.getItem('unbannnable-ui-theme') || 'system';
-                                        var root = document.documentElement;
-                                        
-                                        root.classList.remove('light', 'dark');
-                                        
-                                        if (theme === 'system') {
-                                            var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                                            root.classList.add(systemTheme);
-                                        } else {
-                                            root.classList.add(theme);
-                                        }
-                                    } catch (e) {}
-                                })();
-                            `,
+                                 (function() {
+                                      try {
+                                          var root = document.documentElement;
+                                          root.classList.remove('light', 'dark');
+                                          root.classList.add('light');
+                                          localStorage.setItem('unbannnable-ui-theme', 'light');
+                                      } catch (e) {}
+                                  })();
+                             `,
                         }}
                     />
                     {/* Schema.org structured data for better SEO */}
