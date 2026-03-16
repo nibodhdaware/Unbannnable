@@ -1,51 +1,15 @@
-"use client";
-
-import { useUser, SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 
 interface AnalyzeButtonProps {
     subreddit: string;
 }
 
 export function AnalyzeButton({ subreddit }: AnalyzeButtonProps) {
-    const { isSignedIn, isLoaded } = useUser();
-    const router = useRouter();
-
-    if (!isLoaded) {
-        return (
-            <Button
-                size="lg"
-                className="bg-[#FF4500] hover:bg-[#FF4500]/90 text-white px-8 py-6 text-lg rounded-xl opacity-50 cursor-not-allowed"
-            >
-                Loading...
-            </Button>
-        );
-    }
-
-    if (!isSignedIn) {
-        return (
-            <SignInButton
-                mode="modal"
-                forceRedirectUrl={`/app?subreddit=${subreddit}`}
-            >
-                <Button
-                    size="lg"
-                    className="bg-[#FF4500] hover:bg-[#FF4500]/90 text-white px-8 py-6 text-lg rounded-xl"
-                >
-                    Analyze for r/{subreddit}
-                </Button>
-            </SignInButton>
-        );
-    }
-
     return (
-        <Button
-            size="lg"
-            className="bg-[#FF4500] hover:bg-[#FF4500]/90 text-white px-8 py-6 text-lg rounded-xl"
-            onClick={() => router.push(`/app?subreddit=${subreddit}`)}
-        >
-            Analyze for r/{subreddit}
+        <Button asChild size="lg" className="h-14 rounded-none border-2 border-[#1A1A1A] bg-[#FF4D00] px-8 text-base font-bold uppercase tracking-wide text-white hover:bg-[#E04400]">
+            <a href={`https://check.unbannnable.com/?subreddit=${encodeURIComponent(subreddit)}`}>
+                Analyze for r/{subreddit}
+            </a>
         </Button>
     );
 }

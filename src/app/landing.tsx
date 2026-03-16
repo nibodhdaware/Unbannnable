@@ -260,6 +260,7 @@ export default function Landing() {
                     <div className="hidden md:flex gap-8 font-sans-body font-medium text-sm tracking-wide uppercase">
                         <a href="#features" className="hover:underline">Features</a>
                         <a href="#pricing" className="hover:underline">Pricing</a>
+                        <a href="https://check.unbannnable.com/" className="hover:underline">Ban Checker</a>
                     </div>
                     <SignedOut>
                         <SignInButton mode="modal">

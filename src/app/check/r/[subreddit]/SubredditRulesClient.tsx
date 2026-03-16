@@ -71,7 +71,7 @@ export function SubredditRulesClient({ subreddit }: SubredditRulesClientProps) {
 
     return (
         <div className="grid gap-8 mb-16">
-            <Card className="bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+            <Card className="rounded-none border-2 border-[#1A1A1A] bg-white shadow-[6px_6px_0px_0px_#1A1A1A]">
                 <CardHeader>
                     <CardTitle>r/{subreddit} Rules You Need to Know</CardTitle>
                 </CardHeader>
@@ -83,11 +83,11 @@ export function SubredditRulesClient({ subreddit }: SubredditRulesClientProps) {
                                     key={i}
                                     className="animate-pulse flex gap-3"
                                 >
-                                    <div className="h-6 w-6 bg-neutral-200 dark:bg-neutral-700 rounded"></div>
+                                    <div className="h-6 w-6 bg-neutral-200 rounded"></div>
                                     <div className="flex-1 space-y-2">
-                                        <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-1/3"></div>
-                                        <div className="h-3 bg-neutral-200 dark:bg-neutral-700 rounded w-full"></div>
-                                        <div className="h-3 bg-neutral-200 dark:bg-neutral-700 rounded w-2/3"></div>
+                                        <div className="h-4 bg-neutral-200 rounded w-1/3"></div>
+                                        <div className="h-3 bg-neutral-200 rounded w-full"></div>
+                                        <div className="h-3 bg-neutral-200 rounded w-2/3"></div>
                                     </div>
                                 </div>
                             ))}
@@ -100,11 +100,11 @@ export function SubredditRulesClient({ subreddit }: SubredditRulesClientProps) {
                                         {index + 1}.
                                     </span>
                                     <div>
-                                        <h3 className="font-semibold text-neutral-900 dark:text-white">
+                                        <h3 className="font-semibold text-[#1A1A1A]">
                                             {rule.short_name}
                                         </h3>
                                         <div
-                                            className="text-neutral-600 dark:text-neutral-400 text-sm mt-1 prose dark:prose-invert max-w-none"
+                                            className="text-black/75 text-sm mt-1 prose max-w-none"
                                             dangerouslySetInnerHTML={{
                                                 __html: (
                                                     rule.description_html ||
@@ -135,7 +135,7 @@ export function SubredditRulesClient({ subreddit }: SubredditRulesClientProps) {
                             ))}
                         </ul>
                     ) : (
-                        <p className="text-neutral-600 dark:text-neutral-400">
+                        <p className="text-black/75">
                             {error
                                 ? `We couldn't fetch the specific rules for r/${subreddit} right now, but our AI tool can still analyze your post against general Reddit guidelines and community patterns.`
                                 : `No specific rules found for r/${subreddit}.`}

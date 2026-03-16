@@ -1,8 +1,16 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+
+export const metadata: Metadata = {
+    title: "Privacy Policy | Unbannnable",
+    description:
+        "Read the Unbannnable privacy policy, including how we collect, process, and protect user data.",
+    alternates: {
+        canonical: "https://unbannnable.com/privacy",
+    },
+};
 
 export default function PrivacyPolicy() {
     return (
