@@ -207,13 +207,6 @@ export default function Landing() {
         }
     };
 
-    if (!isLoaded) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F2F0E9]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF4500]" />
-            </div>
-        );
-    }
     if (isSignedIn) return null;
 
     const jsonLd = {

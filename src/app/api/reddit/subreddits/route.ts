@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { redditAPIOptimized } from "@/lib/reddit-api-optimized";
 
 // Mock subreddits for development when Reddit API is unavailable
+let lastFallbackWarningAt = 0;
+const FALLBACK_WARNING_INTERVAL_MS = 5 * 60 * 1000;
+
 const MOCK_SUBREDDITS = [
     {
         display_name: "programming",
@@ -70,13 +73,18 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(subreddits);
     } catch (error) {
-        console.error("Error fetching subreddits:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        const shouldWarn =
+            Date.now() - lastFallbackWarningAt > FALLBACK_WARNING_INTERVAL_MS;
+
+        if (shouldWarn) {
+            console.warn(`Subreddit API fallback active: ${errorMessage}`);
+            lastFallbackWarningAt = Date.now();
+        }
 
         // In development, return mock data if Reddit API fails
         if (process.env.NODE_ENV === "development") {
-            console.log(
-                "⚠️  Using mock subreddit data (Reddit API unavailable)",
-            );
             const query = request.nextUrl.searchParams.get("query");
             const limit = parseInt(
                 request.nextUrl.searchParams.get("limit") || "50",

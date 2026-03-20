@@ -29,6 +29,13 @@ interface PostRequirement {
     is_flair_required: boolean;
 }
 
+
+interface FlairOption {
+    id: string;
+    text: string;
+    mod_only: boolean;
+}
+
 interface AlternativeSubreddit {
     display_name: string;
     public_description: string;
@@ -150,6 +157,28 @@ class RedditAPI {
         }
     }
 
+
+    async fetchSubredditFlairs(subredditName: string): Promise<FlairOption[]> {
+        try {
+            const response = await fetch(
+                `/api/reddit/flairs?subreddit=${encodeURIComponent(subredditName)}`,
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error(
+                `Error fetching flairs for r/${subredditName}:`,
+                error,
+            );
+            return [];
+        }
+    }
+
     async fetchAlternativeSubreddits(
         subredditName: string,
         title: string = "",
@@ -241,6 +270,7 @@ export type {
     Subreddit,
     SubredditRule,
     PostRequirement,
+    FlairOption,
     AlternativeSubreddit,
     AlternativeSubredditsResponse,
     PostViabilityResult,

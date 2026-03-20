@@ -53,7 +53,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(rules);
     } catch (error) {
-        console.error("Error fetching rules:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`Error fetching rules: ${errorMessage}`);
 
         // In development, return mock data if Reddit API fails
         if (process.env.NODE_ENV === "development") {

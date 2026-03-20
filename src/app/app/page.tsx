@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useUserSync } from "@/hooks/useUserSync";
 import { useCredits } from "@/hooks/useCredits";
@@ -360,6 +359,8 @@ function AppPageContent() {
     const [subreddit, setSubreddit] = useState("");
     const [title, setTitle] = useState("");
     const [flair, setFlair] = useState("");
+    const [availableFlairs, setAvailableFlairs] = useState<FlairOption[]>([]);
+    const [loadingFlairs, setLoadingFlairs] = useState(false);
     const [body, setBody] = useState("");
     const [subreddits, setSubreddits] = useState<Subreddit[]>([]);
     const [allSubreddits, setAllSubreddits] = useState<Subreddit[]>([]);
@@ -728,6 +729,7 @@ function AppPageContent() {
         setIsDropdownOpen(false);
         setRules([]);
         setPostRequirements(null);
+        setAvailableFlairs([]);
 
         // Increment fetch id for this request
         const fetchId = ++latestFetchIdRef.current;
@@ -737,20 +739,26 @@ function AppPageContent() {
                 setLoadingRules(true);
                 setLoadingRequirements(true);
 
-                const [rulesData, requirementsData] = await Promise.all([
-                    redditAPI
-                        .fetchSubredditRules(selectedSubreddit)
-                        .catch(() => []),
-                    redditAPI
-                        .fetchPostRequirements(selectedSubreddit)
-                        .catch(() => null),
-                ]);
+                setLoadingFlairs(true);
+                const [rulesData, requirementsData, flairsData] =
+                    await Promise.all([
+                        redditAPI
+                            .fetchSubredditRules(selectedSubreddit)
+                            .catch(() => []),
+                        redditAPI
+                            .fetchPostRequirements(selectedSubreddit)
+                            .catch(() => null),
+                        redditAPI
+                            .fetchSubredditFlairs(selectedSubreddit)
+                            .catch(() => []),
+                    ]);
 
                 // Ignore if a newer subreddit change happened since this request started
                 if (fetchId !== latestFetchIdRef.current) return;
 
                 setRules(rulesData);
                 setPostRequirements(requirementsData);
+                setAvailableFlairs(flairsData);
             } catch (err) {
                 console.error(
                     `Failed to fetch data for ${selectedSubreddit}:`,
@@ -760,11 +768,14 @@ function AppPageContent() {
                 if (fetchId !== latestFetchIdRef.current) return;
                 setRules([]);
                 setPostRequirements(null);
+                setAvailableFlairs([]);
             } finally {
                 // Ignore if stale
                 if (fetchId !== latestFetchIdRef.current) return;
                 setLoadingRules(false);
                 setLoadingRequirements(false);
+                setLoadingFlairs(false);
+                setLoadingFlairs(false);
             }
         }
     };
@@ -1144,14 +1155,6 @@ ${rules
             );
         }
 
-        const combinedSubreddits = [...allSubreddits, ...subreddits];
-        const subredditExists = combinedSubreddits.find(
-            (sr) => sr.display_name.toLowerCase() === subreddit.toLowerCase(),
-        );
-
-        if (subreddit.trim() && !subredditExists) {
-            errors.push("Please select a valid subreddit from the dropdown");
-        }
 
         if (postRequirements?.is_flair_required && !flair) {
             errors.push("Flair is required for this subreddit");
@@ -1874,19 +1877,30 @@ ${rules
                                             </span>
                                         )}
                                     </Label>
-                                    <Input
-                                        type="text"
+                                    <select
                                         value={flair}
-                                        onChange={(e) =>
-                                            setFlair(e.target.value)
-                                        }
-                                        placeholder={
-                                            subreddit
-                                                ? "Enter post flair (e.g., Discussion, Question)"
-                                                : "Select a subreddit first"
-                                        }
-                                        disabled={!subreddit}
-                                    />
+                                        onChange={(e) => setFlair(e.target.value)}
+                                        disabled={!subreddit || loadingFlairs}
+                                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                                    >
+                                        <option value="">
+                                            {!subreddit
+                                                ? "Select a subreddit first"
+                                                : loadingFlairs
+                                                  ? "Loading flairs..."
+                                                  : availableFlairs.length > 0
+                                                    ? "Select a flair"
+                                                    : "No flairs available"}
+                                        </option>
+                                        {availableFlairs.map((flairOption) => (
+                                            <option
+                                                key={flairOption.id}
+                                                value={flairOption.text}
+                                            >
+                                                {flairOption.text}
+                                            </option>
+                                        ))}
+                                    </select>
                                     {postRequirements?.is_flair_required && (
                                         <p className="text-xs text-muted-foreground mt-1.5">
                                             ⚠️ This subreddit requires a flair.
@@ -4151,30 +4165,6 @@ ${rules
     );
 }
 
-// Dynamic wrapper to avoid SSR issues
-const DynamicAppPageContent = dynamic(() => Promise.resolve(AppPageContent), {
-    ssr: false,
-    loading: () => (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-        </div>
-    ),
-});
-
 export default function AppPage() {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-            </div>
-        );
-    }
-
-    return <DynamicAppPageContent />;
+    return <AppPageContent />;
 }

@@ -127,3 +127,9 @@
     @apply bg-background text-foreground;
     }
 }
+
+@media (min-width: 1280px) {
+    html {
+        font-size: 15px;
+    }
+}

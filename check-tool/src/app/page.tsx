@@ -112,16 +112,18 @@ export default function BanChecker() {
         try {
             setLoadingSubreddits(true);
             const response = await fetch(
-                "https://www.reddit.com/subreddits/popular.json?limit=100",
+                "/api/reddit/subreddits?limit=100",
             );
             if (!response.ok) throw new Error("Failed to fetch subreddits");
             const data = await response.json();
-            const subs: Subreddit[] = data.data.children.map((child: any) => ({
-                display_name: child.data.display_name,
-                public_description: child.data.public_description || "",
-                subscribers: child.data.subscribers || 0,
-                id: child.data.id,
-            }));
+            const subs: Subreddit[] = Array.isArray(data)
+                ? data
+                : data?.data?.children?.map((child: any) => ({
+                      display_name: child.data.display_name,
+                      public_description: child.data.public_description || "",
+                      subscribers: child.data.subscribers || 0,
+                      id: child.data.id,
+                  })) || [];
             setAllSubreddits(subs);
         } catch (err) {
             console.error("Error fetching subreddits:", err);
@@ -204,16 +206,18 @@ export default function BanChecker() {
         try {
             setLoadingSearch(true);
             const response = await fetch(
-                `https://www.reddit.com/subreddits/search.json?q=${encodeURIComponent(query)}&limit=25`,
+                `/api/reddit/subreddits?query=${encodeURIComponent(query)}&limit=25`,
             );
             if (!response.ok) throw new Error("Failed to search");
             const data = await response.json();
-            const subs: Subreddit[] = data.data.children.map((child: any) => ({
-                display_name: child.data.display_name,
-                public_description: child.data.public_description || "",
-                subscribers: child.data.subscribers || 0,
-                id: child.data.id,
-            }));
+            const subs: Subreddit[] = Array.isArray(data)
+                ? data
+                : data?.data?.children?.map((child: any) => ({
+                      display_name: child.data.display_name,
+                      public_description: child.data.public_description || "",
+                      subscribers: child.data.subscribers || 0,
+                      id: child.data.id,
+                  })) || [];
             setSubreddits(subs);
         } catch (err) {
             console.error("Error searching subreddits:", err);

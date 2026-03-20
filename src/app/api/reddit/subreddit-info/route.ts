@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(subredditInfo);
     } catch (error) {
-        console.error("Error fetching subreddit info:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`Error fetching subreddit info: ${errorMessage}`);
 
         // In development, return mock data if Reddit API fails
         if (process.env.NODE_ENV === "development") {

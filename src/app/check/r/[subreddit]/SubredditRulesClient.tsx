@@ -29,34 +29,22 @@ export function SubredditRulesClient({ subreddit }: SubredditRulesClientProps) {
                 setError(false);
 
                 const response = await fetch(
-                    `https://www.reddit.com/r/${subreddit}/about/rules.json`,
+                    `/api/reddit/rules?subreddit=${encodeURIComponent(subreddit)}`,
                 );
 
                 if (!response.ok) {
-                    throw new Error(
-                        `Failed to fetch rules: ${response.status}`,
-                    );
+                    throw new Error(`Failed to fetch rules: ${response.status}`);
                 }
 
                 const data = await response.json();
 
-                if (!data.rules || !Array.isArray(data.rules)) {
+                if (!Array.isArray(data)) {
                     setRules([]);
                     setError(true);
                     return;
                 }
 
-                const formattedRules = data.rules.map((rule: any) => ({
-                    kind: rule.kind || "all",
-                    short_name: rule.short_name || "Rule",
-                    description: rule.description || "",
-                    description_html: rule.description_html || "",
-                    created_utc: rule.created_utc || Date.now() / 1000,
-                    priority: rule.priority || 0,
-                    violation_reason: rule.violation_reason || "",
-                }));
-
-                setRules(formattedRules);
+                setRules(data);
             } catch (err) {
                 console.error(`Error fetching rules for r/${subreddit}:`, err);
                 setError(true);
@@ -79,10 +67,7 @@ export function SubredditRulesClient({ subreddit }: SubredditRulesClientProps) {
                     {loading ? (
                         <div className="space-y-4">
                             {[1, 2, 3].map((i) => (
-                                <div
-                                    key={i}
-                                    className="animate-pulse flex gap-3"
-                                >
+                                <div key={i} className="animate-pulse flex gap-3">
                                     <div className="h-6 w-6 bg-neutral-200 rounded"></div>
                                     <div className="flex-1 space-y-2">
                                         <div className="h-4 bg-neutral-200 rounded w-1/3"></div>
@@ -115,18 +100,9 @@ export function SubredditRulesClient({ subreddit }: SubredditRulesClientProps) {
                                                     .replace(/&amp;/g, "&")
                                                     .replace(/&quot;/g, '"')
                                                     .replace(/&#39;/g, "'")
-                                                    .replace(
-                                                        /<!-- SC_OFF -->/g,
-                                                        "",
-                                                    )
-                                                    .replace(
-                                                        /<!-- SC_ON -->/g,
-                                                        "",
-                                                    )
-                                                    .replace(
-                                                        /<div class="md">/g,
-                                                        "",
-                                                    )
+                                                    .replace(/<!-- SC_OFF -->/g, "")
+                                                    .replace(/<!-- SC_ON -->/g, "")
+                                                    .replace(/<div class="md">/g, "")
                                                     .replace(/<\/div>/g, ""),
                                             }}
                                         />

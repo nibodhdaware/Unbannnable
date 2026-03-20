@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(requirements);
     } catch (error) {
-        console.error("Error fetching post requirements:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`Error fetching post requirements: ${errorMessage}`);
 
         // In development, return mock data if Reddit API fails
         if (process.env.NODE_ENV === "development") {
