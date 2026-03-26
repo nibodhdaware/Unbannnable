@@ -99,6 +99,7 @@ export default function RootLayout({
             <html
                 lang="en"
                 className={`${inter.variable} ${jetbrainsMono.variable}`}
+                suppressHydrationWarning
             >
                 <head>
                     <link rel="preconnect" href="https://www.googletagmanager.com" />
