@@ -3,7 +3,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const STORAGE_KEY = "landing_draft_post";
 
@@ -41,13 +49,10 @@ export default function LandingPostMaker() {
   const [searchQuery, setSearchQuery] = useState("");
   const [subreddits, setSubreddits] = useState<Subreddit[]>([]);
   const [isLoadingSubreddits, setIsLoadingSubreddits] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   // Flair states
   const [availableFlairs, setAvailableFlairs] = useState<FlairOption[]>([]);
   const [isLoadingFlairs, setIsLoadingFlairs] = useState(false);
-  const [isFlairDropdownOpen, setIsFlairDropdownOpen] = useState(false);
 
   // Load stored post from /app redirect
   useEffect(() => {
@@ -74,12 +79,9 @@ export default function LandingPostMaker() {
     const fetchSubreddits = async () => {
       try {
         setIsLoadingSubreddits(true);
-        const response = await fetch(
-          `/api/reddit/subreddits?limit=100`
-        );
+        const response = await fetch(`/api/reddit/subreddits?limit=100`);
         if (response.ok) {
           const data = await response.json();
-          // API returns array directly
           setSubreddits(Array.isArray(data) ? data : data.subreddits || []);
         }
       } catch (error) {
@@ -108,14 +110,11 @@ export default function LandingPostMaker() {
         );
         if (response.ok) {
           const data = await response.json();
-          // API returns array directly
           const flairsArray = Array.isArray(data) ? data : [];
-          const flairs: FlairOption[] = flairsArray.map(
-            (f: any) => ({
-              value: f.id || f.value || f.text || f,
-              text: f.text || f.value || f,
-            })
-          );
+          const flairs: FlairOption[] = flairsArray.map((f: any) => ({
+            value: f.id || f.value || f.text || f,
+            text: f.text || f.value || f,
+          }));
           setAvailableFlairs(flairs);
         } else {
           setAvailableFlairs([]);
@@ -143,34 +142,6 @@ export default function LandingPostMaker() {
       .slice(0, 10);
   }, [subreddits, searchQuery]);
 
-  const handleSubredditSelect = (name: string) => {
-    setSubreddit(name);
-    setSearchQuery("");
-    setIsDropdownOpen(false);
-    setSelectedIndex(-1);
-    setFlair(""); // Reset flair when changing subreddit
-  };
-
-  const handleSubredditKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((prev) =>
-        prev < filteredSubreddits.length - 1 ? prev + 1 : prev
-      );
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (selectedIndex >= 0) {
-        handleSubredditSelect(filteredSubreddits[selectedIndex].display_name);
-      }
-    } else if (e.key === "Escape") {
-      setIsDropdownOpen(false);
-      setSelectedIndex(-1);
-    }
-  };
-
   const handleAnalyze = async () => {
     if (!title.trim()) {
       alert("Please enter a title");
@@ -187,7 +158,6 @@ export default function LandingPostMaker() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
       setIsAnalyzing(true);
     } else {
-      // Redirect to app with the post data
       window.location.href = "/app";
     }
   };
@@ -203,170 +173,114 @@ export default function LandingPostMaker() {
       </div>
 
       <div className="space-y-4">
-        {/* Subreddit Search Dropdown */}
+        {/* Subreddit Select */}
         <div>
-          <label
-            htmlFor="subreddit"
-            className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2"
-          >
+          <label className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2">
             Subreddit
           </label>
-          <div className="relative">
-            <div className="flex items-center">
-              <span className="absolute left-3 text-[#3C3C3C] dark:text-neutral-400 pointer-events-none">
-                r/
-              </span>
-              <input
-                id="subreddit"
-                type="text"
-                value={searchQuery || subreddit}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setIsDropdownOpen(true);
-                  setSelectedIndex(-1);
-                }}
-                onFocus={() => {
-                  setIsDropdownOpen(true);
-                  setSearchQuery("");
-                }}
-                onKeyDown={handleSubredditKeyDown}
-                placeholder="Search subreddit..."
-                className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 pl-8 pr-8 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all"
-              />
-              <ChevronDown className="absolute right-3 w-4 h-4 text-[#3C3C3C] dark:text-neutral-400 pointer-events-none" />
-            </div>
-
-            {/* Dropdown List */}
-            {isDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg shadow-[4px_4px_0px_0px_#1A1A1A] dark:shadow-md max-h-40 overflow-y-auto z-10">
-                {isLoadingSubreddits ? (
-                  <div className="p-3 text-center text-[#6B6B6B] dark:text-[#A0A0A0] text-sm">
-                    Loading subreddits...
-                  </div>
-                ) : filteredSubreddits.length === 0 ? (
-                  <div className="p-3 text-center text-[#6B6B6B] dark:text-[#A0A0A0] text-sm">
-                    No subreddits found
-                  </div>
-                ) : (
-                  filteredSubreddits.map((s, idx) => (
-                    <button
-                      key={s.display_name}
-                      onClick={() => handleSubredditSelect(s.display_name)}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                        idx === selectedIndex
-                          ? "bg-[#FF4500] text-white"
-                          : "hover:bg-[#F2F0E9] dark:hover:bg-[#2A2A2A] text-[#1A1A1A] dark:text-[#F2F0E9]"
-                      }`}
-                    >
-                      <div className="font-medium">r/{s.display_name}</div>
-                      <div className="text-xs opacity-70">
+          <Select value={subreddit} onValueChange={(value) => {
+            setSubreddit(value);
+            setFlair("");
+            setSearchQuery("");
+          }}>
+            <SelectTrigger className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 focus:border-[#FF4500] focus:ring-0 focus:ring-offset-0">
+              <SelectValue placeholder="Select subreddit..." />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20">
+              {isLoadingSubreddits ? (
+                <SelectItem value="loading" disabled>
+                  Loading subreddits...
+                </SelectItem>
+              ) : filteredSubreddits.length === 0 ? (
+                <SelectItem value="empty" disabled>
+                  No subreddits found
+                </SelectItem>
+              ) : (
+                filteredSubreddits.map((s) => (
+                  <SelectItem
+                    key={s.display_name}
+                    value={s.display_name}
+                    className="cursor-pointer text-[#1A1A1A] dark:text-[#F2F0E9] hover:bg-[#FF4500] hover:text-white focus:bg-[#FF4500] focus:text-white"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">r/{s.display_name}</span>
+                      <span className="text-xs opacity-70">
                         {s.subscribers?.toLocaleString()} subscribers
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Title Input */}
         <div>
-          <label
-            htmlFor="title"
-            className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2"
-          >
+          <label className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2">
             Title
           </label>
-          <input
-            id="title"
+          <Input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={300}
             placeholder="Your post title..."
-            className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all"
+            className="bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 focus:border-[#FF4500] focus:ring-0 focus:ring-offset-0 h-10"
           />
           <div className="text-xs text-[#6B6B6B] dark:text-[#A0A0A0] mt-1">
             {title.length}/300
           </div>
         </div>
 
-        {/* Flair Dropdown */}
+        {/* Flair Select */}
         <div>
-          <label
-            htmlFor="flair"
-            className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2"
-          >
+          <label className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2">
             Flair {availableFlairs.length === 0 && "(Optional)"}
           </label>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsFlairDropdownOpen(!isFlairDropdownOpen)}
-              disabled={isLoadingFlairs}
-              className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all flex items-center justify-between disabled:opacity-50"
-            >
-              <span>
-                {flair
-                  ? availableFlairs.find((f) => f.value === flair)?.text || flair
-                  : "Select flair..."}
-              </span>
-              {isLoadingFlairs ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-            </button>
-
-            {/* Flair Dropdown List */}
-            {isFlairDropdownOpen && availableFlairs.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg shadow-[4px_4px_0px_0px_#1A1A1A] dark:shadow-md max-h-40 overflow-y-auto z-10">
-                <button
-                  onClick={() => {
-                    setFlair("");
-                    setIsFlairDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-[#F2F0E9] dark:hover:bg-[#2A2A2A] text-[#1A1A1A] dark:text-[#F2F0E9] transition-colors"
+          <Select value={flair} onValueChange={setFlair} disabled={isLoadingFlairs}>
+            <SelectTrigger className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 focus:border-[#FF4500] focus:ring-0 focus:ring-offset-0 disabled:opacity-50">
+              <SelectValue
+                placeholder={
+                  isLoadingFlairs
+                    ? "Loading flairs..."
+                    : availableFlairs.length === 0
+                      ? "No flairs available"
+                      : "Select flair..."
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20">
+              <SelectItem
+                value=""
+                className="cursor-pointer text-[#1A1A1A] dark:text-[#F2F0E9]"
+              >
+                None
+              </SelectItem>
+              {availableFlairs.map((f) => (
+                <SelectItem
+                  key={f.value}
+                  value={f.value}
+                  className="cursor-pointer text-[#1A1A1A] dark:text-[#F2F0E9] hover:bg-[#FF4500] hover:text-white focus:bg-[#FF4500] focus:text-white"
                 >
-                  None
-                </button>
-                {availableFlairs.map((f) => (
-                  <button
-                    key={f.value}
-                    onClick={() => {
-                      setFlair(f.value);
-                      setIsFlairDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                      flair === f.value
-                        ? "bg-[#FF4500] text-white"
-                        : "hover:bg-[#F2F0E9] dark:hover:bg-[#2A2A2A] text-[#1A1A1A] dark:text-[#F2F0E9]"
-                    }`}
-                  >
-                    {f.text}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                  {f.text}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Body Input */}
         <div>
-          <label
-            htmlFor="body"
-            className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2"
-          >
+          <label className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2">
             Body (Optional)
           </label>
-          <textarea
-            id="body"
+          <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Write your post here..."
             rows={4}
-            className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all resize-none"
+            className="bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 focus:border-[#FF4500] focus:ring-0 focus:ring-offset-0 resize-none"
           />
         </div>
 
@@ -399,4 +313,3 @@ export default function LandingPostMaker() {
     </div>
   );
 }
-
