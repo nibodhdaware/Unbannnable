@@ -97,7 +97,6 @@ const faqItems = [
 export default function Landing() {
     const { isSignedIn, isLoaded, user } = useUser();
     const router = useRouter();
-    const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
     const [userStats, setUserStats] = useState<{ count: number; avatars: string[] }>({
         count: 0,
         avatars: [],
@@ -115,97 +114,6 @@ export default function Landing() {
             router.push("/app");
         }
     }, [isLoaded, isSignedIn, router]);
-
-    const plans = [
-        {
-            id: "starter",
-            title: "Starter Lifetime",
-            price: "$19",
-            period: "One-time payment",
-            credits: "20 credits/month",
-            productId:
-                process.env.NEXT_PUBLIC_DODO_STARTER_PRODUCT_ID ||
-                "YOUR_STARTER_PRODUCT_ID",
-            monthlyCredits: 20,
-            amount: 19,
-            popular: false,
-            features: [
-                "20 AI credits every month",
-                "Good for 2-10 posts monthly",
-                "Rule compliance checking",
-                "Basic anomaly detection",
-                "Flair suggestions",
-                "Credits roll over if unused",
-                "Lifetime access",
-            ],
-        },
-        {
-            id: "standard",
-            title: "Standard Lifetime",
-            price: "$39",
-            period: "One-time payment",
-            credits: "100 credits/month",
-            productId:
-                process.env.NEXT_PUBLIC_DODO_STANDARD_PRODUCT_ID ||
-                "YOUR_STANDARD_PRODUCT_ID",
-            monthlyCredits: 100,
-            amount: 39,
-            popular: true,
-            features: [
-                "100 AI credits every month",
-                "Perfect for 10-50 posts monthly",
-                "All Starter features",
-                "Advanced anomaly detection",
-                "Smart flair suggestions",
-                "Alternative subreddit finder",
-                "Priority support",
-                "Lifetime access",
-            ],
-        },
-    ];
-
-    const handleGetStarted = async (
-        planType: string,
-        productId: string,
-        credits: number,
-        amount: number,
-    ) => {
-        if (!user) return;
-        setPaymentLoading(planType);
-        try {
-            const response = await fetch("/api/create-payment", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    planType,
-                    productId,
-                    credits,
-                    amount,
-                    billing: {
-                        street: "Default Address",
-                        city: "Mumbai",
-                        state: "Maharashtra",
-                        zipcode: "400001",
-                        country: "IN",
-                    },
-                    customer: {
-                        name: user.fullName || user.firstName || "User",
-                        email: user.emailAddresses[0]?.emailAddress || "",
-                    },
-                }),
-            });
-            if (!response.ok) throw new Error("Payment creation failed");
-            const { paymentLink } = await response.json();
-            window.location.href = paymentLink;
-        } catch (error) {
-            console.error("Payment error:", error);
-            alert("Failed to create payment. Please try again.");
-        } finally {
-            setPaymentLoading(null);
-        }
-    };
 
     if (isSignedIn) return null;
 
@@ -252,7 +160,6 @@ export default function Landing() {
                     </div>
                     <div className="hidden md:flex gap-8 font-sans-body font-medium text-sm tracking-wide uppercase">
                         <a href="#features" className="hover:underline">Features</a>
-                        <a href="#pricing" className="hover:underline">Pricing</a>
                         <a href="https://check.unbannnable.com/" className="hover:underline">Ban Checker</a>
                     </div>
                     <SignedOut>
@@ -469,76 +376,7 @@ export default function Landing() {
                 </div>
             </section>
 
-            <section id="pricing" className="py-20 bg-[#1A1A1A] text-[#F2F0E9] border-b-2 border-[#1A1A1A]">
-                <div className="max-w-6xl mx-auto px-6">
-                    <div className="text-center mb-10">
-                        <Badge className="bg-[#FF4D00] text-white hover:bg-[#FF4D00] rounded-none mb-4">
-                            🎉 Lifetime Deal - Pay Once, Use Forever
-                        </Badge>
-                        <h2 className="font-heavy-serif text-5xl mb-4">
-                            <span className="text-[#FF4D00]">Lifetime</span> Access Pricing
-                        </h2>
-                        <p className="font-sans-body text-lg text-[#F2F0E9]/70">
-                            Pay once and get monthly AI credits forever. No subscriptions, no recurring fees.
-                        </p>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        {plans.map((plan, idx) => (
-                            <motion.div
-                                key={plan.id}
-                                initial={{ opacity: 0, y: 24 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.45, delay: idx * 0.08 }}
-                                className="relative bg-[#F2F0E9] text-[#1A1A1A] border-2 border-[#F2F0E9] p-8"
-                            >
-                                {plan.popular && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#FF4D00] text-white px-3 py-1 text-xs font-bold uppercase tracking-wide">
-                                        Best Seller
-                                    </div>
-                                )}
-                                <h3 className="font-heavy-serif text-3xl">{plan.title}</h3>
-                                <p className="font-sans-body text-sm text-black/60 mb-4">{plan.period}</p>
-                                <div className="font-sans-body text-5xl font-bold mb-2">{plan.price}</div>
-                                <Badge className="rounded-none bg-[#1A1A1A] text-[#F2F0E9] hover:bg-[#1A1A1A] mb-6">
-                                    {plan.credits}
-                                </Badge>
-                                <ul className="space-y-2 mb-8 font-sans-body text-sm">
-                                    {plan.features.map((f, i) => (
-                                        <li key={i} className="flex gap-2">
-                                            <Check className="w-4 h-4 mt-0.5 text-[#FF4D00]" />
-                                            <span>{f}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <SignedOut>
-                                    <SignInButton mode="modal">
-                                        <Button className="w-full rounded-none bg-[#1A1A1A] text-[#F2F0E9] hover:bg-[#FF4D00] font-sans-body uppercase tracking-wide">
-                                            Get Started
-                                        </Button>
-                                    </SignInButton>
-                                </SignedOut>
-                                <SignedIn>
-                                    <Button
-                                        onClick={() =>
-                                            handleGetStarted(
-                                                plan.id,
-                                                plan.productId,
-                                                plan.monthlyCredits,
-                                                plan.amount,
-                                            )
-                                        }
-                                        disabled={paymentLoading === plan.id}
-                                        className="w-full rounded-none bg-[#1A1A1A] text-[#F2F0E9] hover:bg-[#FF4D00] font-sans-body uppercase tracking-wide mt-2"
-                                    >
-                                        {paymentLoading === plan.id ? "Processing..." : "Get Started"}
-                                    </Button>
-                                </SignedIn>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            {/* Pricing section removed - all features are now free */}
 
             <section className="py-20 px-6 bg-[#FF4500] text-white border-b-2 border-[#1A1A1A]">
                 <div className="max-w-3xl mx-auto text-center">
