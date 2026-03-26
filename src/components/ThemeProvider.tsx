@@ -28,11 +28,19 @@ export function ThemeProvider({
     storageKey = "unbannnable-ui-theme",
     ...props
 }: ThemeProviderProps) {
-    const [theme, setTheme] = useState<Theme>(
-        () => (localStorage?.getItem(storageKey) as Theme) || defaultTheme,
-    );
+    const [theme, setTheme] = useState<Theme>(defaultTheme);
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
+        // Load theme from localStorage only on client side
+        const storedTheme = (localStorage?.getItem(storageKey) as Theme) || defaultTheme;
+        setTheme(storedTheme);
+        setIsMounted(true);
+    }, [storageKey, defaultTheme]);
+
+    useEffect(() => {
+        if (!isMounted) return;
+
         const root = window.document.documentElement;
 
         root.classList.remove("light", "dark");
@@ -49,10 +57,12 @@ export function ThemeProvider({
         }
 
         root.classList.add(theme);
-    }, [theme]);
+    }, [theme, isMounted]);
 
     // Listen for system theme changes
     useEffect(() => {
+        if (!isMounted) return;
+
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
         const handleChange = () => {
@@ -67,7 +77,7 @@ export function ThemeProvider({
 
         mediaQuery.addEventListener("change", handleChange);
         return () => mediaQuery.removeEventListener("change", handleChange);
-    }, [theme]);
+    }, [theme, isMounted]);
 
     const value = {
         theme,
