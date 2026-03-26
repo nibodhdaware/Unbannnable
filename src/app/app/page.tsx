@@ -1852,7 +1852,7 @@ ${rules
 
                                 {/* Title */}
                                 <div>
-                                    <Label className="block text-sm font-semibold mb-2">
+                                    <Label className="block text-sm font-semibold mb-2 text-[#1A1A1A] dark:text-[#F2F0E9]">
                                         Title
                                     </Label>
                                     <Input
@@ -1864,15 +1864,16 @@ ${rules
                                             setTitle(e.target.value);
                                             debouncedCheckAlternatives();
                                         }}
+                                        className="border-2 border-[#1A1A1A]/30 dark:border-[#F2F0E9]/20 bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#FF4500]"
                                     />
-                                    <div className="text-xs text-neutral-500 mt-1 text-right">
+                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 text-right">
                                         {title.length}/300
                                     </div>
                                 </div>
 
                                 {/* Flair */}
                                 <div>
-                                    <Label className="block text-sm font-semibold mb-2">
+                                    <Label className="block text-sm font-semibold mb-2 text-[#1A1A1A] dark:text-[#F2F0E9]">
                                         Flair{" "}
                                         {postRequirements?.is_flair_required && (
                                             <span className="text-red-500">
@@ -1884,7 +1885,7 @@ ${rules
                                         value={flair}
                                         onChange={(e) => setFlair(e.target.value)}
                                         disabled={!subreddit || loadingFlairs}
-                                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                                        className="w-full h-10 px-3 rounded-lg border-2 border-[#1A1A1A]/30 dark:border-[#F2F0E9]/20 bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] text-sm disabled:opacity-50"
                                     >
                                         <option value="">
                                             {!subreddit
@@ -1913,11 +1914,11 @@ ${rules
 
                                 {/* Body */}
                                 <div>
-                                    <Label className="block text-sm font-semibold mb-2">
+                                    <Label className="block text-sm font-semibold mb-2 text-[#1A1A1A] dark:text-[#F2F0E9]">
                                         Body
                                     </Label>
                                     <Textarea
-                                        className="min-h-[100px] resize-vertical"
+                                        className="min-h-[100px] resize-vertical border-2 border-[#1A1A1A]/30 dark:border-[#F2F0E9]/20 bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#FF4500]"
                                         placeholder="Write your post here..."
                                         value={body}
                                         onChange={(e) => {
