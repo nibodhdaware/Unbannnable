@@ -356,25 +356,6 @@ function AppPageContent() {
         });
     }, [user]);
 
-    // Load stored post from landing page
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const stored = localStorage.getItem("landing_draft_post");
-            if (stored) {
-                try {
-                    const data = JSON.parse(stored);
-                    setSubreddit(data.subreddit || "");
-                    setTitle(data.title || "");
-                    setBody(data.body || "");
-                    setFlair(data.flair || "");
-                    localStorage.removeItem("landing_draft_post");
-                } catch (e) {
-                    console.error("Error loading stored post:", e);
-                }
-            }
-        }
-    }, []);
-
     const [subreddit, setSubreddit] = useState("");
     const [title, setTitle] = useState("");
     const [flair, setFlair] = useState("");
@@ -494,6 +475,25 @@ function AppPageContent() {
 
     useEffect(() => {
         fetchSubreddits();
+
+        // Load stored post from landing page
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("landing_draft_post");
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    if (data.subreddit) {
+                        handleSubredditChange(data.subreddit);
+                    }
+                    if (data.title) setTitle(data.title);
+                    if (data.body) setBody(data.body);
+                    if (data.flair) setFlair(data.flair);
+                    localStorage.removeItem("landing_draft_post");
+                } catch (e) {
+                    console.error("Error loading stored post:", e);
+                }
+            }
+        }
 
         // Hydrate draft fields from URL params (used by Chrome extension deep analysis).
         if (typeof window !== "undefined") {
