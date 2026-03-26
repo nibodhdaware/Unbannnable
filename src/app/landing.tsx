@@ -220,6 +220,16 @@ export default function Landing() {
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.7, delay: 0.25 }}
+                            className="mb-6"
+                        >
+                            <Badge className="bg-[#FF4500] text-white font-sans-body font-bold text-xs uppercase tracking-widest">
+                                ✓ Free • Unlimited • No credit card required
+                            </Badge>
+                        </motion.div>
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.7, delay: 0.3 }}
                             className="flex flex-col sm:flex-row gap-4 mb-8"
                         >
@@ -379,8 +389,11 @@ export default function Landing() {
                     <h2 className="font-heavy-serif text-5xl mb-4">
                         Ready to Fix Your Reddit Posts?
                     </h2>
-                    <p className="font-sans-body text-lg text-orange-100 mb-8">
+                    <p className="font-sans-body text-lg text-orange-100 mb-6">
                         Stop getting banned. Let AI tell you what's wrong and fix it for you.
+                    </p>
+                    <p className="font-sans-body text-sm font-bold text-white mb-8 uppercase tracking-widest">
+                        ✓ 100% Free • Unlimited Posts • No Credit Card
                     </p>
                     <SignedOut>
                         <SignInButton mode="modal">
