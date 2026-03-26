@@ -231,20 +231,20 @@ export default function LandingPostMaker() {
                 }}
                 onKeyDown={handleSubredditKeyDown}
                 placeholder="Search subreddit..."
-                className="w-full bg-[#F2F0E9] dark:bg-neutral-800 text-[#1A1A1A] dark:text-white p-2 pl-8 pr-8 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg focus:border-[#FF4500] outline-none transition-colors"
+                className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 pl-8 pr-8 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all"
               />
               <ChevronDown className="absolute right-3 w-4 h-4 text-[#3C3C3C] dark:text-neutral-400 pointer-events-none" />
             </div>
 
             {/* Dropdown List */}
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg shadow-[4px_4px_0px_0px_#1A1A1A] dark:shadow-md max-h-40 overflow-y-auto z-10">
                 {isLoadingSubreddits ? (
-                  <div className="p-3 text-center text-[#6B6B6B] dark:text-neutral-400 text-sm">
+                  <div className="p-3 text-center text-[#6B6B6B] dark:text-[#A0A0A0] text-sm">
                     Loading subreddits...
                   </div>
                 ) : filteredSubreddits.length === 0 ? (
-                  <div className="p-3 text-center text-[#6B6B6B] dark:text-neutral-400 text-sm">
+                  <div className="p-3 text-center text-[#6B6B6B] dark:text-[#A0A0A0] text-sm">
                     No subreddits found
                   </div>
                 ) : (
@@ -255,7 +255,7 @@ export default function LandingPostMaker() {
                       className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                         idx === selectedIndex
                           ? "bg-[#FF4500] text-white"
-                          : "hover:bg-[#F2F0E9] dark:hover:bg-neutral-700 text-[#1A1A1A] dark:text-white"
+                          : "hover:bg-[#F2F0E9] dark:hover:bg-[#2A2A2A] text-[#1A1A1A] dark:text-[#F2F0E9]"
                       }`}
                     >
                       <div className="font-medium">r/{s.display_name}</div>
@@ -285,9 +285,9 @@ export default function LandingPostMaker() {
             onChange={(e) => setTitle(e.target.value)}
             maxLength={300}
             placeholder="Your post title..."
-            className="w-full bg-[#F2F0E9] dark:bg-neutral-800 text-[#1A1A1A] dark:text-white p-2 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg focus:border-[#FF4500] outline-none transition-colors"
+            className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all"
           />
-          <div className="text-xs text-[#6B6B6B] dark:text-neutral-400 mt-1">
+          <div className="text-xs text-[#6B6B6B] dark:text-[#A0A0A0] mt-1">
             {title.length}/300
           </div>
         </div>
@@ -305,7 +305,7 @@ export default function LandingPostMaker() {
               type="button"
               onClick={() => setIsFlairDropdownOpen(!isFlairDropdownOpen)}
               disabled={isLoadingFlairs}
-              className="w-full bg-[#F2F0E9] dark:bg-neutral-800 text-[#1A1A1A] dark:text-white p-2 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg focus:border-[#FF4500] outline-none transition-colors flex items-center justify-between disabled:opacity-50"
+              className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all flex items-center justify-between disabled:opacity-50"
             >
               <span>
                 {flair
@@ -321,13 +321,13 @@ export default function LandingPostMaker() {
 
             {/* Flair Dropdown List */}
             {isFlairDropdownOpen && availableFlairs.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg shadow-[4px_4px_0px_0px_#1A1A1A] dark:shadow-md max-h-40 overflow-y-auto z-10">
                 <button
                   onClick={() => {
                     setFlair("");
                     setIsFlairDropdownOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-[#F2F0E9] dark:hover:bg-neutral-700 text-[#1A1A1A] dark:text-white transition-colors"
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-[#F2F0E9] dark:hover:bg-[#2A2A2A] text-[#1A1A1A] dark:text-[#F2F0E9] transition-colors"
                 >
                   None
                 </button>
@@ -341,7 +341,7 @@ export default function LandingPostMaker() {
                     className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                       flair === f.value
                         ? "bg-[#FF4500] text-white"
-                        : "hover:bg-[#F2F0E9] dark:hover:bg-neutral-700 text-[#1A1A1A] dark:text-white"
+                        : "hover:bg-[#F2F0E9] dark:hover:bg-[#2A2A2A] text-[#1A1A1A] dark:text-[#F2F0E9]"
                     }`}
                   >
                     {f.text}
@@ -366,7 +366,7 @@ export default function LandingPostMaker() {
             onChange={(e) => setBody(e.target.value)}
             placeholder="Write your post here..."
             rows={4}
-            className="w-full bg-[#F2F0E9] dark:bg-neutral-800 text-[#1A1A1A] dark:text-white p-2 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg focus:border-[#FF4500] outline-none transition-colors resize-none"
+            className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] p-3 border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 rounded-lg focus:border-[#FF4500] focus:shadow-[0_0_0_2px_#FF4500]/20 dark:focus:shadow-[0_0_0_2px_#FF4500]/30 outline-none transition-all resize-none"
           />
         </div>
 
