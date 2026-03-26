@@ -79,10 +79,12 @@ export default function LandingPostMaker() {
         );
         if (response.ok) {
           const data = await response.json();
-          setSubreddits(data.subreddits || []);
+          // API returns array directly
+          setSubreddits(Array.isArray(data) ? data : data.subreddits || []);
         }
       } catch (error) {
         console.error("Error fetching subreddits:", error);
+        setSubreddits([]);
       } finally {
         setIsLoadingSubreddits(false);
       }
@@ -106,13 +108,17 @@ export default function LandingPostMaker() {
         );
         if (response.ok) {
           const data = await response.json();
-          const flairs: FlairOption[] = (data.flairs || []).map(
+          // API returns array directly
+          const flairsArray = Array.isArray(data) ? data : [];
+          const flairs: FlairOption[] = flairsArray.map(
             (f: any) => ({
-              value: f.value || f.text || f,
+              value: f.id || f.value || f.text || f,
               text: f.text || f.value || f,
             })
           );
           setAvailableFlairs(flairs);
+        } else {
+          setAvailableFlairs([]);
         }
       } catch (error) {
         console.error("Error fetching flairs:", error);
@@ -296,11 +302,10 @@ export default function LandingPostMaker() {
           </label>
           <div className="relative">
             <button
-              onClick={() =>
-                availableFlairs.length > 0 &&
-                setIsFlairDropdownOpen(!isFlairDropdownOpen)
-              }
-              className="w-full bg-[#F2F0E9] dark:bg-neutral-800 text-[#1A1A1A] dark:text-white p-2 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg focus:border-[#FF4500] outline-none transition-colors flex items-center justify-between"
+              type="button"
+              onClick={() => setIsFlairDropdownOpen(!isFlairDropdownOpen)}
+              disabled={isLoadingFlairs}
+              className="w-full bg-[#F2F0E9] dark:bg-neutral-800 text-[#1A1A1A] dark:text-white p-2 border-2 border-[#1A1A1A]/20 dark:border-neutral-600 rounded-lg focus:border-[#FF4500] outline-none transition-colors flex items-center justify-between disabled:opacity-50"
             >
               <span>
                 {flair
