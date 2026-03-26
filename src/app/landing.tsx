@@ -427,7 +427,7 @@ export default function Landing() {
                     <div>
                         <div className="flex items-center gap-2 mb-6">
                             <Image
-                                src="/unbannnable-mark.svg"
+                                src="/unbannnable-mark-light.svg"
                                 alt="Unbannnable"
                                 width={24}
                                 height={24}
