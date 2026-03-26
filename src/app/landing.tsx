@@ -420,6 +420,65 @@ export default function Landing() {
                     </div>
                 </div>
             </section>
+
+            {/* Footer */}
+            <footer className="bg-[#1A1A1A] text-[#F2F0E9] py-12 px-6 border-t-2 border-[#F2F0E9]/20">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+                    <div>
+                        <div className="flex items-center gap-2 mb-6">
+                            <Image
+                                src="/unbannnable-mark.svg"
+                                alt="Unbannnable"
+                                width={24}
+                                height={24}
+                                className="w-6 h-6"
+                            />
+                            <span className="font-heavy-serif text-lg">Unbannnable.</span>
+                        </div>
+                        <p className="font-sans-body text-sm text-[#F2F0E9]/70">
+                            AI-powered Reddit post optimizer. Stop bans in seconds.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 className="font-heavy-serif font-bold mb-4">Product</h3>
+                        <ul className="space-y-2 font-sans-body text-sm">
+                            <li>
+                                <a href="#features" className="text-[#F2F0E9]/70 hover:text-[#FF4500] transition-colors">
+                                    Features
+                                </a>
+                            </li>
+                            <li>
+                                <a href="https://check.unbannnable.com/" className="text-[#F2F0E9]/70 hover:text-[#FF4500] transition-colors">
+                                    Ban Checker
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 className="font-heavy-serif font-bold mb-4">Legal</h3>
+                        <ul className="space-y-2 font-sans-body text-sm">
+                            <li>
+                                <a href="/privacy" className="text-[#F2F0E9]/70 hover:text-[#FF4500] transition-colors">
+                                    Privacy Policy
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/terms" className="text-[#F2F0E9]/70 hover:text-[#FF4500] transition-colors">
+                                    Terms of Service
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div className="border-t border-[#F2F0E9]/20 pt-8 text-center">
+                    <p className="font-sans-body text-xs text-[#F2F0E9]/50">
+                        © {new Date().getFullYear()} Unbannnable. All rights reserved.
+                    </p>
+                </div>
+            </footer>
         </div>
     );
 }
