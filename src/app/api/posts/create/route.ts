@@ -31,10 +31,6 @@ export async function POST(request: NextRequest) {
             email: user.emailAddresses[0]?.emailAddress || "",
             isAdmin:
                 user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com",
-            role:
-                user.emailAddresses[0]?.emailAddress === "nibod1248@gmail.com"
-                    ? "admin"
-                    : "user",
         });
 
         // Get user from Convex

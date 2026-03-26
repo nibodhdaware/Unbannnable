@@ -28,7 +28,6 @@ export async function GET() {
             fullName: user.fullName || undefined,
             email: user.emailAddresses[0]?.emailAddress || "",
             isAdmin: isAdminByEmail,
-            role: isAdminByEmail ? "admin" : "user",
         });
 
         // Get user from Convex
