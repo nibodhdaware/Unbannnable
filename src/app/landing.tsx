@@ -9,6 +9,7 @@ import { JSX, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Globe, ShieldCheck, PenTool, Zap, Check } from "lucide-react";
+import LandingPostMaker from "@/components/LandingPostMaker";
 
 interface Feature {
     icon: ({ className }: { className: string }) => JSX.Element;
@@ -285,12 +286,7 @@ export default function Landing() {
                         transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
                         className="lg:col-span-6"
                     >
-                        <div className="border-2 border-[#1A1A1A] overflow-hidden shadow-[14px_14px_0px_0px_#1A1A1A] lg:scale-[1.08] origin-right">
-                            <video autoPlay loop muted playsInline className="w-full h-auto">
-                                <source src="/demo.mp4" type="video/mp4" />
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
+                        <LandingPostMaker />
                     </motion.div>
                 </div>
             </section>
