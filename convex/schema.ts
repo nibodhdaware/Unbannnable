@@ -49,6 +49,11 @@ export default defineSchema({
         lifetimePlanPurchaseDate: v.optional(v.number()),
         freePostsUsed: v.optional(v.number()),
         unlimitedMonthlyExpiry: v.optional(v.number()),
+
+        // Clerk sync fields - legacy from previous Clerk integration
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        imageUrl: v.optional(v.string()),
     })
         .index("by_clerk_id", ["clerkId"])
         .index("by_referral_code", ["referralCode"])
