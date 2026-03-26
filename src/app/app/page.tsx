@@ -1597,17 +1597,11 @@ ${rules
                                     variant="secondary"
                                     className="px-3 py-1.5 text-sm font-semibold rounded-none border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/40 bg-white dark:bg-[#1B1B1B] text-[#1A1A1A] dark:text-[#F2F0E9]"
                                 >
-                                    {creditsLoading
-                                        ? "Loading..."
-                                        : `${currentCredits} credits`}
+                                    {/* PAYMENT DISABLED: All features are now free */}
+                                    All features free
                                 </Badge>
-                                <Button
-                                    onClick={() => setShowPricingPopup(true)}
-                                    className="bg-[#FF4500] hover:bg-[#e03d00] text-white rounded-none"
-                                    size="sm"
-                                >
-                                    Buy Credits
-                                </Button>
+                                {/* Buy Credits button hidden - payment disabled */}
+                                {/* Original button: <Button onClick={() => setShowPricingPopup(true)}> */}
                                 <Button
                                     onClick={() => setShowReferralPopup(true)}
                                     variant="outline"
@@ -2136,12 +2130,8 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (currentCredits < 10) {
-                                                        alert(
-                                                            "You need 10 credits to use the Post Analyzer. Please buy more credits.",
-                                                        );
-                                                        return;
-                                                    }
+                                                    // PAYMENT DISABLED: All features are now free
+                                                    // Removed credit check: if (currentCredits < 10)
 
                                                     try {
                                                         setIsGeneratingAI(true);
@@ -2248,12 +2238,8 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (currentCredits < 5) {
-                                                        alert(
-                                                            "You need 5 credits to use the Rule Checker. Please buy more credits.",
-                                                        );
-                                                        return;
-                                                    }
+                                                    // PAYMENT DISABLED: All features are now free
+                                                    // Removed credit check: if (currentCredits < 5)
 
                                                     try {
                                                         setIsGeneratingAI(true);
@@ -2353,12 +2339,8 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (currentCredits < 5) {
-                                                        alert(
-                                                            "You need 5 credits to find better subreddits. Please buy more credits.",
-                                                        );
-                                                        return;
-                                                    }
+                                                    // PAYMENT DISABLED: All features are now free
+                                                    // Removed credit check: if (currentCredits < 5)
 
                                                     try {
                                                         setIsGeneratingAI(true);
@@ -2460,12 +2442,8 @@ ${rules
                                                         return;
                                                     }
 
-                                                    if (currentCredits < 3) {
-                                                        alert(
-                                                            "You need 3 credits for anomaly detection. Please buy more credits.",
-                                                        );
-                                                        return;
-                                                    }
+                                                    // PAYMENT DISABLED: All features are now free
+                                                    // Removed credit check: if (currentCredits < 3)
 
                                                     try {
                                                         setIsGeneratingAI(true);
@@ -4149,8 +4127,8 @@ ${rules
                                         Refer Friends
                                     </h2>
                                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                                        Earn 10 credits for each friend who
-                                        signs up
+                                        {/* PAYMENT DISABLED: Referral rewards removed */}
+                                        Share the app with friends
                                     </p>
                                 </div>
                             </div>

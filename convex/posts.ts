@@ -105,7 +105,7 @@ export const getUserPostStats = query({
     },
 });
 
-// Check if user can create post (simplified - only checks credits or admin)
+// Check if user can create post (simplified - now always allows since all features are free)
 export const canUserCreatePost = query({
     args: { userId: v.id("users") },
     handler: async (ctx, { userId }) => {
@@ -117,28 +117,10 @@ export const canUserCreatePost = query({
             };
         }
 
-        // Check if user is admin
-        const isAdminUser =
-            user.isAdmin === true || user.email === "nibod1248@gmail.com";
-
-        if (isAdminUser) {
-            return {
-                canCreate: true,
-                reason: "Admin - Unlimited access",
-            };
-        }
-
-        const totalCredits = user.credits || 0;
-        if (totalCredits > 0) {
-            return {
-                canCreate: true,
-                reason: `${totalCredits} credits available`,
-            };
-        }
-
+        // PAYMENT DISABLED: All features are now free - everyone can create posts
         return {
-            canCreate: false,
-            reason: "No credits available",
+            canCreate: true,
+            reason: "All features are free",
         };
     },
 });
@@ -161,13 +143,14 @@ export const usePostAnalyzer = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 10 credits if not admin (Post Analyzer costs 10 credits)
-        if (!isAdmin) {
-            await ctx.runMutation(internal.users.deductCreditsInternal, {
-                userId: args.userId,
-                credits: 10,
-            });
-        }
+        // PAYMENT DISABLED: All features are now free
+        // Original code: Deduct 10 credits if not admin (Post Analyzer costs 10 credits)
+        // if (!isAdmin) {
+        //     await ctx.runMutation(internal.users.deductCreditsInternal, {
+        //         userId: args.userId,
+        //         credits: 10,
+        //     });
+        // }
 
         // Build the prompt for post analysis
         const prompt = `Analyze this Reddit post for r/${args.subreddit || "general"}:
@@ -187,12 +170,12 @@ Format your response in a clear, actionable way.`;
 
         const analysis = await callGemini(prompt);
 
-        // Update post with AI results
+        // Update post with AI results (creditsSpent is 0 because all features are free)
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "AI Post Analyzer",
             result: analysis,
-            creditsSpent: isAdmin ? 0 : 10,
+            creditsSpent: 0,
         });
 
         return analysis;
@@ -215,13 +198,14 @@ export const useRuleChecker = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 5 credits if not admin (Rule Checker costs 5 credits)
-        if (!isAdmin) {
-            await ctx.runMutation(internal.users.deductCreditsInternal, {
-                userId: args.userId,
-                credits: 5,
-            });
-        }
+        // PAYMENT DISABLED: All features are now free
+        // Original code: Deduct 5 credits if not admin (Rule Checker costs 5 credits)
+        // if (!isAdmin) {
+        //     await ctx.runMutation(internal.users.deductCreditsInternal, {
+        //         userId: args.userId,
+        //         credits: 5,
+        //     });
+        // }
 
         // Build the prompt for rule checking
         const prompt = `Check if this Reddit post follows typical subreddit rules for r/${args.subreddit}:
@@ -243,12 +227,12 @@ Provide:
 
         const rulesCheck = await callGemini(prompt);
 
-        // Update post with AI results
+        // Update post with AI results (creditsSpent is 0 because all features are free)
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "Rule Checker",
             result: rulesCheck,
-            creditsSpent: isAdmin ? 0 : 5,
+            creditsSpent: 0,
         });
 
         return rulesCheck;
@@ -271,13 +255,14 @@ export const findBetterSubreddits = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 5 credits if not admin (Find Subreddits costs 5 credits)
-        if (!isAdmin) {
-            await ctx.runMutation(internal.users.deductCreditsInternal, {
-                userId: args.userId,
-                credits: 5,
-            });
-        }
+        // PAYMENT DISABLED: All features are now free
+        // Original code: Deduct 5 credits if not admin (Find Subreddits costs 5 credits)
+        // if (!isAdmin) {
+        //     await ctx.runMutation(internal.users.deductCreditsInternal, {
+        //         userId: args.userId,
+        //         credits: 5,
+        //     });
+        // }
 
         // Build the prompt for finding better subreddits
         const prompt = `Suggest the best subreddits for this Reddit post:
@@ -296,12 +281,12 @@ Format as a numbered list. Focus on active communities where the post would get 
 
         const subreddits = await callGemini(prompt);
 
-        // Update post with AI results
+        // Update post with AI results (creditsSpent is 0 because all features are free)
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "Better Subreddits",
             result: subreddits,
-            creditsSpent: isAdmin ? 0 : 5,
+            creditsSpent: 0,
         });
 
         return subreddits;
@@ -323,13 +308,14 @@ export const detectAnomalies = action({
         const isAdmin =
             user?.isAdmin === true || user?.email === "nibod1248@gmail.com";
 
-        // Deduct 3 credits if not admin (Anomaly Detection costs 3 credits)
-        if (!isAdmin) {
-            await ctx.runMutation(internal.users.deductCreditsInternal, {
-                userId: args.userId,
-                credits: 3,
-            });
-        }
+        // PAYMENT DISABLED: All features are now free
+        // Original code: Deduct 3 credits if not admin (Anomaly Detection costs 3 credits)
+        // if (!isAdmin) {
+        //     await ctx.runMutation(internal.users.deductCreditsInternal, {
+        //         userId: args.userId,
+        //         credits: 3,
+        //     });
+        // }
 
         // Build the prompt for anomaly detection
         const prompt = `Analyze this Reddit post for potential issues that could cause it to be removed or downvoted:
@@ -351,12 +337,12 @@ Provide a risk assessment (Low/Medium/High) and specific recommendations to impr
 
         const analysis = await callGemini(prompt);
 
-        // Update post with AI results
+        // Update post with AI results (creditsSpent is 0 because all features are free)
         await ctx.runMutation(internal.posts.updatePostAIFeatures, {
             postId: args.postId,
             featureName: "Anomaly Detection",
             result: analysis,
-            creditsSpent: isAdmin ? 0 : 3,
+            creditsSpent: 0,
         });
 
         return analysis;
