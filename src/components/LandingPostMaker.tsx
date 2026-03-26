@@ -238,36 +238,34 @@ export default function LandingPostMaker() {
           <label className="text-sm font-medium text-[#1A1A1A] dark:text-white block mb-2">
             Flair {availableFlairs.length === 0 && "(Optional)"}
           </label>
-          <Select value={flair} onValueChange={setFlair} disabled={isLoadingFlairs}>
-            <SelectTrigger className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 focus:border-[#FF4500] focus:ring-0 focus:ring-offset-0 disabled:opacity-50">
-              <SelectValue
-                placeholder={
-                  isLoadingFlairs
-                    ? "Loading flairs..."
-                    : availableFlairs.length === 0
-                      ? "No flairs available"
+          {availableFlairs.length > 0 ? (
+            <Select value={flair || availableFlairs[0].value} onValueChange={setFlair} disabled={isLoadingFlairs}>
+              <SelectTrigger className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-[#F2F0E9] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20 focus:border-[#FF4500] focus:ring-0 focus:ring-offset-0 disabled:opacity-50">
+                <SelectValue
+                  placeholder={
+                    isLoadingFlairs
+                      ? "Loading flairs..."
                       : "Select flair..."
-                }
-              />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20">
-              <SelectItem
-                value=""
-                className="cursor-pointer text-[#1A1A1A] dark:text-[#F2F0E9]"
-              >
-                None
-              </SelectItem>
-              {availableFlairs.map((f) => (
-                <SelectItem
-                  key={f.value}
-                  value={f.value}
-                  className="cursor-pointer text-[#1A1A1A] dark:text-[#F2F0E9] hover:bg-[#FF4500] hover:text-white focus:bg-[#FF4500] focus:text-white"
-                >
-                  {f.text}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-[#1A1A1A] border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/20">
+                {availableFlairs.map((f) => (
+                  <SelectItem
+                    key={f.value}
+                    value={f.value}
+                    className="cursor-pointer text-[#1A1A1A] dark:text-[#F2F0E9] hover:bg-[#FF4500] hover:text-white focus:bg-[#FF4500] focus:text-white"
+                  >
+                    {f.text}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="w-full bg-[#F2F0E9] dark:bg-[#0F0F0F] text-[#6B6B6B] dark:text-[#A0A0A0] p-3 border-2 border-[#1A1A1A]/20 dark:border-[#F2F0E9]/20 rounded-lg">
+              {isLoadingFlairs ? "Loading flairs..." : "No flairs available"}
+            </div>
+          )}
         </div>
 
         {/* Body Input */}
