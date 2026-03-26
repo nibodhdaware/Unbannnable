@@ -2182,11 +2182,8 @@ ${rules
                                                         );
                                                     }
                                                 }}
-                                                disabled={
-                                                    isGeneratingAI ||
-                                                    currentCredits < 10
-                                                }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 10 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
+                                                disabled={isGeneratingAI}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
@@ -2206,9 +2203,6 @@ ${rules
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                                                    <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none">
-                                                        10 credits
-                                                    </span>
                                                     {isGeneratingAI && (
                                                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
                                                     )}
@@ -2291,11 +2285,8 @@ ${rules
                                                         );
                                                     }
                                                 }}
-                                                disabled={
-                                                    isGeneratingAI ||
-                                                    currentCredits < 5
-                                                }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
+                                                disabled={isGeneratingAI}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
@@ -2314,9 +2305,6 @@ ${rules
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none flex-shrink-0 ml-3">
-                                                    5 credits
-                                                </span>
                                             </button>
 
                                             {/* Find Better Subreddits - 5 Credits */}
@@ -2393,11 +2381,8 @@ ${rules
                                                         );
                                                     }
                                                 }}
-                                                disabled={
-                                                    isGeneratingAI ||
-                                                    currentCredits < 5
-                                                }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 5 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
+                                                disabled={isGeneratingAI}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
@@ -2417,9 +2402,6 @@ ${rules
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none flex-shrink-0 ml-3">
-                                                    5 credits
-                                                </span>
                                             </button>
 
                                             {/* Anomaly Detection - 3 Credits */}
@@ -2494,11 +2476,8 @@ ${rules
                                                         );
                                                     }
                                                 }}
-                                                disabled={
-                                                    isGeneratingAI ||
-                                                    currentCredits < 3
-                                                }
-                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${currentCredits < 3 ? "border-[#1A1A1A]/30 bg-white/70 text-[#6B6B6B] cursor-not-allowed opacity-75" : "border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]"}`}
+                                                disabled={isGeneratingAI}
+                                                className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors border-[#1A1A1A]/45 bg-white text-[#1A1A1A] hover:bg-[#FF4D00]/8 hover:border-[#1A1A1A]`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
@@ -2517,9 +2496,6 @@ ${rules
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs font-medium bg-[#1A1A1A] text-[#F2F0E9] px-2 py-1 rounded-none flex-shrink-0 ml-3">
-                                                    3 credits
-                                                </span>
                                             </button>
                                         </div>
                                     ) : (
