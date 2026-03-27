@@ -48,6 +48,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { AlertCircle } from "lucide-react";
 
 // Component to fetch and display AI-generated subreddit alternatives
@@ -339,6 +347,13 @@ function AppPageContent() {
         api.users.getUserByClerkId,
         user ? { clerkId: user.id } : "skip",
     );
+
+    // Query for user's post history
+    const userPosts = useQuery(
+        api.posts.getUserPosts,
+        userRecord ? { userId: userRecord._id } : "skip",
+    );
+
     const [postId, setPostId] = useState<string>("");
 
     // Use userRecord.credits as primary source, fallback to creditsHook
@@ -396,6 +411,9 @@ function AppPageContent() {
     const [flairReasoning, setFlairReasoning] = useState<string>("");
     const [showOptimizationSummary, setShowOptimizationSummary] =
         useState(false);
+
+    // History modal state
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     // Alternative subreddits states
     const [alternativeSubreddits, setAlternativeSubreddits] =
@@ -1485,6 +1503,15 @@ ${rules
         }, 1000); // Small delay to let user see the optimization results
     };
 
+    // Load a post from history
+    const handleLoadPostFromHistory = (post: any) => {
+        setTitle(post.title || "");
+        setSubreddit(post.subreddit || "");
+        setBody(post.body || "");
+        setFlair(post.flair || "");
+        setShowHistoryModal(false);
+    };
+
     // Direct payment handler with Indian address
     const handleGetStarted = async (
         planType: string,
@@ -1582,8 +1609,8 @@ ${rules
                 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
                 .font-heavy-serif { font-family: 'DM Serif Display', serif; }
                 .font-sans-body { font-family: 'Instrument Sans', sans-serif; }
-                .animate-swiss-marquee { animation: swissMarquee 20s linear infinite; }
-                @keyframes swissMarquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+                .animate-swiss-marquee { animation: swissMarquee 25s linear infinite; }
+                @keyframes swissMarquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
             `}</style>
             {/* Navigation Header */}
             <nav className="w-full bg-[#F2F0E9] dark:bg-[#121212] border-b-2 border-[#1A1A1A] dark:border-[#F2F0E9]/30 px-4 sm:px-6 py-3 sm:py-4">
@@ -1608,8 +1635,16 @@ ${rules
                     {/* Right side - Navigation and Authentication */}
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <SignedIn>
-                            {/* Credits Display and Buy Button */}
+                            {/* Credits Display and History Button */}
                             <div className="flex items-center space-x-2">
+                                <Button
+                                    onClick={() => setShowHistoryModal(true)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-none border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/40 text-[#1A1A1A] dark:text-[#F2F0E9] hover:bg-[#FF4500] hover:text-white"
+                                >
+                                    📋 History
+                                </Button>
                                 <Badge
                                     variant="secondary"
                                     className="px-3 py-1.5 text-sm font-semibold rounded-none border-2 border-[#1A1A1A] dark:border-[#F2F0E9]/40 bg-white dark:bg-[#1B1B1B] text-[#1A1A1A] dark:text-[#F2F0E9]"
@@ -1638,8 +1673,8 @@ ${rules
             </nav>
             <section className="bg-[#1A1A1A] text-[#F2F0E9] py-2 overflow-hidden border-b-2 border-[#1A1A1A]">
                 <div className="animate-swiss-marquee whitespace-nowrap font-sans-body font-bold uppercase tracking-widest text-xs sm:text-sm">
-                    {[...Array(5)].map((_, i) => (
-                        <span key={i} className="mx-8">
+                    {[...Array(2)].map((_, i) => (
+                        <span key={i} className="mx-8 inline-block">
                             ANALYZE • OPTIMIZE • PUBLISH • NO REMOVALS •
                         </span>
                     ))}
@@ -3766,6 +3801,86 @@ ${rules
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Post History Modal */}
+            <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+                <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Post History</DialogTitle>
+                        <DialogDescription>
+                            Select a post to load all its content into the editor
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* History List */}
+                    <div className="space-y-3">
+                        {userPosts && userPosts.length > 0 ? (
+                            userPosts.map((post: any, idx: number) => (
+                                <div
+                                    key={idx}
+                                    onClick={() => handleLoadPostFromHistory(post)}
+                                    className="p-4 border border-[#1A1A1A] dark:border-[#F2F0E9]/40 rounded-lg cursor-pointer hover:bg-[#F2F0E9] dark:hover:bg-[#1B1B1B] transition-colors"
+                                >
+                                    <div className="flex flex-col gap-2">
+                                        {/* Post Title */}
+                                        <h4 className="font-semibold text-[#1A1A1A] dark:text-[#F2F0E9] truncate">
+                                            {post.title || "Untitled"}
+                                        </h4>
+
+                                        {/* Subreddit and Date */}
+                                        <div className="flex justify-between items-center text-xs text-[#6B6B6B] dark:text-[#A0A0A0]">
+                                            <span className="font-medium">
+                                                r/{post.subreddit || "unknown"}
+                                            </span>
+                                            <span>
+                                                {new Date(post.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+
+                                        {/* AI Features Used and Credits */}
+                                        <div className="flex gap-2 flex-wrap">
+                                            {post.aiFeaturesUsed && post.aiFeaturesUsed.length > 0 ? (
+                                                post.aiFeaturesUsed.map((feature: string, i: number) => (
+                                                    <Badge
+                                                        key={i}
+                                                        className="text-xs bg-[#FF4500] hover:bg-[#e03d00] text-white"
+                                                    >
+                                                        {feature}
+                                                    </Badge>
+                                                ))
+                                            ) : (
+                                                <span className="text-xs text-[#6B6B6B] dark:text-[#A0A0A0]">
+                                                    No AI features used
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Credits Spent */}
+                                        {post.totalCreditsSpent > 0 && (
+                                            <div className="text-xs text-[#6B6B6B] dark:text-[#A0A0A0]">
+                                                💳 {post.totalCreditsSpent} credits used
+                                            </div>
+                                        )}
+
+                                        {/* Preview of Body */}
+                                        {post.body && (
+                                            <p className="text-sm text-[#6B6B6B] dark:text-[#A0A0A0] line-clamp-2">
+                                                {post.body}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8">
+                                <p className="text-[#6B6B6B] dark:text-[#A0A0A0]">
+                                    No posts in history yet. Create your first post to get started!
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* PAYMENT DISABLED: Pricing and Referral modals removed - functionality kept for future re-enablement */}
         </div>
