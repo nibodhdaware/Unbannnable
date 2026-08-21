@@ -8,6 +8,7 @@ import ClerkWrapper from "@/components/ClerkWrapper";
 import ReferralHandler from "@/components/ReferralHandler";
 import CookieConsent from "@/components/CookieConsent";
 import EmailSubscriptionPopup from "@/components/EmailSubscriptionPopup";
+import PostHogPageView from "@/components/PostHogPageView";
 import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
@@ -23,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
     title: "Unbannnable: AI Reddit Post Optimizer | Stop Bans in Seconds",
     description:
-        "Stop getting banned on Reddit. Unbannnable uses AI to check subreddit rules, fix ban triggers, and optimize your posts for maximum engagement. Never get shadowbanned or removed again—the ultimate Reddit post checker and optimizer.",
+        "Stop getting banned on Reddit. Unbannnable checks subreddit rules, flags ban triggers and rewrites your post for approval. Free AI Reddit post checker & optimizer.",
     keywords: [
         "reddit post checker",
         "avoid reddit ban",
@@ -155,6 +156,20 @@ export default function RootLayout({
                         dangerouslySetInnerHTML={{
                             __html: JSON.stringify({
                                 "@context": "https://schema.org",
+                                "@type": "Organization",
+                                name: "Unbannnable",
+                                url: "https://unbannnable.com",
+                                logo: "https://unbannnable.com/unbannnable-mark-dark.png",
+                                sameAs: ["https://twitter.com/unbannnable"],
+                                founder: { "@type": "Person", name: "Nibodh Daware" },
+                            }),
+                        }}
+                    />
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{
+                            __html: JSON.stringify({
+                                "@context": "https://schema.org",
                                 "@type": "WebApplication",
                                 name: "Unbannnable",
                                 description:
@@ -164,7 +179,7 @@ export default function RootLayout({
                                 operatingSystem: "Web Browser",
                                 offers: {
                                     "@type": "Offer",
-                                    price: "9.00",
+                                    price: "0",
                                     priceCurrency: "USD",
                                 },
                                 creator: {
@@ -178,6 +193,9 @@ export default function RootLayout({
                 <body>
                     <Suspense fallback={null}>
                         <ReferralHandler />
+                    </Suspense>
+                    <Suspense fallback={null}>
+                        <PostHogPageView />
                     </Suspense>
                     <DynamicClientComponent />
                     {children}

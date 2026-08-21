@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
         serverComponentsExternalPackages: ["@clerk/nextjs"],
     },
     images: {
+        formats: ["image/avif", "image/webp"],
         remotePatterns: [
             {
                 protocol: "https",
@@ -33,9 +34,9 @@ const nextConfig: NextConfig = {
                             "default-src 'self'",
                             "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us-assets.i.posthog.com https://us.i.posthog.com https://*.clerk.accounts.dev https://challenges.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com",
                             "connect-src 'self' https://us.i.posthog.com https://*.clerk.accounts.dev https://api.convex.cloud wss://*.convex.cloud https://old.reddit.com https://www.reddit.com https://generativelanguage.googleapis.com https://www.google-analytics.com",
-                            "img-src 'self' data: https: blob: https://www.google-analytics.com",
-                            "style-src 'self' 'unsafe-inline'",
-                            "font-src 'self' data:",
+                            "img-src 'self' data: https: blob: https://www.google-analytics.com https://api.producthunt.com",
+                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                            "font-src 'self' data: https://fonts.gstatic.com",
                             "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
                             "worker-src 'self' blob:",
                         ].join("; "),

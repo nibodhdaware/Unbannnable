@@ -161,7 +161,8 @@ export default function Landing() {
                     </div>
                     <div className="hidden md:flex gap-8 font-sans-body font-medium text-sm tracking-wide uppercase">
                         <a href="#features" className="hover:underline">Features</a>
-                        <a href="https://check.unbannnable.com/" className="hover:underline">Ban Checker</a>
+                        <a href="/check" className="hover:underline">Ban Checker</a>
+                        <a href="/check/r" className="hover:underline">Subreddit Guides</a>
                     </div>
                     <SignedOut>
                         <SignInButton mode="modal">
@@ -421,6 +422,19 @@ export default function Landing() {
                 </div>
             </section>
 
+            <section className="py-16 px-6 bg-white border-y-2 border-[#1A1A1A]">
+                <div className="max-w-5xl mx-auto">
+                    <h2 className="font-heavy-serif text-3xl mb-3">Subreddit-specific checkers</h2>
+                    <p className="font-sans-body text-black/70 mb-6">Pick your community and pre-check against its rules. Each guide has pitfalls, checklist, and examples.</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {["AskReddit","Entrepreneur","startups","SaaS","marketing","webdev","programming","reactjs","nextjs","javascript","SEO","ecommerce"].map((slug)=> (
+                            <a key={slug} href={`/check/r/${slug.toLowerCase()}`} className="border-2 border-[#1A1A1A] px-3 py-2 bg-[#F2F0E9] hover:bg-[#FF4500] hover:text-white font-sans-body font-bold text-sm uppercase tracking-wide transition-colors">r/{slug}</a>
+                        ))}
+                    </div>
+                    <a href="/check/r" className="inline-block mt-6 font-sans-body font-bold uppercase tracking-wide text-sm border-b-2 border-[#FF4500] hover:text-[#FF4500]">Browse all 25 subreddit guides →</a>
+                </div>
+            </section>
+
             {/* Footer */}
             <footer className="bg-[#1A1A1A] text-[#F2F0E9] py-12 px-6 border-t-2 border-[#F2F0E9]/20">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
@@ -449,8 +463,13 @@ export default function Landing() {
                                 </a>
                             </li>
                             <li>
-                                <a href="https://check.unbannnable.com/" className="text-[#F2F0E9]/70 hover:text-[#FF4500] transition-colors">
+                                <a href="/check" className="text-[#F2F0E9]/70 hover:text-[#FF4500] transition-colors">
                                     Ban Checker
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/check/r" className="text-[#F2F0E9]/70 hover:text-[#FF4500] transition-colors">
+                                    Subreddit Guides
                                 </a>
                             </li>
                         </ul>
